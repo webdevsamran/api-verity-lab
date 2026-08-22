@@ -1,0 +1,26 @@
+name: crud-lifecycle
+description: create -> get -> update -> delete against the local mock
+allowed_hosts: ["http://127.0.0.1"]
+steps:
+  - name: create
+    request:
+      method: POST
+      path: /users
+      body: {name: alice, role: user}
+    assert: {status: 201}
+    extract: {user_id: "$.id"}
+  - name: get
+    request:
+      method: GET
+      path: "/users/{user_id}"
+    assert: {status: 200, jsonpath: {"$.name": "alice"}}
+  - name: delete
+    request:
+      method: DELETE
+      path: "/users/{user_id}"
+    assert: {status: [200, 204]}
+cleanup:
+  - name: cleanup-delete
+    request:
+      method: DELETE
+      path: "/users/{user_id}"

@@ -1,85 +1,63 @@
-"""Plugin discovery and registry.
+"""Plugin discovery via importlib entry points.
 
-Built-in plugins are always available; external plugins are discovered
-through the six entry-point groups declared in their own packages.
+Six versioned groups: apiverity.specs / rules / checks / generators /
+exporters / transports. Plugin API contract version is ``1``; see
+docs/plugins.md.
 """
-
 from __future__ import annotations
 
-import sys
-from typing import Any
+PLUGIN_API_VERSION = 1
 
-if sys.version_info >= (3, 10):
+ENTRY_POINT_GROUPS = [
+    "apiverity.specs",
+    "apiverity.rules",
+    "apiverity.checks",
+    "apiverity.generators",
+    "apiverity.exporters",
+    "apiverity.transports",
+]
+
+
+def list_entry_points() -> dict[str, list[dict[str, str]]]:
     from importlib.metadata import entry_points
-else:  # pragma: no cover
-    from importlib_metadata import entry_points
 
-from apiverity import PLUGIN_API_VERSION
-from apiverity.plugins.api import CheckPlugin, ExporterPlugin, GeneratorPlugin, RulePlugin
-from apiverity.specs import SpecPlugin
-
-_ENTRY_POINT_GROUPS = {
-    "specs": "apiverity.specs",
-    "rules": "apiverity.rules",
-    "checks": "apiverity.checks",
-    "generators": "apiverity.generators",
-    "exporters": "apiverity.exporters",
-    "transports": "apiverity.transports",
-}
+    out: dict[str, list[dict[str, str]]] = {}
+    for group in ENTRY_POINT_GROUPS:
+        try:
+            eps = entry_points(group=group)
+        except TypeError:  # pragma: no cover - older Python fallback
+            eps = entry_points().get(group, [])
+        out[group] = [{"name": ep.name, "value": ep.value} for ep in eps]
+    return out
 
 
 class PluginRegistry:
-    """Loads and caches plugins from all entry-point groups."""
+    """Loads and caches plugins for a given entry-point group."""
 
-    def __init__(self) -> None:
-        self._cache: dict[str, list[Any]] = {}
-        self.warnings: list[str] = []
+    def __init__(self, group: str) -> None:
+        self.group = group
+        self._plugins: list[tuple[str, object]] | None = None
 
-    def _load_group(self, group_key: str) -> list[Any]:
-        if group_key in self._cache:
-            return self._cache[group_key]
-        loaded: list[Any] = []
-        try:
-            eps = entry_points(group=_ENTRY_POINT_GROUPS[group_key])
-        except TypeError:  # pragma: no cover - older Python fallback
-            eps = entry_points().get(_ENTRY_POINT_GROUPS[group_key], [])
-        for ep in eps:
-            try:
-                obj = ep.load()
-                instance = obj() if isinstance(obj, type) else obj
-                version = getattr(instance, "PLUGIN_API_VERSION", None)
-                if version is not None and version != PLUGIN_API_VERSION:
-                    self.warnings.append(
-                        f"plugin '{ep.name}' declares plugin API {version}, "
-                        f"expected {PLUGIN_API_VERSION}; skipped"
-                    )
-                    continue
-                loaded.append(instance)
-            except Exception as exc:  # noqa: BLE001 - plugin isolation
-                self.warnings.append(f"failed to load plugin '{ep.name}': {exc}")
-        self._cache[group_key] = loaded
-        return loaded
+    def load(self) -> list[tuple[str, object]]:
+        if self._plugins is None:
+            self._plugins = load_group(self.group)
+        return self._plugins
 
-    def spec_plugins(self) -> list[SpecPlugin]:
-        return list(self._load_group("specs"))
+    def instances(self) -> list[object]:
+        return [factory() if callable(factory) else factory for _, factory in self.load()]
 
-    def rule_plugins(self) -> list[RulePlugin]:
-        return list(self._load_group("rules"))
 
-    def check_plugins(self) -> list[CheckPlugin]:
-        return list(self._load_group("checks"))
+def load_group(group: str) -> list[tuple[str, object]]:
+    """Load all registered plugins for a group."""
+    from importlib.metadata import entry_points
 
-    def generator_plugins(self) -> list[GeneratorPlugin]:
-        return list(self._load_group("generators"))
-
-    def exporter_plugins(self) -> list[ExporterPlugin]:
-        return list(self._load_group("exporters"))
-
-    def transport_plugins(self) -> list[Any]:
-        return list(self._load_group("transports"))
-
-    def summary(self) -> dict[str, list[str]]:
-        return {
-            key: [type(p).__module__ + ":" + type(p).__name__ for p in self._load_group(key)]
-            for key in _ENTRY_POINT_GROUPS
-        }
+    if group not in ENTRY_POINT_GROUPS:
+        raise ValueError(f"unknown entry point group '{group}'")
+    loaded = []
+    try:
+        eps = entry_points(group=group)
+    except TypeError:  # pragma: no cover
+        eps = entry_points().get(group, [])
+    for ep in eps:
+        loaded.append((ep.name, ep.load()))
+    return loaded
