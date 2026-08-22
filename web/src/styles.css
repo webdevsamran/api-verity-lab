@@ -38,4 +38,4 @@ tr:hover td { background: var(--panel); }
 .banner.error { background: #e5484d22; border: 1px solid #e5484d; padding: 10px; border-radius: 6px; margin-top: 12px; }
 footer { border-top: 1px solid var(--border); padding: 12px 0; }
 code { background: var(--panel); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
-@media (max-width: 640px) { .chart-row { grid-template-columns: 120px 1fr 50px; } }
+@media (max-width: 640px) { .chart-row { grid-template-columns: 120px 1fr 50px; } }pre.detail{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:13px;overflow:auto;max-height:60vh}

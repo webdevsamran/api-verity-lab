@@ -60,6 +60,32 @@ def main() -> None:
     coverage = measure_coverage(service, exercised_operations=exercised,
                                 statuses_by_operation=statuses)
 
+    from apiverity.stateful.engine import load_workflow_manifest, WorkflowEngine
+
+    wf = load_workflow_manifest(str(FIX / "workflows/crud-lifecycle.yaml"))
+    with MockServer(service, port=8096) as mock:
+        wf_result = WorkflowEngine(wf, mock.base_url).run()
+
+    from apiverity.rules.breaking import CATALOG
+
+    rules_catalog = [
+        {"rule_id": rid, "severity": spec.severity.value, "description": spec.description}
+        for rid, spec in sorted(CATALOG.items())
+    ]
+
+    contract_tree = [
+        {
+            "key": op.key,
+            "method": op.method,
+            "path": op.path,
+            "summary": op.summary,
+            "deprecated": op.deprecated,
+            "parameters": [p.name for p in op.parameters],
+            "responses": [r.status for r in op.responses],
+        }
+        for op in service.operations
+    ]
+
     payload = {
         "meta": {
             "tool": "apiverity",
@@ -77,6 +103,11 @@ def main() -> None:
         "performance": {"operations": json.loads(perf.model_dump_json())["operations"]},
         "coverage": {"overall_percent": coverage.overall_percent(),
                      "operations": json.loads(coverage.model_dump_json())["operations"]},
+        "rules": {"count": len(rules_catalog), "catalog": rules_catalog},
+        "workflow": {"name": wf.name, "description": wf.description,
+                     "result": json.loads(wf_result.model_dump_json())},
+        "contract": {"title": service.title, "version": service.version,
+                     "operations": contract_tree},
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(payload, indent=2), encoding="utf-8")
