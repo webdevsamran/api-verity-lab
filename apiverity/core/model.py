@@ -290,3 +290,7 @@ class Change(BaseModel):
     breaking_hint: Optional[str] = None
 
 SchemaNode.model_rebuild()
+
+
+# SDK-facing alias: a Service IS the normalized contract.
+Contract = Service

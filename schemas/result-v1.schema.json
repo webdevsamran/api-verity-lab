@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/webdevsamran/api-verity-lab/schemas/result-v1.schema.json",
+  "title": "apiverity result artifact (v1)",
+  "type": "object",
+  "required": ["tool", "tool_version", "command", "contract_hash"],
+  "properties": {
+    "tool": { "const": "apiverity" },
+    "tool_version": { "type": "string" },
+    "result_schema_version": { "const": 1 },
+    "command": {
+      "enum": ["validate", "diff", "breaking", "test", "workflow", "drift",
+               "replay", "baseline", "regression", "coverage"]
+    },
+    "contract_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "protocol": { "enum": ["openapi", "graphql", "grpc"] },
+    "target": { "type": "string" },
+    "seed": { "type": "integer" },
+    "duration_ms": { "type": "integer" },
+    "redaction": {
+      "type": "object",
+      "properties": {
+        "applied": { "type": "boolean" },
+        "sensitive_field_count": { "type": "integer" }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["rule_id", "severity", "message"],
+        "properties": {
+          "rule_id": { "type": "string" },
+          "severity": { "enum": ["ERROR", "WARN", "INFO"] },
+          "message": { "type": "string" },
+          "operation_key": { "type": "string" },
+          "old_location": { "type": "object" },
+          "new_location": { "type": "object" }
+        }
+      }
+    },
+    "changes": { "type": "array", "items": { "type": "object" } },
+    "results": { "type": "array", "items": { "type": "object" } },
+    "operations": { "type": "array", "items": { "type": "object" } }
+  }
+}
