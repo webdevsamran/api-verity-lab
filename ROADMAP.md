@@ -27,9 +27,13 @@ Status legend: ✅ shipped · 🚧 in progress · 📋 planned
 - ✅ Typed SDK surface
 - ✅ Plugin system (6 entry-point groups)
 - ✅ Reporters: terminal/JSON/YAML/Markdown/JUnit/SARIF/HTML
-- ✅ React+TS frontend with 15 pages + static demo data
+- 🚧 React+TS frontend: Home/Diff/Breaking/Test Runs/Drift/Performance/
+  Coverage pages shipped on real generated fixture data; remaining pages
+  (Contract Explorer, Rules, Fuzz Failures, Workflows, Result Detail,
+  Docs, Contributors, About) land in v0.2
 - ✅ `apiverity serve` local bundle server
-- ✅ Reusable GitHub Action / PR summary experience
+- 📋 Reusable GitHub Action / PR summary experience (workflow templates
+  for validate/diff/breaking ship first)
 - ✅ Deterministic fixture APIs + integration tests
 
 ## v0.2 — Deepening
@@ -49,6 +53,15 @@ Status legend: ✅ shipped · 🚧 in progress · 📋 planned
 - 📋 Plugin marketplace documentation + example plugin repo
 - 📋 OpenTelemetry trace correlation for drift findings
 - 📋 Multi-contract aggregation reports (monorepo mode)
+
+## Known v0.1 limitations
+
+- GraphQL/gRPC are foundations: loading + structural diffing only;
+  testing/fuzzing parity with OpenAPI is a v0.2 goal.
+- Frontend page set is intentionally minimal in v0.1 (see above).
+- Performance measurement is sequential; concurrency curves arrive in v0.2.
+- Reporters cover JSON/Markdown/JUnit/SARIF via `report`; YAML/HTML come
+  from the changelog/exporters and will be unified.
 
 ## Non-goals
 

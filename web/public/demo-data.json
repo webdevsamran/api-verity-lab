@@ -1,0 +1,703 @@
+{
+  "meta": {
+    "tool": "apiverity",
+    "generated_from": "fixtures/apis (crud, versioned v1->v2, drift)",
+    "label": "EXAMPLE RUN \u2014 generated locally from bundled fixture APIs"
+  },
+  "diff": {
+    "old_version": "1.2.0",
+    "new_version": "2.0.0",
+    "changes": [
+      {
+        "id": "CHG-OPERATION_REMOVED-1",
+        "kind": "operation_removed",
+        "direction": "meta",
+        "operation_key": "DELETE /users/{id}",
+        "description": "operation 'DELETE /users/{id}' was removed",
+        "old_location": {
+          "file": "v1.yaml",
+          "line": 42,
+          "column": 7,
+          "pointer": "/paths/~1users~1{id}/delete"
+        },
+        "new_location": null,
+        "old_value": null,
+        "new_value": null,
+        "breaking_hint": "existing clients calling this operation will fail"
+      },
+      {
+        "id": "CHG-PARAMETER_REQUIREDNESS-1",
+        "kind": "parameter_requiredness",
+        "direction": "request",
+        "operation_key": "GET /users",
+        "description": "parameter 'limit' (query) requiredness changed False -> True",
+        "old_location": {
+          "file": "v1.yaml",
+          "line": 10,
+          "column": 11,
+          "pointer": "/paths/~1users/get/parameters/0"
+        },
+        "new_location": {
+          "file": "v2.yaml",
+          "line": 10,
+          "column": 11,
+          "pointer": "/paths/~1users/get/parameters/0"
+        },
+        "old_value": false,
+        "new_value": true,
+        "breaking_hint": "parameter became required: existing clients omitting it will fail"
+      },
+      {
+        "id": "CHG-PARAMETER_CONSTRAINT_CHANGED-1",
+        "kind": "parameter_constraint_changed",
+        "direction": "request",
+        "operation_key": "GET /users",
+        "description": "request parameter 'limit': constraint 'minimum' changed 1 -> 10",
+        "old_location": null,
+        "new_location": null,
+        "old_value": 1,
+        "new_value": 10,
+        "breaking_hint": null
+      },
+      {
+        "id": "CHG-PARAMETER_CONSTRAINT_CHANGED-2",
+        "kind": "parameter_constraint_changed",
+        "direction": "request",
+        "operation_key": "GET /users",
+        "description": "request parameter 'limit': constraint 'maximum' changed 100 -> 50",
+        "old_location": null,
+        "new_location": null,
+        "old_value": 100,
+        "new_value": 50,
+        "breaking_hint": null
+      },
+      {
+        "id": "CHG-ENUM_CHANGED-1",
+        "kind": "enum_changed",
+        "direction": "response",
+        "operation_key": "GET /users",
+        "description": "response 200 body (application/json)[].role: enum changed (removed ['guest'], added [])",
+        "old_location": {
+          "file": "v1.yaml",
+          "line": 54,
+          "column": 15,
+          "pointer": "/paths/~1users/get/responses/200/content/application~1json/schema/items/properties/role"
+        },
+        "new_location": {
+          "file": "v2.yaml",
+          "line": 52,
+          "column": 15,
+          "pointer": "/paths/~1users/get/responses/200/content/application~1json/schema/items/properties/role"
+        },
+        "old_value": [
+          "admin",
+          "user",
+          "guest"
+        ],
+        "new_value": [
+          "admin",
+          "user"
+        ],
+        "breaking_hint": "enum values removed: ['guest']"
+      },
+      {
+        "id": "CHG-ENUM_CHANGED-2",
+        "kind": "enum_changed",
+        "direction": "response",
+        "operation_key": "GET /users/{id}",
+        "description": "response 200 body (application/json).role: enum changed (removed ['guest'], added [])",
+        "old_location": {
+          "file": "v1.yaml",
+          "line": 54,
+          "column": 15,
+          "pointer": "/paths/~1users~1{id}/get/responses/200/content/application~1json/schema/properties/role"
+        },
+        "new_location": {
+          "file": "v2.yaml",
+          "line": 52,
+          "column": 15,
+          "pointer": "/paths/~1users~1{id}/get/responses/200/content/application~1json/schema/properties/role"
+        },
+        "old_value": [
+          "admin",
+          "user",
+          "guest"
+        ],
+        "new_value": [
+          "admin",
+          "user"
+        ],
+        "breaking_hint": "enum values removed: ['guest']"
+      },
+      {
+        "id": "CHG-ENUM_CHANGED-3",
+        "kind": "enum_changed",
+        "direction": "request",
+        "operation_key": "POST /users",
+        "description": "request body (application/json).role: enum changed (removed ['guest'], added [])",
+        "old_location": {
+          "file": "v1.yaml",
+          "line": 54,
+          "column": 15,
+          "pointer": "/paths/~1users/post/requestBody/content/application~1json/schema/properties/role"
+        },
+        "new_location": {
+          "file": "v2.yaml",
+          "line": 52,
+          "column": 15,
+          "pointer": "/paths/~1users/post/requestBody/content/application~1json/schema/properties/role"
+        },
+        "old_value": [
+          "admin",
+          "user",
+          "guest"
+        ],
+        "new_value": [
+          "admin",
+          "user"
+        ],
+        "breaking_hint": "enum values removed: ['guest']"
+      },
+      {
+        "id": "CHG-REQUEST_SCHEMA_CHANGED-1",
+        "kind": "request_schema_changed",
+        "direction": "request",
+        "operation_key": "POST /users",
+        "description": "request body requiredness changed False -> True",
+        "old_location": null,
+        "new_location": null,
+        "old_value": null,
+        "new_value": null,
+        "breaking_hint": "request body became required"
+      },
+      {
+        "id": "CHG-DESCRIPTION_CHANGED-1",
+        "kind": "description_changed",
+        "direction": "meta",
+        "operation_key": "(service)",
+        "description": "contract version changed '1.2.0' -> '2.0.0'",
+        "old_location": null,
+        "new_location": null,
+        "old_value": "1.2.0",
+        "new_value": "2.0.0",
+        "breaking_hint": null
+      }
+    ]
+  },
+  "breaking": {
+    "findings": [
+      {
+        "rule_id": "BRK-OP-REMOVED",
+        "severity": "ERROR",
+        "message": "operation 'DELETE /users/{id}' was removed",
+        "operation_key": "DELETE /users/{id}",
+        "location": {
+          "file": "v1.yaml",
+          "line": 42,
+          "column": 7,
+          "pointer": "/paths/~1users~1{id}/delete"
+        },
+        "new_location": null,
+        "change_id": "CHG-OPERATION_REMOVED-1",
+        "hint": "existing clients calling this operation will fail",
+        "metadata": {}
+      },
+      {
+        "rule_id": "BRK-PARAM-REQUIRED",
+        "severity": "ERROR",
+        "message": "parameter 'limit' (query) requiredness changed False -> True",
+        "operation_key": "GET /users",
+        "location": {
+          "file": "v1.yaml",
+          "line": 10,
+          "column": 11,
+          "pointer": "/paths/~1users/get/parameters/0"
+        },
+        "new_location": {
+          "file": "v2.yaml",
+          "line": 10,
+          "column": 11,
+          "pointer": "/paths/~1users/get/parameters/0"
+        },
+        "change_id": "CHG-PARAMETER_REQUIREDNESS-1",
+        "hint": "parameter became required: existing clients omitting it will fail",
+        "metadata": {}
+      },
+      {
+        "rule_id": "BRK-CONSTRAINT-TIGHTENED",
+        "severity": "ERROR",
+        "message": "request parameter 'limit': constraint 'minimum' changed 1 -> 10",
+        "operation_key": "GET /users",
+        "location": null,
+        "new_location": null,
+        "change_id": "CHG-PARAMETER_CONSTRAINT_CHANGED-1",
+        "hint": null,
+        "metadata": {}
+      },
+      {
+        "rule_id": "BRK-CONSTRAINT-TIGHTENED",
+        "severity": "ERROR",
+        "message": "request parameter 'limit': constraint 'maximum' changed 100 -> 50",
+        "operation_key": "GET /users",
+        "location": null,
+        "new_location": null,
+        "change_id": "CHG-PARAMETER_CONSTRAINT_CHANGED-2",
+        "hint": null,
+        "metadata": {}
+      },
+      {
+        "rule_id": "BRK-ENUM-NARROWED-RESPONSE",
+        "severity": "WARN",
+        "message": "response 200 body (application/json)[].role: enum changed (removed ['guest'], added [])",
+        "operation_key": "GET /users",
+        "location": {
+          "file": "v1.yaml",
+          "line": 54,
+          "column": 15,
+          "pointer": "/paths/~1users/get/responses/200/content/application~1json/schema/items/properties/role"
+        },
+        "new_location": {
+          "file": "v2.yaml",
+          "line": 52,
+          "column": 15,
+          "pointer": "/paths/~1users/get/responses/200/content/application~1json/schema/items/properties/role"
+        },
+        "change_id": "CHG-ENUM_CHANGED-1",
+        "hint": "enum values removed: ['guest']",
+        "metadata": {}
+      },
+      {
+        "rule_id": "BRK-ENUM-NARROWED-RESPONSE",
+        "severity": "WARN",
+        "message": "response 200 body (application/json).role: enum changed (removed ['guest'], added [])",
+        "operation_key": "GET /users/{id}",
+        "location": {
+          "file": "v1.yaml",
+          "line": 54,
+          "column": 15,
+          "pointer": "/paths/~1users~1{id}/get/responses/200/content/application~1json/schema/properties/role"
+        },
+        "new_location": {
+          "file": "v2.yaml",
+          "line": 52,
+          "column": 15,
+          "pointer": "/paths/~1users~1{id}/get/responses/200/content/application~1json/schema/properties/role"
+        },
+        "change_id": "CHG-ENUM_CHANGED-2",
+        "hint": "enum values removed: ['guest']",
+        "metadata": {}
+      },
+      {
+        "rule_id": "BRK-ENUM-NARROWED-REQUEST",
+        "severity": "ERROR",
+        "message": "request body (application/json).role: enum changed (removed ['guest'], added [])",
+        "operation_key": "POST /users",
+        "location": {
+          "file": "v1.yaml",
+          "line": 54,
+          "column": 15,
+          "pointer": "/paths/~1users/post/requestBody/content/application~1json/schema/properties/role"
+        },
+        "new_location": {
+          "file": "v2.yaml",
+          "line": 52,
+          "column": 15,
+          "pointer": "/paths/~1users/post/requestBody/content/application~1json/schema/properties/role"
+        },
+        "change_id": "CHG-ENUM_CHANGED-3",
+        "hint": "enum values removed: ['guest']",
+        "metadata": {}
+      },
+      {
+        "rule_id": "BRK-REQ-BODY-REQUIRED",
+        "severity": "ERROR",
+        "message": "request body requiredness changed False -> True",
+        "operation_key": "POST /users",
+        "location": null,
+        "new_location": null,
+        "change_id": "CHG-REQUEST_SCHEMA_CHANGED-1",
+        "hint": "request body became required",
+        "metadata": {}
+      }
+    ]
+  },
+  "test": {
+    "total": 17,
+    "passed": 4,
+    "failed": 13,
+    "results": [
+      {
+        "case_id": "TC-000-000",
+        "operation_key": "DELETE /users/{id}",
+        "kind": "positive",
+        "description": "valid request to DELETE /users/{id}",
+        "status": "pass",
+        "actual_status": 204,
+        "violations": [],
+        "reproduction": "curl -X DELETE 'http://127.0.0.1:8095/users/qah'",
+        "minimized": false,
+        "duration_ms": 10
+      },
+      {
+        "case_id": "TC-000-001",
+        "operation_key": "DELETE /users/{id}",
+        "kind": "negative",
+        "description": "path parameter 'id' invalid: wrong type (expected string)",
+        "status": "fail",
+        "actual_status": 204,
+        "violations": [
+          "invalid input accepted with 204 (expected 4xx)"
+        ],
+        "reproduction": "curl -X DELETE 'http://127.0.0.1:8095/users/12345'",
+        "minimized": false,
+        "duration_ms": 7
+      },
+      {
+        "case_id": "TC-001-000",
+        "operation_key": "GET /users",
+        "kind": "positive",
+        "description": "valid request to GET /users",
+        "status": "pass",
+        "actual_status": 200,
+        "violations": [],
+        "reproduction": "curl -X GET 'http://127.0.0.1:8095/users?limit=5'",
+        "minimized": false,
+        "duration_ms": 7
+      },
+      {
+        "case_id": "TC-001-001",
+        "operation_key": "GET /users",
+        "kind": "negative",
+        "description": "parameter 'limit' invalid: wrong type (expected integer)",
+        "status": "fail",
+        "actual_status": 200,
+        "violations": [
+          "invalid input accepted with 200 (expected 4xx)"
+        ],
+        "reproduction": "curl -X GET 'http://127.0.0.1:8095/users?limit=not-an-int'",
+        "minimized": false,
+        "duration_ms": 7
+      },
+      {
+        "case_id": "TC-001-002",
+        "operation_key": "GET /users",
+        "kind": "negative",
+        "description": "parameter 'limit' invalid: value < minimum(1)",
+        "status": "fail",
+        "actual_status": 200,
+        "violations": [
+          "invalid input accepted with 200 (expected 4xx)"
+        ],
+        "reproduction": "curl -X GET 'http://127.0.0.1:8095/users?limit=0'",
+        "minimized": false,
+        "duration_ms": 8
+      },
+      {
+        "case_id": "TC-002-000",
+        "operation_key": "GET /users/{id}",
+        "kind": "positive",
+        "description": "valid request to GET /users/{id}",
+        "status": "pass",
+        "actual_status": 200,
+        "violations": [],
+        "reproduction": "curl -X GET 'http://127.0.0.1:8095/users/kow'",
+        "minimized": false,
+        "duration_ms": 9
+      },
+      {
+        "case_id": "TC-002-001",
+        "operation_key": "GET /users/{id}",
+        "kind": "negative",
+        "description": "path parameter 'id' invalid: wrong type (expected string)",
+        "status": "fail",
+        "actual_status": 200,
+        "violations": [
+          "invalid input accepted with 200 (expected 4xx)"
+        ],
+        "reproduction": "curl -X GET 'http://127.0.0.1:8095/users/12345'",
+        "minimized": false,
+        "duration_ms": 9
+      },
+      {
+        "case_id": "TC-003-000",
+        "operation_key": "POST /users",
+        "kind": "positive",
+        "description": "valid request to POST /users",
+        "status": "pass",
+        "actual_status": 201,
+        "violations": [],
+        "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"hmc\", \"email\": \"user@example.com\", \"age\": 2, \"role\": \"admin\"}'",
+        "minimized": false,
+        "duration_ms": 11
+      },
+      {
+        "case_id": "TC-003-001",
+        "operation_key": "POST /users",
+        "kind": "negative",
+        "description": "request body invalid: wrong type (expected object)",
+        "status": "fail",
+        "actual_status": 201,
+        "violations": [
+          "invalid input accepted with 201 (expected 4xx)"
+        ],
+        "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '[\"not\", \"an-object\"]'",
+        "minimized": false,
+        "duration_ms": 10
+      },
+      {
+        "case_id": "TC-003-002",
+        "operation_key": "POST /users",
+        "kind": "negative",
+        "description": "request body invalid: missing required field 'name'",
+        "status": "fail",
+        "actual_status": 201,
+        "violations": [
+          "invalid input accepted with 201 (expected 4xx)"
+        ],
+        "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"email\": \"user@example.com\", \"age\": 79, \"role\": \"guest\"}'",
+        "minimized": false,
+        "duration_ms": 9
+      },
+      {
+        "case_id": "TC-003-003",
+        "operation_key": "POST /users",
+        "kind": "negative",
+        "description": "request body invalid: field 'name': wrong type (expected string)",
+        "status": "fail",
+        "actual_status": 201,
+        "violations": [
+          "invalid input accepted with 201 (expected 4xx)"
+        ],
+        "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": 12345, \"email\": \"user@example.com\", \"age\": 109, \"role\": \"admin\"}'",
+        "minimized": false,
+        "duration_ms": 9
+      },
+      {
+        "case_id": "TC-003-004",
+        "operation_key": "POST /users",
+        "kind": "negative",
+        "description": "request body invalid: field 'name': length < minLength(1)",
+        "status": "fail",
+        "actual_status": 201,
+        "violations": [
+          "invalid input accepted with 201 (expected 4xx)"
+        ],
+        "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"\", \"email\": \"user@example.com\", \"age\": 8, \"role\": \"admin\"}'",
+        "minimized": false,
+        "duration_ms": 8
+      },
+      {
+        "case_id": "TC-003-005",
+        "operation_key": "POST /users",
+        "kind": "negative",
+        "description": "request body invalid: field 'email': wrong type (expected string)",
+        "status": "fail",
+        "actual_status": 201,
+        "violations": [
+          "invalid input accepted with 201 (expected 4xx)"
+        ],
+        "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"aiu\", \"email\": 12345, \"age\": 135, \"role\": \"guest\"}'",
+        "minimized": false,
+        "duration_ms": 11
+      },
+      {
+        "case_id": "TC-003-006",
+        "operation_key": "POST /users",
+        "kind": "negative",
+        "description": "request body invalid: field 'age': wrong type (expected integer)",
+        "status": "fail",
+        "actual_status": 201,
+        "violations": [
+          "invalid input accepted with 201 (expected 4xx)"
+        ],
+        "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"nqq\", \"email\": \"user@example.com\", \"age\": \"not-an-int\", \"role\": \"guest\"}'",
+        "minimized": false,
+        "duration_ms": 11
+      },
+      {
+        "case_id": "TC-003-007",
+        "operation_key": "POST /users",
+        "kind": "negative",
+        "description": "request body invalid: field 'age': value < minimum(0)",
+        "status": "fail",
+        "actual_status": 201,
+        "violations": [
+          "invalid input accepted with 201 (expected 4xx)"
+        ],
+        "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"rmj\", \"email\": \"user@example.com\", \"age\": -1, \"role\": \"user\"}'",
+        "minimized": false,
+        "duration_ms": 12
+      },
+      {
+        "case_id": "TC-003-008",
+        "operation_key": "POST /users",
+        "kind": "negative",
+        "description": "request body invalid: field 'role': wrong type (expected string)",
+        "status": "fail",
+        "actual_status": 201,
+        "violations": [
+          "invalid input accepted with 201 (expected 4xx)"
+        ],
+        "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"kvd\", \"email\": \"user@example.com\", \"age\": 116, \"role\": 12345}'",
+        "minimized": false,
+        "duration_ms": 12
+      },
+      {
+        "case_id": "TC-003-009",
+        "operation_key": "POST /users",
+        "kind": "negative",
+        "description": "request body invalid: field 'role': value outside enum ['admin', 'user', 'guest']",
+        "status": "fail",
+        "actual_status": 201,
+        "violations": [
+          "invalid input accepted with 201 (expected 4xx)"
+        ],
+        "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"cjw\", \"email\": \"user@example.com\", \"age\": 7, \"role\": \"__invalid_enum_2555\"}'",
+        "minimized": false,
+        "duration_ms": 11
+      }
+    ]
+  },
+  "drift": {
+    "findings": [
+      {
+        "operation_key": "GET /reports",
+        "rule_id": "DRIFT-STATUS",
+        "severity": "WARN",
+        "message": "returned status 404 which is not declared (declared: ['200'])"
+      },
+      {
+        "operation_key": "GET /users/{id}",
+        "rule_id": "DRIFT-UNDECLARED-FIELD",
+        "severity": "WARN",
+        "message": "$: undeclared field(s) ['age']"
+      },
+      {
+        "operation_key": "GET /users/{id}",
+        "rule_id": "DRIFT-HEADER",
+        "severity": "WARN",
+        "message": "declared response header 'X-Request-Id' missing"
+      }
+    ]
+  },
+  "performance": {
+    "operations": [
+      {
+        "operation_key": "DELETE /users/{id}",
+        "requests": 15,
+        "errors": 15,
+        "timeouts": 0,
+        "p50_ms": 2006.02,
+        "p90_ms": 2013.67,
+        "p95_ms": 2017.56,
+        "p99_ms": 2017.56,
+        "throughput_rps": 0.5
+      },
+      {
+        "operation_key": "GET /users",
+        "requests": 15,
+        "errors": 15,
+        "timeouts": 0,
+        "p50_ms": 2007.43,
+        "p90_ms": 2013.33,
+        "p95_ms": 2018.28,
+        "p99_ms": 2018.28,
+        "throughput_rps": 0.5
+      },
+      {
+        "operation_key": "GET /users/{id}",
+        "requests": 15,
+        "errors": 15,
+        "timeouts": 0,
+        "p50_ms": 2010.14,
+        "p90_ms": 2017.12,
+        "p95_ms": 2024.39,
+        "p99_ms": 2024.39,
+        "throughput_rps": 0.5
+      },
+      {
+        "operation_key": "POST /users",
+        "requests": 15,
+        "errors": 15,
+        "timeouts": 0,
+        "p50_ms": 2005.57,
+        "p90_ms": 2015.82,
+        "p95_ms": 2017.98,
+        "p99_ms": 2017.98,
+        "throughput_rps": 0.5
+      }
+    ]
+  },
+  "coverage": {
+    "overall_percent": 100.0,
+    "operations": [
+      {
+        "operation_key": "DELETE /users/{id}",
+        "exercised": true,
+        "statuses_seen": [
+          204
+        ],
+        "declared_statuses": [
+          "204"
+        ],
+        "parameters_exercised": [],
+        "parameters_declared": [
+          "id"
+        ],
+        "body_constraints_exercised": 0,
+        "body_constraints_declared": 0,
+        "security_schemes": []
+      },
+      {
+        "operation_key": "GET /users",
+        "exercised": true,
+        "statuses_seen": [
+          200
+        ],
+        "declared_statuses": [
+          "200"
+        ],
+        "parameters_exercised": [],
+        "parameters_declared": [
+          "limit"
+        ],
+        "body_constraints_exercised": 0,
+        "body_constraints_declared": 0,
+        "security_schemes": []
+      },
+      {
+        "operation_key": "GET /users/{id}",
+        "exercised": true,
+        "statuses_seen": [
+          200
+        ],
+        "declared_statuses": [
+          "200",
+          "404"
+        ],
+        "parameters_exercised": [],
+        "parameters_declared": [
+          "id"
+        ],
+        "body_constraints_exercised": 0,
+        "body_constraints_declared": 0,
+        "security_schemes": []
+      },
+      {
+        "operation_key": "POST /users",
+        "exercised": true,
+        "statuses_seen": [
+          201
+        ],
+        "declared_statuses": [
+          "201"
+        ],
+        "parameters_exercised": [],
+        "parameters_declared": [],
+        "body_constraints_exercised": 0,
+        "body_constraints_declared": 4,
+        "security_schemes": []
+      }
+    ]
+  }
+}
