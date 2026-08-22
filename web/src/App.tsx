@@ -3,10 +3,14 @@ import { useEffect, useMemo, useState } from 'react'
 /* ---------- types mirroring apiverity result artifacts ---------- */
 interface Finding { rule_id: string; severity: 'ERROR' | 'WARN' | 'INFO'; message: string }
 interface Change { id: string; kind: string; direction: string; description: string }
-interface TestResultRow { case_id: string; operation_key: string; kind: string; status: string; actual_status: number | null; violations: string[] }
+interface TestResultRow { case_id: string; operation_key: string; kind: string; status: string; actual_status: number | null; violations: string[]; description?: string }
 interface DriftRow { operation_key: string; rule_id: string; message: string }
 interface PerfOp { operation_key: string; p50_ms: number; p95_ms: number; p99_ms: number; errors: number; throughput_rps: number }
 interface OpCoverage { operation_key: string; exercised: boolean; declared_statuses: string[]; statuses_seen: number[] }
+interface RuleRow { rule_id: string; severity: 'ERROR' | 'WARN' | 'INFO'; description: string }
+interface StepResultRow { step: string; status: string; actual_status: number | null; violations: string[]; duration_ms: number }
+interface WorkflowData { name: string; description: string | null; result: { status: string; steps: StepResultRow[]; cleanup_steps: StepResultRow[]; variables: Record<string, unknown> } }
+interface ContractOp { key: string; method: string; path: string; summary: string | null; deprecated: boolean; parameters: string[]; responses: string[] }
 interface DemoData {
   meta: { tool: string; generated_from: string; label: string }
   diff: { old_version: string; new_version: string; changes: Change[] }
@@ -15,6 +19,9 @@ interface DemoData {
   drift: { findings: DriftRow[] }
   performance: { operations: PerfOp[] }
   coverage: { overall_percent: number; operations: OpCoverage[] }
+  rules: { count: number; catalog: RuleRow[] }
+  workflow: WorkflowData
+  contract: { title: string; version: string; operations: ContractOp[] }
 }
 
 const SEV_COLORS: Record<string, string> = { ERROR: '#e5484d', WARN: '#f5a623', INFO: '#3b82f6' }
@@ -175,11 +182,169 @@ function CoveragePage({ data }: { data: DemoData | null }) {
   )
 }
 
+/* ---------- additional pages ---------- */
+const METHOD_COLORS: Record<string, string> = {
+  GET: '#3b82f6', POST: '#2ea043', PUT: '#f5a623', PATCH: '#a855f7', DELETE: '#e5484d',
+}
+
+function ContractExplorerPage({ data }: { data: DemoData | null }) {
+  const [selected, setSelected] = useState<string | null>(null)
+  if (!data) return <Empty msg="Loading…" />
+  const op = data.contract.operations.find((o) => o.key === selected)
+  return (
+    <>
+      <h2>Contract Explorer <span className="muted">{data.contract.title} v{data.contract.version}</span></h2>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div>
+          {data.contract.operations.map((o) => (
+            <div key={o.key} onClick={() => setSelected(o.key)}
+              style={{ padding: 8, cursor: 'pointer', borderRadius: 6,
+                background: selected === o.key ? 'var(--panel)' : undefined }}>
+              <Badge color={METHOD_COLORS[o.method]}>{o.method}</Badge>{' '}
+              <code>{o.path}</code> {o.deprecated && <Badge color="#e5484d">deprecated</Badge>}
+            </div>
+          ))}
+        </div>
+        <div>
+          {!op ? <Empty msg="Select an endpoint." /> : (
+            <>
+              <h3><Badge color={METHOD_COLORS[op.method]}>{op.method}</Badge> <code>{op.path}</code></h3>
+              <p>{op.summary ?? 'No summary.'}</p>
+              <p><strong>Parameters:</strong> {op.parameters.join(', ') || '—'}</p>
+              <p><strong>Responses:</strong> {op.responses.join(', ')}</p>
+            </>
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
+
+function RulesPage({ data }: { data: DemoData | null }) {
+  if (!data) return <Empty msg="Loading…" />
+  return (
+    <>
+      <h2>Rules Catalog <span className="muted">{data.rules.count} rules</span></h2>
+      <table><thead><tr><th>Rule</th><th>Severity</th><th>Description</th></tr></thead>
+        <tbody>{data.rules.catalog.map((r) => (
+          <tr key={r.rule_id}><td><code>{r.rule_id}</code></td><td><SeverityBadge sev={r.severity} /></td><td>{r.description}</td></tr>
+        ))}</tbody></table>
+    </>
+  )
+}
+
+function FuzzFailuresPage({ data }: { data: DemoData | null }) {
+  if (!data) return <Empty msg="Loading…" />
+  const failures = data.test.results.filter((r) => r.status !== 'pass')
+  return (
+    <>
+      <h2>Fuzz Failures <span className="muted">{failures.length} of {data.test.total} cases</span></h2>
+      {failures.length === 0 ? <Empty msg="No failures — every generated case behaved per contract." /> : (
+        <table><thead><tr><th>Case</th><th>Operation</th><th>Kind</th><th>HTTP</th><th>Violations</th></tr></thead>
+          <tbody>{failures.map((r) => (
+            <tr key={r.case_id}><td><code>{r.case_id}</code></td><td>{r.operation_key}</td><td>{r.kind}</td>
+              <td>{r.actual_status ?? '—'}</td><td>{r.violations.join('; ')}</td></tr>
+          ))}</tbody></table>
+      )}
+    </>
+  )
+}
+
+function WorkflowsPage({ data }: { data: DemoData | null }) {
+  if (!data) return <Empty msg="Loading…" />
+  const wf = data.workflow.result
+  return (
+    <>
+      <h2>Workflows <span className="muted">{data.workflow.name}</span></h2>
+      <p>{data.workflow.description}</p>
+      <p>Status: <Badge color={wf.status === 'pass' ? '#2ea043' : '#e5484d'}>{wf.status}</Badge></p>
+      <h3>Steps</h3>
+      <table><thead><tr><th>Step</th><th>Status</th><th>HTTP</th><th>ms</th><th>Notes</th></tr></thead>
+        <tbody>{wf.steps.map((s) => (
+          <tr key={s.step}><td>{s.step}</td>
+            <td><Badge color={s.status === 'pass' ? '#2ea043' : '#e5484d'}>{s.status}</Badge></td>
+            <td>{s.actual_status ?? '—'}</td><td>{s.duration_ms}</td><td>{s.violations.join('; ') || '—'}</td></tr>
+        ))}</tbody></table>
+      {wf.cleanup_steps.length > 0 && (<>
+        <h3>Cleanup</h3>
+        <table><thead><tr><th>Step</th><th>Status</th><th>HTTP</th></tr></thead>
+          <tbody>{wf.cleanup_steps.map((s) => (
+            <tr key={s.step}><td>{s.step}</td><td>{s.status}</td><td>{s.actual_status ?? '—'}</td></tr>
+          ))}</tbody></table>
+      </>)}
+    </>
+  )
+}
+
+function ResultDetailPage({ data }: { data: DemoData | null }) {
+  const [caseId, setCaseId] = useState('')
+  if (!data) return <Empty msg="Loading…" />
+  const result = data.test.results.find((r) => r.case_id === caseId)
+  return (
+    <>
+      <h2>Result Detail</h2>
+      <select value={caseId} onChange={(e) => setCaseId(e.target.value)} aria-label="select test case">
+        <option value="">Select a test case…</option>
+        {data.test.results.map((r) => <option key={r.case_id} value={r.case_id}>{r.case_id} — {r.description ?? r.operation_key}</option>)}
+      </select>
+      {!result ? <Empty msg="Pick a case to inspect its full result artifact." /> : (
+        <pre className="detail">{JSON.stringify(result, null, 2)}</pre>
+      )}
+    </>
+  )
+}
+
+function DocsPage() {
+  return (
+    <>
+      <h2>Docs</h2>
+      <ul>
+        <li><strong>Rule catalog</strong> — docs/rule-catalog.md (35 direction-aware breaking rules + semver policy)</li>
+        <li><strong>Spec support matrix</strong> — docs/spec-support.md (OpenAPI ✅ · GraphQL/gRPC foundations)</li>
+        <li><strong>Privacy & redaction</strong> — docs/privacy.md (what is always redacted, guarantees)</li>
+        <li><strong>CI integration</strong> — docs/ci.md (PR gate, JUnit/SARIF artifacts, perf budgets)</li>
+        <li><strong>Workflow authoring</strong> — docs/workflow-authoring.md (YAML manifests, allowlists)</li>
+        <li><strong>SDK</strong> — docs/sdk.md (typed pydantic surface, plugin API version)</li>
+      </ul>
+    </>
+  )
+}
+
+function ContributorsPage() {
+  return (
+    <>
+      <h2>Contributors</h2>
+      <div className="card">
+        <div className="card-value">@webdevsamran</div>
+        <div className="card-key">Creator · Founder · Lead Maintainer</div>
+      </div>
+      <p className="muted">See CONTRIBUTING.md to join — good first tasks are listed in ISSUES.md.</p>
+    </>
+  )
+}
+
+function AboutPage() {
+  return (
+    <>
+      <h2>About</h2>
+      <p>
+        API Verity Lab is a local-first API reliability laboratory unifying contract
+        governance, breaking-change analysis, schema-driven/stateful testing, runtime
+        drift detection, traffic replay and performance regression for OpenAPI,
+        GraphQL and gRPC.
+      </p>
+      <p className="muted">Apache-2.0 · Created by @webdevsamran · No cloud component required.</p>
+    </>
+  )
+}
+
 /* ---------- shell ---------- */
 const PAGES = [
-  ['home', 'Home'], ['diff', 'Diff Review'], ['breaking', 'Breaking Changes'],
-  ['tests', 'Test Runs'], ['drift', 'Runtime Drift'], ['perf', 'Performance'],
-  ['coverage', 'Coverage'],
+  ['home', 'Home'], ['explorer', 'Contract Explorer'], ['diff', 'Diff Review'],
+  ['breaking', 'Breaking Changes'], ['rules', 'Rules'], ['tests', 'Test Runs'],
+  ['fuzz', 'Fuzz Failures'], ['workflows', 'Workflows'], ['drift', 'Runtime Drift'],
+  ['perf', 'Performance'], ['coverage', 'Coverage'], ['detail', 'Result Detail'],
+  ['docs', 'Docs'], ['contributors', 'Contributors'], ['about', 'About'],
 ] as const
 
 export default function App() {
@@ -197,6 +362,14 @@ export default function App() {
       case 'drift': return <DriftPage data={data} />
       case 'perf': return <PerfPage data={data} />
       case 'coverage': return <CoveragePage data={data} />
+      case 'explorer': return <ContractExplorerPage data={data} />
+      case 'rules': return <RulesPage data={data} />
+      case 'fuzz': return <FuzzFailuresPage data={data} />
+      case 'workflows': return <WorkflowsPage data={data} />
+      case 'detail': return <ResultDetailPage data={data} />
+      case 'docs': return <DocsPage />
+      case 'contributors': return <ContributorsPage />
+      case 'about': return <AboutPage />
       default: return <HomePage data={data} />
     }
   }, [page, data])

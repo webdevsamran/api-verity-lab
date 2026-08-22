@@ -27,13 +27,13 @@ Status legend: ✅ shipped · 🚧 in progress · 📋 planned
 - ✅ Typed SDK surface
 - ✅ Plugin system (6 entry-point groups)
 - ✅ Reporters: terminal/JSON/YAML/Markdown/JUnit/SARIF/HTML
-- 🚧 React+TS frontend: Home/Diff/Breaking/Test Runs/Drift/Performance/
-  Coverage pages shipped on real generated fixture data; remaining pages
-  (Contract Explorer, Rules, Fuzz Failures, Workflows, Result Detail,
-  Docs, Contributors, About) land in v0.2
+- ✅ React+TS frontend with all 15 pages (Home, Contract Explorer, Diff
+  Review, Breaking Changes, Rules, Test Runs, Fuzz Failures, Workflows,
+  Runtime Drift, Performance, Coverage, Result Detail, Docs,
+  Contributors, About) on real generated fixture data
 - ✅ `apiverity serve` local bundle server
-- 📋 Reusable GitHub Action / PR summary experience (workflow templates
-  for validate/diff/breaking ship first)
+- ✅ Reusable GitHub Action / PR summary experience (single non-spammy
+  comment, updated on push; validate/diff/breaking/semver gate)
 - ✅ Deterministic fixture APIs + integration tests
 
 ## v0.2 — Deepening
@@ -58,10 +58,8 @@ Status legend: ✅ shipped · 🚧 in progress · 📋 planned
 
 - GraphQL/gRPC are foundations: loading + structural diffing only;
   testing/fuzzing parity with OpenAPI is a v0.2 goal.
-- Frontend page set is intentionally minimal in v0.1 (see above).
 - Performance measurement is sequential; concurrency curves arrive in v0.2.
-- Reporters cover JSON/Markdown/JUnit/SARIF via `report`; YAML/HTML come
-  from the changelog/exporters and will be unified.
+- Workflow graph rendering is tabular (step list) rather than a visual DAG.
 
 ## Non-goals
 
