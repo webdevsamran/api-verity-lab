@@ -20,9 +20,15 @@ EXIT_UNREACHABLE = 3
 EXIT_INTERNAL = 4
 
 
+_LAST_SPEC: str | None = None
+_LAST_TARGET: str | None = None
+_LAST_SEED: int | None = None
+
 def _load(path: str):
     from apiverity.specs.loader import detect_and_load
 
+    global _LAST_SPEC
+    _LAST_SPEC = path
     try:
         return detect_and_load(path)
     except FileNotFoundError:
@@ -34,6 +40,10 @@ def _load(path: str):
 
 
 def _emit(data: dict, as_json: bool) -> None:
+    from apiverity.core.artifact import enrich
+
+    data = enrich(data, spec_path=_LAST_SPEC,
+                  target=_LAST_TARGET, seed=_LAST_SEED)
     if as_json:
         print(json.dumps(data, indent=2, default=str))
     else:
@@ -139,7 +149,10 @@ def cmd_test(args: argparse.Namespace) -> int:
     from apiverity.fuzz.minimize import minimize_failures
     from apiverity.fuzz.runner import build_cases, run_cases
 
+    global _LAST_TARGET, _LAST_SEED
     service, _, _ = _load(args.spec)
+    _LAST_TARGET = args.base_url
+    _LAST_SEED = args.seed
     cases = build_cases(service, seed=args.seed)
     try:
         results = run_cases(service, args.base_url, cases, timeout=args.timeout)
@@ -203,7 +216,9 @@ def cmd_coverage(args: argparse.Namespace) -> int:
 def cmd_drift(args: argparse.Namespace) -> int:
     from apiverity.runtime.drift import detect_drift
 
+    global _LAST_TARGET
     service, _, _ = _load(args.spec)
+    _LAST_TARGET = args.base_url
     try:
         report = detect_drift(service, args.base_url, timeout=args.timeout)
     except Exception as exc:  # noqa: BLE001
@@ -247,6 +262,8 @@ def cmd_baseline(args: argparse.Namespace) -> int:
     except Exception as exc:  # noqa: BLE001
         print(f"error: target unreachable: {exc}", file=sys.stderr)
         return EXIT_UNREACHABLE
+    global _LAST_TARGET
+    _LAST_TARGET = args.base_url
     payload = json.loads(report.model_dump_json())
     Path(args.output).write_text(json.dumps(payload, indent=2), encoding="utf-8")
     _emit({"tool": "apiverity", "command": "baseline", "output": args.output,
@@ -337,13 +354,40 @@ def cmd_report(args: argparse.Namespace) -> int:
 
 
 def cmd_export(args: argparse.Namespace) -> int:
-    """Write a .apiverity bundle directory with checksums."""
+    """Write a .apiverity bundle: result.json, contract snapshot+hash,
+    config, sanitized failing cases, workflow manifests, performance
+    summary and SHA256 checksums."""
     import hashlib
+
+    from apiverity.core.artifact import contract_hash
 
     out = Path(args.output)
     out.mkdir(parents=True, exist_ok=True)
     payload = json.loads(args.data) if args.data.startswith("{") else {
         "tool": "apiverity", "note": args.data}
+
+    if args.spec:
+        spec_bytes = Path(args.spec).read_bytes()
+        (out / "contract-snapshot").write_bytes(spec_bytes)
+        payload["contract_hash"] = hashlib.sha256(spec_bytes).hexdigest()
+        payload["contract_snapshot"] = "contract-snapshot"
+    if args.config:
+        (out / "config.yaml").write_text(
+            Path(args.config).read_text(encoding="utf-8"), encoding="utf-8")
+    if args.workflow:
+        (out / "workflow-manifest.yaml").write_text(
+            Path(args.workflow).read_text(encoding="utf-8"), encoding="utf-8")
+    if args.perf:
+        (out / "performance-summary.json").write_text(
+            Path(args.perf).read_text(encoding="utf-8"), encoding="utf-8")
+
+    # sanitized failing cases only (violations + reproduction, no bodies)
+    if isinstance(payload.get("results"), list):
+        failing = [r for r in payload["results"]
+                   if isinstance(r, dict) and r.get("status") != "pass"]
+        (out / "failing-cases.json").write_text(
+            json.dumps(failing, indent=2), encoding="utf-8")
+
     (out / "result.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
     checksums = {}
     for f in sorted(out.iterdir()):
@@ -453,6 +497,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("report"); p.add_argument("bundle"); p.add_argument("--format", default="json")
     p.set_defaults(func=cmd_report)
     p = sub.add_parser("export"); p.add_argument("--data", required=True); p.add_argument("-o", "--output", required=True)
+    p.add_argument("--spec"); p.add_argument("--config"); p.add_argument("--workflow"); p.add_argument("--perf")
     p.add_argument("--json", action="store_true"); p.set_defaults(func=cmd_export)
     p = sub.add_parser("serve"); p.add_argument("directory"); p.add_argument("--port", type=int, default=8080)
     p.set_defaults(func=cmd_serve)
