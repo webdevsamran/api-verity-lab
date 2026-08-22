@@ -91,7 +91,6 @@ class OpenApiParser:
         self.file_label = file_label
         self.findings: list[Finding] = []
         self._lines: dict[int, tuple[int, int]] = {}
-        self._seen_refs: set[str] = set()
 
     # -- location helpers ---------------------------------------------------
 
@@ -167,12 +166,21 @@ class OpenApiParser:
                 return None
         return node
 
-    def deref(self, root: dict[str, Any], node: Any, pointer: str) -> Any:
-        """Follow ``$ref`` chains with cycle protection."""
+    def deref(
+        self, root: dict[str, Any], node: Any, pointer: str, seen: set[str] | None = None
+    ) -> Any:
+        """Follow ``$ref`` chains with cycle protection.
+
+        ``seen`` is scoped to a single deref chain: the same schema may be
+        referenced many times across the document without triggering the
+        cycle detector, while genuine A→B→A cycles are still caught.
+        """
+        if seen is None:
+            seen = set()
         hops = 0
         while isinstance(node, dict) and "$ref" in node:
             ref = str(node["$ref"])
-            if ref in self._seen_refs:
+            if ref in seen:
                 self.findings.append(
                     Finding(
                         rule_id="SPEC-REF-CYCLE",
@@ -182,7 +190,7 @@ class OpenApiParser:
                     )
                 )
                 return None
-            self._seen_refs.add(ref)
+            seen.add(ref)
             target = self.resolve_ref(root, ref, pointer)
             if target is None:
                 return None
