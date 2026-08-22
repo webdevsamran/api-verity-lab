@@ -1,0 +1,10 @@
+# Maintainers of api-verity-lab
+
+| Role            | Handle          | Areas                                    |
+|-----------------|-----------------|------------------------------------------|
+| Lead Maintainer | @webdevsamran   | All areas: core, CLI, frontend, releases |
+
+## Becoming a maintainer
+Sustained, high-quality contributions (merged PRs across multiple areas,
+helping triage issues) may be nominated for maintainer status by an
+existing maintainer. See CONTRIBUTING.md.

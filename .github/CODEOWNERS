@@ -1,0 +1,6 @@
+# Default owner for everything
+*                       @webdevsamran
+# Frontend
+/web/                   @webdevsamran
+# CI / supply chain
+/.github/               @webdevsamran

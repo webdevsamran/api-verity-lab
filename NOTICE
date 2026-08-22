@@ -1,0 +1,19 @@
+api-verity-lab
+Copyright 2026 @webdevsamran
+
+This product includes software developed by the api-verity-lab project
+(https://github.com/webdevsamran/api-verity-lab).
+
+Licensed under the Apache License, Version 2.0.
+
+Third-party components used by this project remain under their own
+licenses; see pyproject.toml for runtime dependencies and
+web/package.json for frontend dependencies.
+
+Prior art that informed this project's design (credited in ARCHITECTURE.md):
+- OpenAPI Diff / oasdiff (spec diffing concepts)
+- Schemathesis (schema-driven fuzzing concepts)
+- Dredd (contract testing workflows)
+- Spectral (rule-based linting architecture)
+- haralyzer / HAR 1.2 spec (traffic import)
+- SARIF 2.1.0 OASIS standard (report format)
