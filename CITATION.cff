@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: >-
+  If you use api-verity-lab in your research or engineering practice,
+  please cite it.
+title: api-verity-lab
+type: software
+authors:
+  - name: webdevsamran
+    alias: webdevsamran
+    website: 'https://github.com/webdevsamran'
+repository-code: 'https://github.com/webdevsamran/api-verity-lab'
+abstract: >-
+  Unified API contract governance, breaking-change analysis, schema-driven
+  testing, runtime drift detection, traffic replay and performance regression
+  for OpenAPI, GraphQL and gRPC.
+keywords:
+  - openapi
+  - graphql
+  - grpc
+  - contract-testing
+  - breaking-changes
+  - drift-detection
+license: Apache-2.0
+version: 0.1.0
+date-released: '2026-08-22'

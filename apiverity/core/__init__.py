@@ -1,0 +1,1 @@
+"""Core normalized contract model shared by all engines."""
