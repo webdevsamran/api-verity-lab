@@ -5,6 +5,7 @@ Stable public exports; the plugin API contract version is
 """
 from __future__ import annotations
 
+from apiverity.core.artifact import ArtifactMeta  # noqa: F401
 from apiverity.core.model import (  # noqa: F401
     Contract,
     Finding,
@@ -21,6 +22,11 @@ from apiverity.performance.engine import (  # noqa: F401
     PerformanceReport,
     Policy,
 )
+
+# Spec-canonical names (§24): a PerformanceBudget is a parsed policy;
+# RunReport is the versioned artifact envelope.
+PerformanceBudget = Policy  # noqa: F401
+RunReport = ArtifactMeta  # noqa: F401
 from apiverity.plugins.registry import PLUGIN_API_VERSION  # noqa: F401
 from apiverity.rules.breaking import CATALOG, RuleSpec, evaluate_breaking  # noqa: F401
 from apiverity.rules.semver import SemverPolicy  # noqa: F401
@@ -38,5 +44,6 @@ __all__ = [
     "evaluate_breaking", "SemverPolicy", "diff_services",
     "TestCase", "TestResult", "Workflow", "WorkflowStep", "WorkflowResult",
     "StepResult", "DriftFinding", "DriftReport", "Policy", "OperationStats",
-    "PerformanceReport", "PLUGIN_API_VERSION",
+    "PerformanceReport", "PerformanceBudget", "RunReport",
+    "PLUGIN_API_VERSION",
 ]
