@@ -295,6 +295,29 @@ def cmd_report(args: argparse.Namespace) -> int:
         print('<?xml version="1.0" encoding="UTF-8"?>')
         print(f'<testsuite name="apiverity" tests="{total}" failures="{failures}">')
         print("</testsuite>")
+    elif fmt == "yaml":
+        import yaml
+
+        print(yaml.safe_dump(data, sort_keys=False, allow_unicode=True))
+    elif fmt == "html":
+        rows = ""
+        for f in data.get("findings", []):
+            sev = str(f.get("severity", "INFO"))
+            color = {"ERROR": "#e5484d", "WARN": "#f5a623"}.get(sev, "#3b82f6")
+            rows += (
+                f"<tr><td><code>{f.get('rule_id', '')}</code></td>"
+                f"<td style='color:{color}'><b>{sev}</b></td>"
+                f"<td>{f.get('message', '')}</td></tr>")
+        print(
+            "<!doctype html><html><head><meta charset='utf-8'>"
+            "<title>apiverity report</title>"
+            "<style>body{font-family:system-ui;margin:2rem;background:#0d1117;"
+            "color:#e6edf3}table{border-collapse:collapse;width:100%}"
+            "td,th{padding:8px;border-bottom:1px solid #30363d;text-align:left}"
+            "</style></head><body><h1>apiverity report</h1>"
+            f"<p>{data.get('command', '')} — {data.get('spec', data.get('base_url', ''))}</p>"
+            f"<table><tr><th>Rule</th><th>Severity</th><th>Message</th></tr>{rows}"
+            "</table></body></html>")
     elif fmt == "sarif":
         sarif = {"$schema": "https://json.schemastore.org/sarif-2.1.0.json",
                  "version": "2.1.0",

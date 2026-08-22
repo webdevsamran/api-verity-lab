@@ -79,9 +79,12 @@ def main() -> None:
                     "--base-url", base, "-o", str(baseline_path), "--iterations", "30"])
         if code != 0:
             failures.append(f"baseline -> {code}")
+        # Tolerance is deliberately generous: localhost timings are noisy and
+        # the strict comparison logic is unit-tested in the pytest suite.
+        # Here we verify the command wiring and exit codes end-to-end.
         code = run(["regression", str(FIX / "apis/crud/openapi.yaml"), "--base-url", base,
                     "--baseline", str(baseline_path), "--iterations", "30",
-                    "--tolerance", "60",
+                    "--tolerance", "400",
                     "--policy", "GET /users p95 <= 5000ms"])
         if code != 0:
             failures.append(f"regression -> {code}")
