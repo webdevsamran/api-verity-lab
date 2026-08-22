@@ -137,9 +137,15 @@ class WorkflowEngine:
         self._check_host(base_url)
 
     def _check_host(self, url: str) -> None:
-        host = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
+        parsed = urlparse(url)
+        host = f"{parsed.scheme}://{parsed.netloc}"
+        # Allowlist entries may omit the port (e.g. "http://127.0.0.1").
+        origin = f"{parsed.scheme}://{parsed.hostname}"
         allowed = {h.rstrip("/") for h in self.workflow.allowed_hosts}
-        if allowed and host not in allowed:
+        allowed_origins = {a.split("://")[0] + "://" +
+                           urlparse(a if "://" in a else "http://" + a).hostname
+                           for a in allowed}
+        if allowed and host not in allowed and origin not in allowed_origins:
             raise ValueError(
                 f"host '{host}' is not in the workflow allowlist "
                 f"{sorted(allowed)}; refusing to send traffic"
