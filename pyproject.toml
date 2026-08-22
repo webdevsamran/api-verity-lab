@@ -61,6 +61,21 @@ openapi = "apiverity.specs.openapi:OpenApiSpecPlugin"
 graphql = "apiverity.specs.graphql:GraphQlSpecPlugin"
 grpc = "apiverity.specs.grpc:GrpcSpecPlugin"
 
+[project.entry-points."apiverity.rules"]
+core = "apiverity.plugins.builtins:core_rules"
+
+[project.entry-points."apiverity.checks"]
+security = "apiverity.plugins.builtins:security_checks"
+
+[project.entry-points."apiverity.generators"]
+schema-cases = "apiverity.plugins.builtins:schema_case_generator"
+
+[project.entry-points."apiverity.exporters"]
+reports = "apiverity.plugins.builtins:report_exporters"
+
+[project.entry-points."apiverity.transports"]
+httpx = "apiverity.plugins.builtins:httpx_transport"
+
 [project.urls]
 Homepage = "https://github.com/webdevsamran/api-verity-lab"
 Repository = "https://github.com/webdevsamran/api-verity-lab"
