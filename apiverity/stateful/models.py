@@ -28,6 +28,7 @@ class Workflow(BaseModel):
     name: str
     description: str | None = None
     base_url: str | None = None
+    inputs: list[str] = Field(default_factory=list)  # variables supplied by the caller
     allowed_hosts: list[str] = Field(default_factory=list)
     allowed_methods: list[str] = Field(
         default_factory=lambda: ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"]
