@@ -138,6 +138,7 @@ class SecurityScheme(BaseModel):
     location: ParameterLocation | None = None  # for apiKey
     scheme: str | None = None  # bearer, basic, digest for http
     bearer_format: str | None = None
+    scopes: dict[str, str] = Field(default_factory=dict)  # OAuth flow scopes
     deprecated: bool = False
     source_location: SourceLocation | None = None
 
