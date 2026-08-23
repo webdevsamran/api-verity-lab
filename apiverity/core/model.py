@@ -22,6 +22,9 @@ class Protocol(StrEnum):
     OPENAPI = "openapi"
     GRAPHQL = "graphql"
     GRPC = "grpc"
+    ASYNCAPI = "asyncapi"
+    SSE = "sse"
+    WEBSOCKET = "websocket"
 
 
 class SourceLocation(BaseModel):
@@ -146,10 +149,41 @@ class Example(BaseModel):
     source_location: SourceLocation | None = None
 
 
+class DeprecationInfo(BaseModel):
+    """Deprecation lifecycle metadata for an operation or schema node."""
+
+    announced_date: str | None = None  # ISO date the deprecation was announced
+    sunset_date: str | None = None  # ISO date after which removal is expected
+    migration_guide: str | None = None
+    consumer_impact: str | None = None
+
+
+class LifecycleState(StrEnum):
+    """API lifecycle states with ordered transition rules."""
+
+    EXPERIMENTAL = "experimental"
+    BETA = "beta"
+    STABLE = "stable"
+    DEPRECATED = "deprecated"
+    RETIRED = "retired"
+
+
+# Allowed forward transitions; anything else requires an explicit override.
+LIFECYCLE_TRANSITIONS: dict[LifecycleState, set[LifecycleState]] = {
+    LifecycleState.EXPERIMENTAL: {LifecycleState.BETA, LifecycleState.RETIRED},
+    LifecycleState.BETA: {LifecycleState.STABLE, LifecycleState.RETIRED},
+    LifecycleState.STABLE: {LifecycleState.DEPRECATED},
+    LifecycleState.DEPRECATED: {LifecycleState.RETIRED},
+    LifecycleState.RETIRED: set(),
+}
+
+
 class OperationKind(StrEnum):
     HTTP = "http"
     GRAPHQL_FIELD = "graphql_field"
     GRPC_RPC = "grpc_rpc"
+    EVENT = "event"  # AsyncAPI publish/subscribe or SSE event stream
+    WS_MESSAGE = "ws_message"  # documented WebSocket bidirectional message type
 
 
 class Operation(BaseModel):
@@ -174,6 +208,16 @@ class Operation(BaseModel):
     responses: list[Response] = Field(default_factory=list)
     security: list[SecurityRequirement] | None = None  # None = inherit global
     examples: list[Example] = Field(default_factory=list)
+    # Event-driven extensions (AsyncAPI channels, SSE events, WebSocket messages)
+    channel: str | None = None  # topic/channel/event name
+    message_name: str | None = None
+    direction: str | None = None  # "publish" | "subscribe" | "send" | "receive"
+    bindings: dict[str, Any] = Field(default_factory=dict)
+    # Governance metadata
+    lifecycle_state: LifecycleState | None = None
+    deprecation: DeprecationInfo | None = None
+    idempotent: bool | None = None  # explicitly declared idempotency expectation
+    pagination: dict[str, Any] | None = None  # explicitly modeled pagination semantics
     source_location: SourceLocation | None = None
 
     @property
@@ -202,6 +246,11 @@ class Service(BaseModel):
     operations: list[Operation] = Field(default_factory=list)
     security_schemes: dict[str, SecurityScheme] = Field(default_factory=dict)
     global_security: list[SecurityRequirement] = Field(default_factory=list)
+    # Ownership / governance metadata (CODEOWNERS-style mapping target)
+    owner: str | None = None
+    team: str | None = None
+    product: str | None = None
+    lifecycle_state: LifecycleState | None = None
     source_file: str | None = None
     source_location: SourceLocation | None = None
 

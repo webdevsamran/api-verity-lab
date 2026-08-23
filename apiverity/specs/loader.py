@@ -13,11 +13,19 @@ from apiverity.specs import SpecPlugin, read_source
 
 
 def _builtin_plugins() -> list[SpecPlugin]:
+    from apiverity.specs.asyncapi import AsyncApiSpecPlugin
     from apiverity.specs.graphql import GraphQlSpecPlugin
     from apiverity.specs.grpc import GrpcSpecPlugin
     from apiverity.specs.openapi import OpenApiSpecPlugin
+    from apiverity.specs.swagger2 import Swagger2SpecPlugin
 
-    return [OpenApiSpecPlugin(), GraphQlSpecPlugin(), GrpcSpecPlugin()]
+    return [
+        OpenApiSpecPlugin(),
+        Swagger2SpecPlugin(),
+        GraphQlSpecPlugin(),
+        GrpcSpecPlugin(),
+        AsyncApiSpecPlugin(),
+    ]
 
 
 def detect_and_load(
