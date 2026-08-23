@@ -36,3 +36,9 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+# temporary dev/debug helpers
+*_fix*.py
+tests/_dbg*.py
+build/
+web/dist/
+.pr-summary.md

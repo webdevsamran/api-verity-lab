@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
-from apiverity.core.model import Finding, Operation, Protocol, SecurityRequirement, Service, Severity
+from apiverity.core.model import (
+    Finding,
+    Operation,
+    Protocol,
+    SecurityRequirement,
+    Service,
+    Severity,
+)
 
 _MUTATING = {"POST", "PUT", "PATCH", "DELETE"}
 _SENSITIVE_RESPONSE_HEADERS = {
@@ -15,7 +20,7 @@ _SENSITIVE_RESPONSE_HEADERS = {
 }
 
 
-def _effective_security(op: Operation, service: Service) -> Optional[list[SecurityRequirement]]:
+def _effective_security(op: Operation, service: Service) -> list[SecurityRequirement] | None:
     """Operation-level security; None means inherit global; [] means anonymous."""
     if op.security is not None:
         return op.security
@@ -31,8 +36,12 @@ def run_security_checks(
     findings: list[Finding] = []
 
     for url in service.servers:
-        if require_https and url.url.startswith("http://") and "localhost" not in url.url \
-                and "127.0.0.1" not in url.url:
+        if (
+            require_https
+            and url.url.startswith("http://")
+            and "localhost" not in url.url
+            and "127.0.0.1" not in url.url
+        ):
             findings.append(
                 Finding(
                     rule_id="SEC-HTTPS-POLICY",
@@ -91,8 +100,7 @@ def run_security_checks(
                     Finding(
                         rule_id="SEC-UNAUTH-WRITE",
                         severity=Severity.ERROR,
-                        message=f"mutating operation '{op.key}' has no authentication "
-                        "declaration",
+                        message=f"mutating operation '{op.key}' has no authentication declaration",
                         operation_key=op.key,
                         location=op.source_location,
                     )

@@ -4,18 +4,19 @@ Secret values are resolved from environment variables or file paths at
 request time and are NEVER persisted in result bundles — only the
 *reference* (env var name / file path) is stored.
 """
+
 from __future__ import annotations
 
 import base64
 import os
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, Field
 
 
-class AuthKind(str, Enum):
+class AuthKind(StrEnum):
     bearer = "bearer"
     api_key = "api_key"
     basic = "basic"
@@ -57,13 +58,13 @@ class AuthProfile(BaseModel):
 
 def resolve_headers(profile: AuthProfile) -> dict[str, str]:
     """Resolve a profile into request headers (secrets stay in memory)."""
+
     def env(name: str | None) -> str:
         if not name:
             raise ValueError(f"profile '{profile.name}': missing environment reference")
         value = os.environ.get(name)
         if not value:
-            raise ValueError(
-                f"profile '{profile.name}': environment variable '{name}' is not set")
+            raise ValueError(f"profile '{profile.name}': environment variable '{name}' is not set")
         return value
 
     if profile.kind in (AuthKind.bearer, AuthKind.oauth_token):
@@ -97,7 +98,7 @@ class AuthProfileSet(BaseModel):
     profiles: list[AuthProfile] = Field(default_factory=list)
 
     @classmethod
-    def load(cls, path: str) -> "AuthProfileSet":
+    def load(cls, path: str) -> AuthProfileSet:
         import yaml
 
         raw = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}

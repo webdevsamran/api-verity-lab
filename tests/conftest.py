@@ -1,4 +1,5 @@
 """Shared fixtures for the apiverity test suite."""
+
 from __future__ import annotations
 
 import sys

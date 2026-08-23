@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
-from apiverity.core.model import Operation, Service
+from apiverity.core.model import Service
 
 
 class OperationCoverage(BaseModel):
@@ -52,9 +52,17 @@ def _count_constraints(schema: Any) -> int:
     if schema.enum is not None:
         count += 1
     for attr in (
-        "minimum", "maximum", "exclusive_minimum", "exclusive_maximum",
-        "multiple_of", "min_length", "max_length", "pattern",
-        "min_items", "max_items", "unique_items",
+        "minimum",
+        "maximum",
+        "exclusive_minimum",
+        "exclusive_maximum",
+        "multiple_of",
+        "min_length",
+        "max_length",
+        "pattern",
+        "min_items",
+        "max_items",
+        "unique_items",
     ):
         if getattr(schema, attr) is not None:
             count += 1
@@ -68,12 +76,12 @@ def _count_constraints(schema: Any) -> int:
 def measure_coverage(
     service: Service,
     *,
-    exercised_operations: Optional[set[str]] = None,
-    statuses_by_operation: Optional[dict[str, set[int]]] = None,
-    parameters_by_operation: Optional[dict[str, set[str]]] = None,
-    negative_cases_by_operation: Optional[dict[str, int]] = None,
+    exercised_operations: set[str] | None = None,
+    statuses_by_operation: dict[str, set[int]] | None = None,
+    parameters_by_operation: dict[str, set[str]] | None = None,
+    negative_cases_by_operation: dict[str, int] | None = None,
     workflow_edges: tuple[int, int] = (0, 0),
-    security_schemes_exercised: Optional[set[str]] = None,
+    security_schemes_exercised: set[str] | None = None,
 ) -> CoverageReport:
     """Build a coverage report.
 
@@ -102,13 +110,13 @@ def measure_coverage(
             ),
             security_schemes=[
                 r.scheme_name
-                for r in (op.security if op.security is not None else service.global_security)
-                or []
+                for r in (op.security if op.security is not None else service.global_security) or []
             ],
         )
         oc.statuses_seen = sorted(statuses.get(op.key, set()))
         oc.body_constraints_declared = sum(
-            _count_constraints(s) for s in (op.request_body.content.values() if op.request_body else [])
+            _count_constraints(s)
+            for s in (op.request_body.content.values() if op.request_body else [])
         )
         # each executed negative case exercises roughly one constraint
         oc.body_constraints_exercised = min(negatives.get(op.key, 0), oc.body_constraints_declared)

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -16,8 +16,8 @@ class TestCase(BaseModel):
     url_path: str
     query: dict[str, Any] = Field(default_factory=dict)
     headers: dict[str, str] = Field(default_factory=dict)
-    body: Optional[Any] = None
-    media: Optional[str] = None
+    body: Any | None = None
+    media: str | None = None
     expected: str  # "2xx" for positive, "4xx" for negative
 
 
@@ -27,8 +27,8 @@ class TestResult(BaseModel):
     kind: str
     description: str
     status: str  # pass | fail | error
-    actual_status: Optional[int] = None
+    actual_status: int | None = None
     violations: list[str] = Field(default_factory=list)
-    reproduction: Optional[str] = None
+    reproduction: str | None = None
     minimized: bool = False
     duration_ms: int = 0

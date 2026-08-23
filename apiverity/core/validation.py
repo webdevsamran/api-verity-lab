@@ -83,9 +83,12 @@ def validate_value(
             errors.append(f"{path}: {value} <= exclusiveMinimum {schema.exclusive_minimum}")
         if schema.exclusive_maximum is not None and value >= schema.exclusive_maximum:
             errors.append(f"{path}: {value} >= exclusiveMaximum {schema.exclusive_maximum}")
-        if schema.multiple_of is not None and schema.multiple_of != 0:
-            if abs(value / schema.multiple_of - round(value / schema.multiple_of)) > 1e-9:
-                errors.append(f"{path}: {value} not a multiple of {schema.multiple_of}")
+        if (
+            schema.multiple_of is not None
+            and schema.multiple_of != 0
+            and abs(value / schema.multiple_of - round(value / schema.multiple_of)) > 1e-9
+        ):
+            errors.append(f"{path}: {value} not a multiple of {schema.multiple_of}")
 
     elif schema.type == "array":
         assert isinstance(value, list)
@@ -112,15 +115,14 @@ def validate_value(
         if extra:
             addl = schema.additional_properties
             if addl is False:
-                errors.append(f"{path}: undeclared field(s) {sorted(extra)} "
-                              "(additionalProperties: false)")
+                errors.append(
+                    f"{path}: undeclared field(s) {sorted(extra)} (additionalProperties: false)"
+                )
             elif forbid_undeclared_fields and addl is None:
                 errors.append(f"{path}: undeclared field(s) {sorted(extra)}")
             elif isinstance(addl, SchemaNode):
                 for k in extra:
-                    errors.extend(
-                        validate_value(addl, value[k], path=f"{path}.{k}")
-                    )
+                    errors.extend(validate_value(addl, value[k], path=f"{path}.{k}"))
 
     # composition: anyOf/oneOf must match at least one variant
     for attr, label in (("any_of", "anyOf"), ("one_of", "oneOf")):
