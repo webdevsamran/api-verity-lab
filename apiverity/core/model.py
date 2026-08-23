@@ -10,13 +10,13 @@ spec document so findings can link to exact lines.
 
 from __future__ import annotations
 
-from enum import Enum
-from typing import Any, Optional, Union
+from enum import StrEnum
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class Protocol(str, Enum):
+class Protocol(StrEnum):
     """Wire protocol of a contract."""
 
     OPENAPI = "openapi"
@@ -44,44 +44,44 @@ class SourceLocation(BaseModel):
 class SchemaNode(BaseModel):
     """Recursive, JSON-Schema-like type tree used for all protocols."""
 
-    type: Optional[str] = None  # object|array|string|integer|number|boolean|null
-    format: Optional[str] = None
-    title: Optional[str] = None
-    description: Optional[str] = None
+    type: str | None = None  # object|array|string|integer|number|boolean|null
+    format: str | None = None
+    title: str | None = None
+    description: str | None = None
     nullable: bool = False
     deprecated: bool = False
-    enum: Optional[list[Any]] = None
-    const: Optional[Any] = None
-    default: Optional[Any] = None
-    example: Optional[Any] = None
+    enum: list[Any] | None = None
+    const: Any | None = None
+    default: Any | None = None
+    example: Any | None = None
     # object constraints
-    properties: dict[str, "SchemaNode"] = Field(default_factory=dict)
+    properties: dict[str, SchemaNode] = Field(default_factory=dict)
     required: list[str] = Field(default_factory=list)
-    additional_properties: Optional[Union[bool, "SchemaNode"]] = None
-    min_properties: Optional[int] = None
-    max_properties: Optional[int] = None
+    additional_properties: bool | SchemaNode | None = None
+    min_properties: int | None = None
+    max_properties: int | None = None
     # array constraints
-    items: Optional["SchemaNode"] = None
-    min_items: Optional[int] = None
-    max_items: Optional[int] = None
-    unique_items: Optional[bool] = None
+    items: SchemaNode | None = None
+    min_items: int | None = None
+    max_items: int | None = None
+    unique_items: bool | None = None
     # string constraints
-    min_length: Optional[int] = None
-    max_length: Optional[int] = None
-    pattern: Optional[str] = None
+    min_length: int | None = None
+    max_length: int | None = None
+    pattern: str | None = None
     # numeric constraints
-    minimum: Optional[float] = None
-    maximum: Optional[float] = None
-    exclusive_minimum: Optional[float] = None
-    exclusive_maximum: Optional[float] = None
-    multiple_of: Optional[float] = None
+    minimum: float | None = None
+    maximum: float | None = None
+    exclusive_minimum: float | None = None
+    exclusive_maximum: float | None = None
+    multiple_of: float | None = None
     # composition
-    one_of: Optional[list["SchemaNode"]] = None
-    any_of: Optional[list["SchemaNode"]] = None
-    all_of: Optional[list["SchemaNode"]] = None
-    not_: Optional["SchemaNode"] = Field(default=None, alias="not")
+    one_of: list[SchemaNode] | None = None
+    any_of: list[SchemaNode] | None = None
+    all_of: list[SchemaNode] | None = None
+    not_: SchemaNode | None = Field(default=None, alias="not")
     # provenance
-    source_location: Optional[SourceLocation] = None
+    source_location: SourceLocation | None = None
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -89,7 +89,7 @@ class SchemaNode(BaseModel):
         return list(self.properties.keys())
 
 
-class ParameterLocation(str, Enum):
+class ParameterLocation(StrEnum):
     PATH = "path"
     QUERY = "query"
     HEADER = "header"
@@ -101,25 +101,25 @@ class Parameter(BaseModel):
     location: ParameterLocation
     required: bool = False
     deprecated: bool = False
-    description: Optional[str] = None
-    schema_node: Optional[SchemaNode] = None
-    example: Optional[Any] = None
-    source_location: Optional[SourceLocation] = None
+    description: str | None = None
+    schema_node: SchemaNode | None = None
+    example: Any | None = None
+    source_location: SourceLocation | None = None
 
 
 class RequestBody(BaseModel):
     required: bool = False
-    description: Optional[str] = None
+    description: str | None = None
     content: dict[str, SchemaNode] = Field(default_factory=dict)  # media type -> schema
-    source_location: Optional[SourceLocation] = None
+    source_location: SourceLocation | None = None
 
 
 class Response(BaseModel):
     status: str  # "200", "4XX", "default"
-    description: Optional[str] = None
+    description: str | None = None
     headers: dict[str, SchemaNode] = Field(default_factory=dict)
     content: dict[str, SchemaNode] = Field(default_factory=dict)
-    source_location: Optional[SourceLocation] = None
+    source_location: SourceLocation | None = None
 
 
 class SecurityRequirement(BaseModel):
@@ -132,21 +132,21 @@ class SecurityRequirement(BaseModel):
 class SecurityScheme(BaseModel):
     name: str
     type: str  # apiKey | http | oauth2 | openIdConnect | mutualTLS
-    location: Optional[ParameterLocation] = None  # for apiKey
-    scheme: Optional[str] = None  # bearer, basic, digest for http
-    bearer_format: Optional[str] = None
+    location: ParameterLocation | None = None  # for apiKey
+    scheme: str | None = None  # bearer, basic, digest for http
+    bearer_format: str | None = None
     deprecated: bool = False
-    source_location: Optional[SourceLocation] = None
+    source_location: SourceLocation | None = None
 
 
 class Example(BaseModel):
     name: str
-    value: Optional[Any] = None
-    summary: Optional[str] = None
-    source_location: Optional[SourceLocation] = None
+    value: Any | None = None
+    summary: str | None = None
+    source_location: SourceLocation | None = None
 
 
-class OperationKind(str, Enum):
+class OperationKind(StrEnum):
     HTTP = "http"
     GRAPHQL_FIELD = "graphql_field"
     GRPC_RPC = "grpc_rpc"
@@ -160,21 +160,21 @@ class Operation(BaseModel):
     """
 
     kind: OperationKind = OperationKind.HTTP
-    operation_id: Optional[str] = None
-    method: Optional[str] = None  # GET/POST/... (HTTP)
-    path: Optional[str] = None  # /users/{id} (HTTP)
-    rpc_name: Optional[str] = None  # gRPC
-    service_name: Optional[str] = None  # gRPC / GraphQL root type
-    summary: Optional[str] = None
-    description: Optional[str] = None
+    operation_id: str | None = None
+    method: str | None = None  # GET/POST/... (HTTP)
+    path: str | None = None  # /users/{id} (HTTP)
+    rpc_name: str | None = None  # gRPC
+    service_name: str | None = None  # gRPC / GraphQL root type
+    summary: str | None = None
+    description: str | None = None
     deprecated: bool = False
     tags: list[str] = Field(default_factory=list)
     parameters: list[Parameter] = Field(default_factory=list)
-    request_body: Optional[RequestBody] = None
+    request_body: RequestBody | None = None
     responses: list[Response] = Field(default_factory=list)
-    security: Optional[list[SecurityRequirement]] = None  # None = inherit global
+    security: list[SecurityRequirement] | None = None  # None = inherit global
     examples: list[Example] = Field(default_factory=list)
-    source_location: Optional[SourceLocation] = None
+    source_location: SourceLocation | None = None
 
     @property
     def key(self) -> str:
@@ -188,7 +188,7 @@ class Operation(BaseModel):
 
 class Server(BaseModel):
     url: str
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class Service(BaseModel):
@@ -197,18 +197,18 @@ class Service(BaseModel):
     title: str
     version: str
     protocol: Protocol
-    description: Optional[str] = None
+    description: str | None = None
     servers: list[Server] = Field(default_factory=list)
     operations: list[Operation] = Field(default_factory=list)
     security_schemes: dict[str, SecurityScheme] = Field(default_factory=dict)
     global_security: list[SecurityRequirement] = Field(default_factory=list)
-    source_file: Optional[str] = None
-    source_location: Optional[SourceLocation] = None
+    source_file: str | None = None
+    source_location: SourceLocation | None = None
 
     def operation_keys(self) -> list[str]:
         return [op.key for op in self.operations]
 
-    def find_operation(self, key: str) -> Optional[Operation]:
+    def find_operation(self, key: str) -> Operation | None:
         for op in self.operations:
             if op.key == key:
                 return op
@@ -218,7 +218,7 @@ class Service(BaseModel):
 # --- Findings ---------------------------------------------------------------
 
 
-class Severity(str, Enum):
+class Severity(StrEnum):
     ERROR = "ERROR"
     WARN = "WARN"
     INFO = "INFO"
@@ -230,18 +230,18 @@ class Finding(BaseModel):
     rule_id: str
     severity: Severity
     message: str
-    operation_key: Optional[str] = None
-    location: Optional[SourceLocation] = None
-    new_location: Optional[SourceLocation] = None
-    change_id: Optional[str] = None
-    hint: Optional[str] = None
+    operation_key: str | None = None
+    location: SourceLocation | None = None
+    new_location: SourceLocation | None = None
+    change_id: str | None = None
+    hint: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 # --- Changes ----------------------------------------------------------------
 
 
-class ChangeKind(str, Enum):
+class ChangeKind(StrEnum):
     OPERATION_ADDED = "operation_added"
     OPERATION_REMOVED = "operation_removed"
     PARAMETER_ADDED = "parameter_added"
@@ -283,11 +283,12 @@ class Change(BaseModel):
     direction: str  # "request" | "response" | "meta" | "security"
     operation_key: str
     description: str
-    old_location: Optional[SourceLocation] = None
-    new_location: Optional[SourceLocation] = None
-    old_value: Optional[Any] = None
-    new_value: Optional[Any] = None
-    breaking_hint: Optional[str] = None
+    old_location: SourceLocation | None = None
+    new_location: SourceLocation | None = None
+    old_value: Any | None = None
+    new_value: Any | None = None
+    breaking_hint: str | None = None
+
 
 SchemaNode.model_rebuild()
 

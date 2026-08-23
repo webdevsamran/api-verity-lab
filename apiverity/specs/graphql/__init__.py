@@ -19,16 +19,23 @@ from apiverity.core.model import (
     Protocol,
     SchemaNode,
     Service,
+    Severity,
     SourceLocation,
 )
 from apiverity.specs import SpecPlugin
 
 try:
-    from graphql import build_schema, parse, visit  # type: ignore[import-untyped]
+    from graphql import build_schema, parse  # type: ignore[import-not-found]
 
     _HAS_GRAPHQL = True
 except ImportError:  # pragma: no cover - optional extra
     _HAS_GRAPHQL = False
+
+
+def _token_line(node: Any) -> int:
+    loc = getattr(node, "loc", None)
+    token = getattr(loc, "start_token", None) if loc is not None else None
+    return int(token.line) if token is not None else 0
 
 
 def _type_to_schema(type_node: Any) -> SchemaNode:
@@ -74,25 +81,25 @@ class GraphQlSpecPlugin(SpecPlugin):
         findings: list[Finding] = []
         if not _HAS_GRAPHQL:
             raise NotImplementedError(
-                "GraphQL support requires the 'graphql' extra: "
-                "pip install api-verity-lab[graphql]"
+                "GraphQL support requires the 'graphql' extra: pip install api-verity-lab[graphql]"
             )
         from apiverity.specs import read_source
 
         _, raw = read_source(source)
         sdl = raw.decode("utf-8-sig")
         from pathlib import Path as _Path
+
         label = _Path(source).name
 
         try:
             doc = parse(sdl)
-        except Exception as exc:  # noqa: BLE001 - surfaced as finding
+        except Exception as exc:
             return (
                 Service(title="Invalid GraphQL schema", version="0", protocol=Protocol.GRAPHQL),
                 [
                     Finding(
                         rule_id="SPEC-SDL-INVALID",
-                        severity="ERROR",
+                        severity=Severity.ERROR,
                         message=f"failed to parse GraphQL SDL: {exc}",
                         location=SourceLocation(file=label),
                     )
@@ -109,11 +116,11 @@ class GraphQlSpecPlugin(SpecPlugin):
         # Walk object type definitions for root operation types.
         try:
             schema_obj = build_schema(sdl)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             findings.append(
                 Finding(
                     rule_id="SPEC-SDL-BUILD",
-                    severity="WARN",
+                    severity=Severity.WARN,
                     message=f"SDL parsed but schema build failed: {exc}",
                     location=SourceLocation(file=label),
                 )
@@ -145,10 +152,10 @@ class GraphQlSpecPlugin(SpecPlugin):
                             name=arg.name.value,
                             location=ParameterLocation.QUERY,
                             required=str(arg.type).endswith("!"),
-                            schema=_type_to_schema(arg.type),
+                            schema_node=_type_to_schema(arg.type),
                             source_location=SourceLocation(
-                                file=label, line=getattr(arg.loc, "start_token", None).line
-                                if getattr(arg, "loc", None) else 0
+                                file=label,
+                                line=_token_line(arg),
                             ),
                         )
                     )
@@ -166,7 +173,7 @@ class GraphQlSpecPlugin(SpecPlugin):
                         responses=[],
                         source_location=SourceLocation(
                             file=label,
-                            line=field.loc.start_token.line if field.loc else 0,
+                            line=_token_line(field),
                         ),
                     )
                 )

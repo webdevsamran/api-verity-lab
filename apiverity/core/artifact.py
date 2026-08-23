@@ -4,6 +4,7 @@ Every command payload is enriched with: tool version, result schema
 version, protocol version, contract hash (sha256 of the spec file),
 target metadata, seed, timing and redaction state.
 """
+
 from __future__ import annotations
 
 import hashlib

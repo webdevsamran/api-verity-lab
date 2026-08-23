@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from apiverity.core.model import Protocol, Service, Finding
+from apiverity.core.model import Finding, Protocol, Service
 from apiverity.specs import SpecPlugin
 from apiverity.specs.openapi.parser import load_openapi
 

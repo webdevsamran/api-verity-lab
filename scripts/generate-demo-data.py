@@ -1,4 +1,5 @@
 """Generate real frontend demo data by running bundled fixtures through apiverity."""
+
 from __future__ import annotations
 
 import json
@@ -14,8 +15,8 @@ OUT = ROOT / "web" / "public" / "demo-data.json"
 
 
 def cli_json(argv):
-    import io
     import contextlib
+    import io
 
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
@@ -38,9 +39,9 @@ def main() -> None:
     service, _, _ = detect_and_load(str(crud))
     drift_service, _, _ = detect_and_load(str(FIX / "apis/drift/openapi.yaml"))
 
+    from apiverity.coverage import measure_coverage
     from apiverity.fuzz.runner import build_cases, run_cases
     from apiverity.runtime.drift import detect_drift
-    from apiverity.coverage import measure_coverage
 
     with MockServer(service, port=8095) as mock:
         base = mock.base_url
@@ -57,10 +58,11 @@ def main() -> None:
     for r in results:
         if r.actual_status:
             statuses.setdefault(r.operation_key, set()).add(r.actual_status)
-    coverage = measure_coverage(service, exercised_operations=exercised,
-                                statuses_by_operation=statuses)
+    coverage = measure_coverage(
+        service, exercised_operations=exercised, statuses_by_operation=statuses
+    )
 
-    from apiverity.stateful.engine import load_workflow_manifest, WorkflowEngine
+    from apiverity.stateful.engine import WorkflowEngine, load_workflow_manifest
 
     wf = load_workflow_manifest(str(FIX / "workflows/crud-lifecycle.yaml"))
     with MockServer(service, port=8096) as mock:
@@ -92,22 +94,35 @@ def main() -> None:
             "generated_from": "fixtures/apis (crud, versioned v1->v2, drift)",
             "label": "EXAMPLE RUN — generated locally from bundled fixture APIs",
         },
-        "diff": {"old_version": old.version, "new_version": new.version,
-                 "changes": [c.model_dump() for c in changes]},
+        "diff": {
+            "old_version": old.version,
+            "new_version": new.version,
+            "changes": [c.model_dump() for c in changes],
+        },
         "breaking": {"findings": [f.model_dump() for f in findings]},
-        "test": {"total": len(results),
-                 "passed": sum(1 for r in results if r.status == "pass"),
-                 "failed": sum(1 for r in results if r.status != "pass"),
-                 "results": [r.model_dump() for r in results]},
+        "test": {
+            "total": len(results),
+            "passed": sum(1 for r in results if r.status == "pass"),
+            "failed": sum(1 for r in results if r.status != "pass"),
+            "results": [r.model_dump() for r in results],
+        },
         "drift": {"findings": [f.model_dump() for f in drift.findings]},
         "performance": {"operations": json.loads(perf.model_dump_json())["operations"]},
-        "coverage": {"overall_percent": coverage.overall_percent(),
-                     "operations": json.loads(coverage.model_dump_json())["operations"]},
+        "coverage": {
+            "overall_percent": coverage.overall_percent(),
+            "operations": json.loads(coverage.model_dump_json())["operations"],
+        },
         "rules": {"count": len(rules_catalog), "catalog": rules_catalog},
-        "workflow": {"name": wf.name, "description": wf.description,
-                     "result": json.loads(wf_result.model_dump_json())},
-        "contract": {"title": service.title, "version": service.version,
-                     "operations": contract_tree},
+        "workflow": {
+            "name": wf.name,
+            "description": wf.description,
+            "result": json.loads(wf_result.model_dump_json()),
+        },
+        "contract": {
+            "title": service.title,
+            "version": service.version,
+            "operations": contract_tree,
+        },
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(payload, indent=2), encoding="utf-8")

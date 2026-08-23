@@ -3,6 +3,7 @@
 Each attribute referenced from pyproject entry points is a zero-arg
 factory so ``PluginRegistry.instances()`` works uniformly.
 """
+
 from __future__ import annotations
 
 from typing import Any

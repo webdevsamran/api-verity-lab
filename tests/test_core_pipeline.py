@@ -1,7 +1,9 @@
 """Core pipeline tests: parsing, diff, breaking, semver, changelog, security."""
+
 from __future__ import annotations
 
-from hypothesis import given, strategies as st
+from hypothesis import given
+from hypothesis import strategies as st
 
 from apiverity.core.model import SchemaNode
 from apiverity.diff.engine import diff_services
@@ -119,6 +121,7 @@ def test_deterministic_case_generation(crud_service):
 
 def test_mock_server_stateful_crud(crud_service):
     import httpx
+
     from apiverity.mock import MockServer
 
     with MockServer(crud_service, port=0) as mock:
@@ -130,7 +133,7 @@ def test_mock_server_stateful_crud(crud_service):
 
 
 def test_workflow_allowlist_refuses_unknown_host():
-    from apiverity.stateful.engine import load_workflow_manifest, WorkflowEngine
+    from apiverity.stateful.engine import WorkflowEngine, load_workflow_manifest
 
     wf = load_workflow_manifest("fixtures/workflows/crud-lifecycle.yaml")
     try:
@@ -152,12 +155,18 @@ def test_redaction_removes_secrets():
 
 
 def test_performance_policy_parsing_and_evaluation():
-    from apiverity.performance.engine import OperationStats, PerformanceReport, evaluate_policies, parse_policy
+    from apiverity.performance.engine import (
+        OperationStats,
+        PerformanceReport,
+        evaluate_policies,
+        parse_policy,
+    )
 
     p = parse_policy("GET /users p95 <= 250ms")
     assert p.operation_key == "GET /users" and p.metric == "p95" and p.value == 250.0
-    report = PerformanceReport(operations=[
-        OperationStats(operation_key="GET /users", requests=10, p95_ms=300)])
+    report = PerformanceReport(
+        operations=[OperationStats(operation_key="GET /users", requests=10, p95_ms=300)]
+    )
     violations = evaluate_policies(report, ["GET /users p95 <= 250ms"])
     assert len(violations) == 1
 
@@ -167,6 +176,7 @@ def test_cli_json_smoke():
 
     rc = main(["rules", "--json"])
     assert rc == 0
-    rc = main(["diff", "fixtures/apis/versioned/v1.yaml",
-               "fixtures/apis/versioned/v2.yaml", "--json"])
+    rc = main(
+        ["diff", "fixtures/apis/versioned/v1.yaml", "fixtures/apis/versioned/v2.yaml", "--json"]
+    )
     assert rc == 0

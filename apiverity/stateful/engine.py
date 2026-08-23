@@ -9,7 +9,6 @@ Safety model:
 
 from __future__ import annotations
 
-import json
 import re
 import time
 from pathlib import Path
@@ -22,6 +21,7 @@ import yaml
 from apiverity.stateful.models import (
     StepResult,
     Workflow,
+    WorkflowRequest,
     WorkflowResult,
     WorkflowStep,
 )
@@ -33,10 +33,9 @@ def load_workflow_manifest(path: str) -> Workflow:
     raw = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     if not isinstance(raw, dict):
         raise ValueError("workflow manifest must be a mapping")
-    steps = []
+    steps: list[WorkflowStep] = []
     for s in raw.get("steps") or []:
         req = s.get("request") or {}
-        assert_status = req.get("assert", {}).get("status") if isinstance(req.get("assert"), dict) else None
         # assertions may live on the step or inside request.assert
         step_assert = s.get("assert") or (req.get("assert") or {})
         status_list = step_assert.get("status") if isinstance(step_assert, dict) else None
@@ -50,32 +49,32 @@ def load_workflow_manifest(path: str) -> Workflow:
         steps.append(
             WorkflowStep(
                 name=str(s.get("name", f"step-{len(steps)}")),
-                request={
-                    "method": str(req.get("method", "GET")).upper(),
-                    "path": str(req.get("path", "/")),
-                    "body": req.get("body"),
-                    "headers": req.get("headers") or {},
-                    "query": req.get("query") or {},
-                },
+                request=WorkflowRequest(
+                    method=str(req.get("method", "GET")).upper(),
+                    path=str(req.get("path", "/")),
+                    body=req.get("body"),
+                    headers={str(k): str(v) for k, v in (req.get("headers") or {}).items()},
+                    query=req.get("query") or {},
+                ),
                 extract=s.get("extract") or {},
                 assert_status=status_list,
                 assert_jsonpath=jsonpath_asserts,
                 timeout_seconds=float(s.get("timeout", 30.0)),
             )
         )
-    cleanup = []
+    cleanup: list[WorkflowStep] = []
     for s in raw.get("cleanup") or []:
         req = s.get("request") or {}
         cleanup.append(
             WorkflowStep(
                 name=str(s.get("name", f"cleanup-{len(cleanup)}")),
-                request={
-                    "method": str(req.get("method", "GET")).upper(),
-                    "path": str(req.get("path", "/")),
-                    "body": req.get("body"),
-                    "headers": req.get("headers") or {},
-                    "query": req.get("query") or {},
-                },
+                request=WorkflowRequest(
+                    method=str(req.get("method", "GET")).upper(),
+                    path=str(req.get("path", "/")),
+                    body=req.get("body"),
+                    headers={str(k): str(v) for k, v in (req.get("headers") or {}).items()},
+                    query=req.get("query") or {},
+                ),
                 timeout_seconds=float(s.get("timeout", 30.0)),
             )
         )
@@ -84,8 +83,10 @@ def load_workflow_manifest(path: str) -> Workflow:
         description=raw.get("description"),
         base_url=raw.get("base_url"),
         allowed_hosts=[str(h) for h in raw.get("allowed_hosts") or []],
-        allowed_methods=[str(m).upper() for m in raw.get("allowed_methods")
-                         or ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"]],
+        allowed_methods=[
+            str(m).upper()
+            for m in raw.get("allowed_methods") or ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"]
+        ],
         steps=steps,
         cleanup=cleanup,
     )
@@ -142,9 +143,12 @@ class WorkflowEngine:
         # Allowlist entries may omit the port (e.g. "http://127.0.0.1").
         origin = f"{parsed.scheme}://{parsed.hostname}"
         allowed = {h.rstrip("/") for h in self.workflow.allowed_hosts}
-        allowed_origins = {a.split("://")[0] + "://" +
-                           urlparse(a if "://" in a else "http://" + a).hostname
-                           for a in allowed}
+        allowed_origins = {
+            a.split("://")[0]
+            + "://"
+            + (urlparse(a if "://" in a else "http://" + a).hostname or "")
+            for a in allowed
+        }
         if allowed and host not in allowed and origin not in allowed_origins:
             raise ValueError(
                 f"host '{host}' is not in the workflow allowlist "
@@ -212,9 +216,7 @@ class WorkflowEngine:
         if expected_statuses is None:
             expected_statuses = [200, 201, 202, 204]
         if response.status_code not in expected_statuses:
-            violations.append(
-                f"status {response.status_code} not in expected {expected_statuses}"
-            )
+            violations.append(f"status {response.status_code} not in expected {expected_statuses}")
 
         extracted: dict[str, Any] = {}
         try:
@@ -237,8 +239,7 @@ class WorkflowEngine:
                 violations.append(f"assertion path '{expression}' not found")
             elif actual != expected:
                 violations.append(
-                    f"assertion failed at '{expression}': "
-                    f"expected {expected!r}, got {actual!r}"
+                    f"assertion failed at '{expression}': expected {expected!r}, got {actual!r}"
                 )
 
         status = "fail" if violations else "pass"

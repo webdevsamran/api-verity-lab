@@ -4,17 +4,31 @@ Redaction covers authorization headers, cookies, API keys/tokens and
 configurable sensitive fields. Redaction is always applied before any
 corpus is stored in a bundle; secret values never persist.
 """
+
 from __future__ import annotations
-import json, re
+
+import json
+import re
 from pathlib import Path
 from typing import Any
+
 from pydantic import BaseModel, Field
 
-DEFAULT_SENSITIVE_HEADERS = {"authorization", "cookie", "set-cookie", "proxy-authorization",
-                             "x-api-key", "x-auth-token", "x-csrf-token"}
+DEFAULT_SENSITIVE_HEADERS = {
+    "authorization",
+    "cookie",
+    "set-cookie",
+    "proxy-authorization",
+    "x-api-key",
+    "x-auth-token",
+    "x-csrf-token",
+}
 DEFAULT_SENSITIVE_QUERY = {"api_key", "apikey", "token", "access_token", "secret", "password"}
-DEFAULT_PATTERNS = [r"(?i)bearer\s+[a-z0-9._\-]+", r"(?i)sk-[a-z0-9]{16,}",
-                    r"(?i)(?:api[_-]?key|token|secret)\s*[=:]\s*\S+"]
+DEFAULT_PATTERNS = [
+    r"(?i)bearer\s+[a-z0-9._\-]+",
+    r"(?i)sk-[a-z0-9]{16,}",
+    r"(?i)(?:api[_-]?key|token|secret)\s*[=:]\s*\S+",
+]
 
 
 class RedactionConfig(BaseModel):
@@ -42,8 +56,10 @@ def redact_headers(headers: dict[str, str], cfg: RedactionConfig) -> dict[str, s
 
 
 def redact_query(params: dict[str, Any], cfg: RedactionConfig) -> dict[str, Any]:
-    return {k: (cfg.replacement if k.lower() in cfg.sensitive_query_fields else v)
-            for k, v in params.items()}
+    return {
+        k: (cfg.replacement if k.lower() in cfg.sensitive_query_fields else v)
+        for k, v in params.items()
+    }
 
 
 def redact_json(value: Any, cfg: RedactionConfig, *, is_body: bool = True) -> Any:
@@ -76,14 +92,20 @@ def import_har(path: str, cfg: RedactionConfig | None = None) -> list[dict[str, 
         resp = entry.get("response", {})
         qdict = {q["name"]: q.get("value") for q in req.get("queryString", [])}
         post = req.get("postData", {}).get("text")
-        entries.append({
-            "method": req.get("method"),
-            "url": req.get("url"),
-            "request_headers": redact_headers({h["name"]: h.get("value") for h in req.get("headers", [])}, cfg),
-            "query": redact_query(qdict, cfg),
-            "request_body": redact_json(json.loads(post), cfg) if post else None,
-            "status": resp.get("status"),
-            "response_headers": redact_headers({h["name"]: h.get("value") for h in resp.get("headers", [])}, cfg),
-            "response_body": None,  # bodies are not persisted by default
-        })
+        entries.append(
+            {
+                "method": req.get("method"),
+                "url": req.get("url"),
+                "request_headers": redact_headers(
+                    {h["name"]: h.get("value") for h in req.get("headers", [])}, cfg
+                ),
+                "query": redact_query(qdict, cfg),
+                "request_body": redact_json(json.loads(post), cfg) if post else None,
+                "status": resp.get("status"),
+                "response_headers": redact_headers(
+                    {h["name"]: h.get("value") for h in resp.get("headers", [])}, cfg
+                ),
+                "response_body": None,  # bodies are not persisted by default
+            }
+        )
     return entries

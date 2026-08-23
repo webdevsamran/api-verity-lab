@@ -26,6 +26,7 @@ from apiverity.core.model import (
     Response,
     SchemaNode,
     Service,
+    Severity,
     SourceLocation,
 )
 from apiverity.specs import SpecPlugin
@@ -56,7 +57,9 @@ _RE_SERVICE = re.compile(r"^service\s+(\w+)\s*\{", re.MULTILINE)
 _RE_RPC = re.compile(
     r"rpc\s+(\w+)\s*\(\s*(stream\s+)?([\w.]+)\s*\)\s*returns\s*\(\s*(stream\s+)?([\w.]+)\s*\)"
 )
-_RE_FIELD = re.compile(r"^(?:(repeated|optional|required|map\s*<[^>]+>)\s+)?([\w.]+)\s+(\w+)\s*=\s*(\d+)")
+_RE_FIELD = re.compile(
+    r"^(?:(repeated|optional|required|map\s*<[^>]+>)\s+)?([\w.]+)\s+(\w+)\s*=\s*(\d+)"
+)
 _RE_ENUM_VALUE = re.compile(r"(\w+)\s*=\s*(-?\d+)")
 
 
@@ -91,7 +94,7 @@ def _message_to_schema(name: str, body: str, line_of: dict[int, int], base_line:
             findings.append(
                 Finding(
                     rule_id="PROTO-FIELD-NUMBER-REUSE",
-                    severity="ERROR",
+                    severity=Severity.ERROR,
                     message=f"message '{name}' reuses field number {number} "
                     f"(used by both '{seen_numbers[number]}' and '{fname}') — "
                     "this corrupts wire data",
@@ -169,9 +172,8 @@ class GrpcSpecPlugin(SpecPlugin):
                     findings.append(
                         Finding(
                             rule_id="PROTO-RPC-DUPLICATE",
-                            severity="ERROR",
-                            message=f"service '{svc_name}' declares duplicate RPC "
-                            f"'{rpc_name}'",
+                            severity=Severity.ERROR,
+                            message=f"service '{svc_name}' declares duplicate RPC '{rpc_name}'",
                             location=SourceLocation(file=label, line=svc_base_line + offset),
                         )
                     )
@@ -201,7 +203,7 @@ class GrpcSpecPlugin(SpecPlugin):
             findings.append(
                 Finding(
                     rule_id="PROTO-PARSE-EMPTY",
-                    severity="ERROR",
+                    severity=Severity.ERROR,
                     message=f"no services or messages found in '{label}'",
                     location=SourceLocation(file=label),
                 )

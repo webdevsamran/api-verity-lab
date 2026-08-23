@@ -4,9 +4,12 @@ Replay requires an explicit allowlist of base URLs, supports dry-run,
 concurrency and rate controls, and refuses targets marked production
 unless explicitly opted in via ``allow_production=True``.
 """
+
 from __future__ import annotations
+
 import time
 from typing import Any
+
 import httpx
 from pydantic import BaseModel, Field
 
@@ -46,7 +49,8 @@ def replay_corpus(
     if any(e.production for e in entries) and not allow_production:
         raise ValueError(
             "corpus contains entries marked production; pass explicit opt-in "
-            "(--i-know-this-is-production) to replay them")
+            "(--i-know-this-is-production) to replay them"
+        )
 
     report = ReplayReport(target=base_url, dry_run=dry_run)
     delay = 1.0 / max(rate_per_second, 0.01)
@@ -54,9 +58,13 @@ def replay_corpus(
         with httpx.Client(base_url=base_url, timeout=timeout) as client:
             for entry in entries:
                 try:
-                    resp = client.request(entry.method, entry.path, params=entry.query or None,
-                                          headers=entry.headers or None,
-                                          json=entry.body if entry.body is not None else None)
+                    resp = client.request(
+                        entry.method,
+                        entry.path,
+                        params=entry.query or None,
+                        headers=entry.headers or None,
+                        json=entry.body if entry.body is not None else None,
+                    )
                     key = f"{resp.status_code // 100}xx"
                     report.statuses[key] = report.statuses.get(key, 0) + 1
                     report.sent += 1

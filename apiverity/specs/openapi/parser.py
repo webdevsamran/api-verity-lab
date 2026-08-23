@@ -10,7 +10,7 @@ conflicting operations.
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, ClassVar
 
 import yaml
 
@@ -29,6 +29,7 @@ from apiverity.core.model import (
     SecurityScheme,
     Server,
     Service,
+    Severity,
     SourceLocation,
 )
 from apiverity.specs import parse_document, read_source
@@ -41,7 +42,7 @@ _VALID_PARAM_LOCATIONS = {loc.value for loc in ParameterLocation}
 class _LineTrackingLoader(yaml.SafeLoader):
     """SafeLoader that records (line, column) per constructed mapping/list."""
 
-    line_index: dict[int, tuple[int, int]] = {}
+    line_index: ClassVar[dict[int, tuple[int, int]]] = {}
 
     def construct_yaml_map(self, node: yaml.MappingNode) -> Any:
         data: dict[Any, Any] = {}
@@ -66,12 +67,8 @@ class _LineTrackingLoader(yaml.SafeLoader):
 
 # PyYAML registers constructor functions against the *base* class at import
 # time, so overrides must be re-registered to take effect.
-_LineTrackingLoader.add_constructor(
-    "tag:yaml.org,2002:map", _LineTrackingLoader.construct_yaml_map
-)
-_LineTrackingLoader.add_constructor(
-    "tag:yaml.org,2002:seq", _LineTrackingLoader.construct_yaml_seq
-)
+_LineTrackingLoader.add_constructor("tag:yaml.org,2002:map", _LineTrackingLoader.construct_yaml_map)
+_LineTrackingLoader.add_constructor("tag:yaml.org,2002:seq", _LineTrackingLoader.construct_yaml_seq)
 
 
 def load_yaml_with_lines(text: str) -> tuple[dict[str, Any], dict[int, tuple[int, int]]]:
@@ -118,7 +115,7 @@ class OpenApiParser:
             self.findings.append(
                 Finding(
                     rule_id="SPEC-REF-EXTERNAL",
-                    severity="WARN",
+                    severity=Severity.WARN,
                     message=f"external reference '{ref}' cannot be resolved by the "
                     "built-in loader; bundle external docs or inline the schema",
                     location=self._loc(pointer),
@@ -133,9 +130,8 @@ class OpenApiParser:
                     self.findings.append(
                         Finding(
                             rule_id="SPEC-REF-UNRESOLVED",
-                            severity="ERROR",
-                            message=f"unresolved reference '{ref}' "
-                            f"(missing segment '{part}')",
+                            severity=Severity.ERROR,
+                            message=f"unresolved reference '{ref}' (missing segment '{part}')",
                             location=self._loc(pointer),
                         )
                     )
@@ -148,7 +144,7 @@ class OpenApiParser:
                     self.findings.append(
                         Finding(
                             rule_id="SPEC-REF-UNRESOLVED",
-                            severity="ERROR",
+                            severity=Severity.ERROR,
                             message=f"unresolved reference '{ref}'",
                             location=self._loc(pointer),
                         )
@@ -158,7 +154,7 @@ class OpenApiParser:
                 self.findings.append(
                     Finding(
                         rule_id="SPEC-REF-UNRESOLVED",
-                        severity="ERROR",
+                        severity=Severity.ERROR,
                         message=f"unresolved reference '{ref}': traversal dead-end",
                         location=self._loc(pointer),
                     )
@@ -184,7 +180,7 @@ class OpenApiParser:
                 self.findings.append(
                     Finding(
                         rule_id="SPEC-REF-CYCLE",
-                        severity="ERROR",
+                        severity=Severity.ERROR,
                         message=f"circular reference detected at '{ref}'",
                         location=self._loc(pointer, node),
                     )
@@ -200,7 +196,7 @@ class OpenApiParser:
                 self.findings.append(
                     Finding(
                         rule_id="SPEC-REF-DEEP",
-                        severity="ERROR",
+                        severity=Severity.ERROR,
                         message=f"reference chain too deep at '{ref}'",
                         location=self._loc(pointer),
                     )
@@ -218,7 +214,7 @@ class OpenApiParser:
             self.findings.append(
                 Finding(
                     rule_id="SPEC-SCHEMA-INVALID",
-                    severity="ERROR",
+                    severity=Severity.ERROR,
                     message=f"schema at '{pointer}' is not an object",
                     location=self._loc(pointer, node),
                 )
@@ -273,7 +269,9 @@ class OpenApiParser:
         props = node.get("properties")
         if isinstance(props, dict):
             for name, sub in props.items():
-                converted = self.to_schema(root, sub, f"{pointer}/properties/{self._escape_pointer(name)}")
+                converted = self.to_schema(
+                    root, sub, f"{pointer}/properties/{self._escape_pointer(name)}"
+                )
                 if converted is not None:
                     out.properties[name] = converted
         required = node.get("required")
@@ -284,7 +282,9 @@ class OpenApiParser:
         if isinstance(addl, bool):
             out.additional_properties = addl
         elif isinstance(addl, dict):
-            out.additional_properties = self.to_schema(root, addl, f"{pointer}/additionalProperties")
+            out.additional_properties = self.to_schema(
+                root, addl, f"{pointer}/additionalProperties"
+            )
 
         if isinstance(node.get("items"), (dict, bool)):
             out.items = self.to_schema(root, node["items"], f"{pointer}/items")
@@ -292,7 +292,7 @@ class OpenApiParser:
         for key, attr in (("oneOf", "one_of"), ("anyOf", "any_of"), ("allOf", "all_of")):
             variants = node.get(key)
             if isinstance(variants, list):
-                converted = [
+                variant_schemas = [
                     s
                     for s in (
                         self.to_schema(root, v, f"{pointer}/{key}/{i}")
@@ -300,7 +300,7 @@ class OpenApiParser:
                     )
                     if s is not None
                 ]
-                setattr(out, attr, converted)
+                setattr(out, attr, variant_schemas)
 
         return out
 
@@ -315,7 +315,7 @@ class OpenApiParser:
             self.findings.append(
                 Finding(
                     rule_id="SPEC-PARAM-LOCATION",
-                    severity="ERROR",
+                    severity=Severity.ERROR,
                     message=f"parameter '{node.get('name', '?')}' has invalid 'in' value "
                     f"'{loc_raw}'",
                     location=self._loc(pointer, node),
@@ -352,7 +352,9 @@ class OpenApiParser:
             for media, media_obj in raw_content.items():
                 if isinstance(media_obj, dict) and isinstance(media_obj.get("schema"), dict):
                     converted = self.to_schema(
-                        root, media_obj["schema"], f"{pointer}/content/{self._escape_pointer(str(media))}/schema"
+                        root,
+                        media_obj["schema"],
+                        f"{pointer}/content/{self._escape_pointer(str(media))}/schema",
                     )
                     if converted is not None:
                         content[str(media)] = converted
@@ -363,7 +365,9 @@ class OpenApiParser:
             source_location=self._loc(pointer, node),
         )
 
-    def _to_response(self, root: dict[str, Any], status: str, node: Any, pointer: str) -> Response | None:
+    def _to_response(
+        self, root: dict[str, Any], status: str, node: Any, pointer: str
+    ) -> Response | None:
         node = self.deref(root, node, pointer)
         if not isinstance(node, dict):
             return None
@@ -374,7 +378,9 @@ class OpenApiParser:
                 if isinstance(hobj, dict):
                     hobj = self.deref(root, hobj, f"{pointer}/headers/{hname}")
                     if isinstance(hobj, dict) and isinstance(hobj.get("schema"), dict):
-                        converted = self.to_schema(root, hobj["schema"], f"{pointer}/headers/{hname}/schema")
+                        converted = self.to_schema(
+                            root, hobj["schema"], f"{pointer}/headers/{hname}/schema"
+                        )
                         if converted is not None:
                             headers[str(hname)] = converted
         content: dict[str, SchemaNode] = {}
@@ -383,7 +389,9 @@ class OpenApiParser:
             for media, media_obj in raw_content.items():
                 if isinstance(media_obj, dict) and isinstance(media_obj.get("schema"), dict):
                     converted = self.to_schema(
-                        root, media_obj["schema"], f"{pointer}/content/{self._escape_pointer(str(media))}/schema"
+                        root,
+                        media_obj["schema"],
+                        f"{pointer}/content/{self._escape_pointer(str(media))}/schema",
                     )
                     if converted is not None:
                         content[str(media)] = converted
@@ -412,10 +420,12 @@ class OpenApiParser:
                     )
         return examples
 
-    def _to_security_requirements(self, root: dict[str, Any], node: Any, pointer: str) -> list[SecurityRequirement]:
+    def _to_security_requirements(
+        self, root: dict[str, Any], node: Any, pointer: str
+    ) -> list[SecurityRequirement]:
         reqs: list[SecurityRequirement] = []
         if isinstance(node, list):
-            for i, entry in enumerate(node):
+            for entry in node:
                 if isinstance(entry, dict):
                     for scheme_name, scopes in entry.items():
                         reqs.append(
@@ -452,7 +462,7 @@ class OpenApiParser:
             self.findings.append(
                 Finding(
                     rule_id="SPEC-VERSION-UNSUPPORTED",
-                    severity="ERROR",
+                    severity=Severity.ERROR,
                     message=f"unsupported OpenAPI version '{openapi_version or '(missing)'}'; "
                     "expected 3.0.x or 3.1.x",
                     location=self._loc(""),
@@ -471,7 +481,7 @@ class OpenApiParser:
 
         servers = doc.get("servers")
         if isinstance(servers, list):
-            for i, srv in enumerate(servers):
+            for srv in servers:
                 if isinstance(srv, dict) and "url" in srv:
                     service.servers.append(
                         Server(url=str(srv["url"]), description=srv.get("description"))
@@ -488,16 +498,16 @@ class OpenApiParser:
                 service.security_schemes[str(name)] = SecurityScheme(
                     name=str(name),
                     type=str(sch.get("type", "")),
-                    location=ParameterLocation(loc_raw) if loc_raw in _VALID_PARAM_LOCATIONS else None,
+                    location=ParameterLocation(loc_raw)
+                    if loc_raw in _VALID_PARAM_LOCATIONS
+                    else None,
                     scheme=sch.get("scheme"),
                     bearer_format=sch.get("bearerFormat"),
                     deprecated=bool(sch.get("deprecated", False)),
                     source_location=self._loc(f"/components/securitySchemes/{name}", sch),
                 )
 
-        global_security = self._to_security_requirements(
-            doc, doc.get("security"), "/security"
-        )
+        global_security = self._to_security_requirements(doc, doc.get("security"), "/security")
         service.global_security = global_security
 
         paths = doc.get("paths") or {}
@@ -531,7 +541,7 @@ class OpenApiParser:
                     self.findings.append(
                         Finding(
                             rule_id="SPEC-OP-DUPLICATE",
-                            severity="ERROR",
+                            severity=Severity.ERROR,
                             message=f"duplicate/conflicting operation '{key}'",
                             location=self._loc(op_pointer, op_node),
                         )
@@ -560,18 +570,18 @@ class OpenApiParser:
                     self.findings.append(
                         Finding(
                             rule_id="SPEC-RESPONSE-MISSING",
-                            severity="WARN",
+                            severity=Severity.WARN,
                             message=f"operation '{key}' declares no responses",
                             location=self._loc(op_pointer, op_node),
                         )
                     )
                 if isinstance(raw_responses, dict):
                     for status, resp in raw_responses.items():
-                        conv = self._to_response(
+                        resp_conv = self._to_response(
                             doc, str(status), resp, f"{op_pointer}/responses/{status}"
                         )
-                        if conv is not None:
-                            responses.append(conv)
+                        if resp_conv is not None:
+                            responses.append(resp_conv)
 
                 op_id = op_node.get("operationId")
                 if op_id is not None:
@@ -580,7 +590,7 @@ class OpenApiParser:
                         self.findings.append(
                             Finding(
                                 rule_id="SPEC-OPID-DUPLICATE",
-                                severity="ERROR",
+                                severity=Severity.ERROR,
                                 message=f"duplicate operationId '{op_id}' "
                                 f"(also used by {seen_operation_ids[op_id]})",
                                 location=self._loc(op_pointer, op_node),

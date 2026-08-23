@@ -9,7 +9,7 @@ but move predictably when the underlying change moves operations.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from apiverity.core.model import (
     Change,
@@ -38,7 +38,7 @@ _CONSTRAINT_ATTRS = (
 )
 
 
-def _schema_summary(schema: Optional[SchemaNode]) -> str:
+def _schema_summary(schema: SchemaNode | None) -> str:
     if schema is None:
         return "absent"
     base = schema.type or "any"
@@ -71,7 +71,7 @@ class DiffEngine:
         new_value: Any = None,
         old_location: Any = None,
         new_location: Any = None,
-        breaking_hint: Optional[str] = None,
+        breaking_hint: str | None = None,
     ) -> Change:
         key = kind.value.upper()
         self._counters[key] = self._counters.get(key, 0) + 1
@@ -99,9 +99,7 @@ class DiffEngine:
         for key in sorted(set(old_ops) - set(new_ops)):
             op = old_ops[key]
             kind = (
-                ChangeKind.RPC_REMOVED
-                if op.kind.value != "http"
-                else ChangeKind.OPERATION_REMOVED
+                ChangeKind.RPC_REMOVED if op.kind.value != "http" else ChangeKind.OPERATION_REMOVED
             )
             self._add(
                 kind,
@@ -114,11 +112,7 @@ class DiffEngine:
 
         for key in sorted(set(new_ops) - set(old_ops)):
             op = new_ops[key]
-            kind = (
-                ChangeKind.RPC_ADDED
-                if op.kind.value != "http"
-                else ChangeKind.OPERATION_ADDED
-            )
+            kind = ChangeKind.RPC_ADDED if op.kind.value != "http" else ChangeKind.OPERATION_ADDED
             self._add(
                 kind,
                 key,
@@ -227,9 +221,7 @@ class DiffEngine:
                 + (" (required)" if p.required else ""),
                 new_location=p.source_location,
                 breaking_hint=(
-                    "new required parameter: existing clients will fail"
-                    if p.required
-                    else None
+                    "new required parameter: existing clients will fail" if p.required else None
                 ),
             )
         for ident in sorted(set(old_p) & set(new_p)):
@@ -240,8 +232,7 @@ class DiffEngine:
                     ChangeKind.PARAMETER_REQUIREDNESS,
                     key,
                     "request",
-                    f"parameter '{name}' ({loc}) requiredness changed "
-                    f"{o.required} -> {n.required}",
+                    f"parameter '{name}' ({loc}) requiredness changed {o.required} -> {n.required}",
                     old_value=o.required,
                     new_value=n.required,
                     old_location=o.source_location,
@@ -282,15 +273,13 @@ class DiffEngine:
                 ChangeKind.REQUEST_SCHEMA_CHANGED,
                 key,
                 "request",
-                "request body "
-                + ("removed" if new_body is None else "added"),
+                "request body " + ("removed" if new_body is None else "added"),
                 old_location=old_body.source_location if old_body else None,
                 new_location=new_body.source_location if new_body else None,
                 breaking_hint=(
                     "request body removed: clients sending bodies may break"
                     if new_body is None
-                    else "request body added"
-                    + (" and required" if new_body.required else "")
+                    else "request body added" + (" and required" if new_body.required else "")
                     if new_body.required
                     else None
                 ),
@@ -312,9 +301,7 @@ class DiffEngine:
                 key,
                 "request",
                 f"request body requiredness changed {old_body.required} -> {new_body.required}",
-                breaking_hint=(
-                    "request body became required" if new_body.required else None
-                ),
+                breaking_hint=("request body became required" if new_body.required else None),
             )
 
     def _diff_responses(self, old: Operation, new: Operation, key: str) -> None:
@@ -373,11 +360,11 @@ class DiffEngine:
                 )
 
     def _diff_security(self, old: Operation, new: Operation, key: str) -> None:
-        def sec_str(op: Operation) -> list[list[str]]:
-            reqs = op.security if op.security is not None else None
+        def sec_str(op: Operation) -> list[str]:
+            reqs = op.security
             if reqs is None:
                 reqs = self.new.global_security if op is new else self.old.global_security
-            return sorted([sorted(r.scheme_name for r in req)] for req in reqs) if reqs else []
+            return sorted(r.scheme_name for r in reqs)
 
         o_sec, n_sec = sec_str(old), sec_str(new)
         if o_sec != n_sec:
@@ -442,9 +429,7 @@ class DiffEngine:
                 new_value=new.enum,
                 old_location=old.source_location,
                 new_location=new.source_location,
-                breaking_hint=(
-                    f"enum values removed: {removed}" if removed else None
-                ),
+                breaking_hint=(f"enum values removed: {removed}" if removed else None),
             )
 
         for attr in _CONSTRAINT_ATTRS:
@@ -537,7 +522,7 @@ class DiffEngine:
         for attr in ("one_of", "any_of", "all_of"):
             o_variants, n_variants = getattr(old, attr), getattr(new, attr)
             if o_variants and n_variants and len(o_variants) == len(n_variants):
-                for i, (o_v, n_v) in enumerate(zip(o_variants, n_variants)):
+                for i, (o_v, n_v) in enumerate(zip(o_variants, n_variants, strict=True)):
                     self._diff_schema(
                         o_v, n_v, operation_key, where, direction, path=f"{path}/{attr}[{i}]"
                     )
@@ -545,3 +530,6 @@ class DiffEngine:
 
 def diff_services(old: Service, new: Service) -> list[Change]:
     return DiffEngine(old, new).run()
+
+
+__all__ = ["Change", "diff_services"]

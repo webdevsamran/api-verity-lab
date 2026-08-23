@@ -4,7 +4,10 @@ Six versioned groups: apiverity.specs / rules / checks / generators /
 exporters / transports. Plugin API contract version is ``1``; see
 docs/plugins.md.
 """
+
 from __future__ import annotations
+
+from typing import Any
 
 PLUGIN_API_VERSION = 1
 
@@ -23,10 +26,11 @@ def list_entry_points() -> dict[str, list[dict[str, str]]]:
 
     out: dict[str, list[dict[str, str]]] = {}
     for group in ENTRY_POINT_GROUPS:
+        eps: list[Any]
         try:
-            eps = entry_points(group=group)
+            eps = list(entry_points(group=group))
         except TypeError:  # pragma: no cover - older Python fallback
-            eps = entry_points().get(group, [])
+            eps = list(entry_points().get(group, []))  # type: ignore[attr-defined]
         out[group] = [{"name": ep.name, "value": ep.value} for ep in eps]
     return out
 
@@ -54,10 +58,11 @@ def load_group(group: str) -> list[tuple[str, object]]:
     if group not in ENTRY_POINT_GROUPS:
         raise ValueError(f"unknown entry point group '{group}'")
     loaded = []
+    eps: list[Any]
     try:
-        eps = entry_points(group=group)
+        eps = list(entry_points(group=group))
     except TypeError:  # pragma: no cover
-        eps = entry_points().get(group, [])
+        eps = list(entry_points().get(group, []))  # type: ignore[attr-defined]
     for ep in eps:
         loaded.append((ep.name, ep.load()))
     return loaded

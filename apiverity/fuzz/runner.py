@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 import time
-from typing import Any, Optional
 
 import httpx
 
@@ -62,9 +61,7 @@ def _declared_success(op: Operation) -> str:
     return "2xx"
 
 
-def _check_response(
-    op: Operation, case: TestCase, response: httpx.Response
-) -> list[str]:
+def _check_response(op: Operation, case: TestCase, response: httpx.Response) -> list[str]:
     """Contract checks applied to every response."""
     violations: list[str] = []
     status = response.status_code
@@ -81,9 +78,7 @@ def _check_response(
             return violations
     else:
         if 200 <= status < 300:
-            violations.append(
-                f"invalid input accepted with {status} (expected 4xx)"
-            )
+            violations.append(f"invalid input accepted with {status} (expected 4xx)")
             return violations
         if 400 <= status < 500:
             return violations  # correctly rejected
@@ -120,9 +115,7 @@ def _check_response(
                 violations.append("declared JSON response body is not valid JSON")
                 body = None
             if body is not None:
-                violations.extend(
-                    f"response body: {v}" for v in validate_value(schema, body)
-                )
+                violations.extend(f"response body: {v}" for v in validate_value(schema, body))
 
     # declared response headers present?
     for header in declared.headers:
@@ -138,7 +131,7 @@ def run_cases(
     cases: list[TestCase],
     *,
     timeout: float = 10.0,
-    max_cases: Optional[int] = None,
+    max_cases: int | None = None,
 ) -> list[TestResult]:
     """Run cases sequentially against ``base_url``."""
     ops = {op.key: op for op in service.operations}
@@ -159,7 +152,8 @@ def run_cases(
                 )
                 duration_ms = int((time.monotonic() - started) * 1000)
                 violations = (
-                    _check_response(op, case, response) if op is not None
+                    _check_response(op, case, response)
+                    if op is not None
                     else ["operation not found in contract"]
                 )
                 results.append(
