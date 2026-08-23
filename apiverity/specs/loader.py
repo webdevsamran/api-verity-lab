@@ -7,8 +7,6 @@ point group).
 
 from __future__ import annotations
 
-from typing import Optional
-
 from apiverity.core.model import Finding, Service
 from apiverity.plugins.registry import PluginRegistry
 from apiverity.specs import SpecPlugin, read_source
@@ -23,13 +21,13 @@ def _builtin_plugins() -> list[SpecPlugin]:
 
 
 def detect_and_load(
-    source: str, registry: Optional[PluginRegistry] = None
+    source: str, registry: PluginRegistry | None = None
 ) -> tuple[Service, list[Finding], SpecPlugin]:
     """Load a contract from any supported format."""
     _, raw = read_source(source)
     plugins = list(_builtin_plugins())
     if registry is not None:
-        plugins.extend(registry.spec_plugins())
+        plugins.extend(p for p in registry.instances() if isinstance(p, SpecPlugin))
 
     for plugin in plugins:
         try:

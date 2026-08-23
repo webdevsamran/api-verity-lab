@@ -1,7 +1,7 @@
 """End-to-end validation against bundled fixtures (mock hosted in-process)."""
+
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
 
@@ -22,27 +22,43 @@ def main() -> None:
     failures = []
 
     # 1. validate all fixtures
-    for spec in ["crud/openapi.yaml", "versioned/v1.yaml", "versioned/v2.yaml",
-                 "drift/openapi.yaml"]:
+    for spec in [
+        "crud/openapi.yaml",
+        "versioned/v1.yaml",
+        "versioned/v2.yaml",
+        "drift/openapi.yaml",
+    ]:
         code = run(["validate", str(FIX / "apis" / spec)])
         if code not in (0,):
             failures.append(f"validate {spec} -> {code}")
 
     # 2. diff + breaking + semver
-    code = run(["diff", str(FIX / "apis/versioned/v1.yaml"),
-                str(FIX / "apis/versioned/v2.yaml")])
+    code = run(["diff", str(FIX / "apis/versioned/v1.yaml"), str(FIX / "apis/versioned/v2.yaml")])
     if code != 0:
         failures.append(f"diff -> {code}")
-    code = run(["breaking", str(FIX / "apis/versioned/v1.yaml"),
-                str(FIX / "apis/versioned/v2.yaml"), "--check-semver"])
+    code = run(
+        [
+            "breaking",
+            str(FIX / "apis/versioned/v1.yaml"),
+            str(FIX / "apis/versioned/v2.yaml"),
+            "--check-semver",
+        ]
+    )
     if code != 1:  # breaking changes expected
         failures.append(f"breaking -> {code} (expected 1)")
 
     # 3. changelog
     out = Path("build/changelog.md")
     out.parent.mkdir(exist_ok=True)
-    code = run(["changelog", str(FIX / "apis/versioned/v1.yaml"),
-                str(FIX / "apis/versioned/v2.yaml"), "--output", str(out)])
+    code = run(
+        [
+            "changelog",
+            str(FIX / "apis/versioned/v1.yaml"),
+            str(FIX / "apis/versioned/v2.yaml"),
+            "--output",
+            str(out),
+        ]
+    )
     if code != 0 or not out.exists():
         failures.append("changelog failed")
 
@@ -58,8 +74,7 @@ def main() -> None:
             failures.append(f"test -> {code}")
 
         # workflow lifecycle
-        code = run(["workflow", str(FIX / "workflows/crud-lifecycle.yaml"),
-                    "--base-url", base])
+        code = run(["workflow", str(FIX / "workflows/crud-lifecycle.yaml"), "--base-url", base])
         if code != 0:
             failures.append(f"workflow -> {code}")
 
@@ -75,17 +90,39 @@ def main() -> None:
 
         # performance baseline + regression gate
         baseline_path = Path("build/perf-baseline.json")
-        code = run(["baseline", str(FIX / "apis/crud/openapi.yaml"),
-                    "--base-url", base, "-o", str(baseline_path), "--iterations", "30"])
+        code = run(
+            [
+                "baseline",
+                str(FIX / "apis/crud/openapi.yaml"),
+                "--base-url",
+                base,
+                "-o",
+                str(baseline_path),
+                "--iterations",
+                "30",
+            ]
+        )
         if code != 0:
             failures.append(f"baseline -> {code}")
         # Tolerance is deliberately generous: localhost timings are noisy and
         # the strict comparison logic is unit-tested in the pytest suite.
         # Here we verify the command wiring and exit codes end-to-end.
-        code = run(["regression", str(FIX / "apis/crud/openapi.yaml"), "--base-url", base,
-                    "--baseline", str(baseline_path), "--iterations", "30",
-                    "--tolerance", "400",
-                    "--policy", "GET /users p95 <= 5000ms"])
+        code = run(
+            [
+                "regression",
+                str(FIX / "apis/crud/openapi.yaml"),
+                "--base-url",
+                base,
+                "--baseline",
+                str(baseline_path),
+                "--iterations",
+                "30",
+                "--tolerance",
+                "400",
+                "--policy",
+                "GET /users p95 <= 5000ms",
+            ]
+        )
         if code != 0:
             failures.append(f"regression -> {code}")
 
@@ -93,8 +130,9 @@ def main() -> None:
     from apiverity.traffic.redact import RedactionConfig, redact_headers, redact_json
 
     cfg = RedactionConfig()
-    hdrs = redact_headers({"Authorization": "Bearer sk-abcdefghijklmnop1234",
-                           "X-Custom": "ok"}, cfg)
+    hdrs = redact_headers(
+        {"Authorization": "Bearer sk-abcdefghijklmnop1234", "X-Custom": "ok"}, cfg
+    )
     assert hdrs["Authorization"] == "[REDACTED]", hdrs
     body = redact_json({"password": "hunter2", "note": "token=abc123"}, cfg)
     assert body["password"] == "[REDACTED]" and "[REDACTED]" in body["note"], body

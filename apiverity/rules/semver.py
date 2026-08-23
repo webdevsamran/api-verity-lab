@@ -11,14 +11,12 @@ of detected changes:
 
 from __future__ import annotations
 
-from typing import Optional
-
 from packaging.version import InvalidVersion, Version
 
 from apiverity.core.model import Change, Finding, Severity
 
 
-def _parse(version: str) -> Optional[Version]:
+def _parse(version: str) -> Version | None:
     try:
         return Version(version)
     except InvalidVersion:

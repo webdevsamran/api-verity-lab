@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import random
 import string
-from typing import Any, Optional
+from typing import Any
 
 from apiverity.core.model import Operation, SchemaNode
 
@@ -29,9 +29,7 @@ def _random_string(rng: random.Random, length: int) -> str:
     return "".join(rng.choices(string.ascii_lowercase, k=length))
 
 
-def generate_valid(
-    schema: Optional[SchemaNode], rng: random.Random, depth: int = 0
-) -> Any:
+def generate_valid(schema: SchemaNode | None, rng: random.Random, depth: int = 0) -> Any:
     """Generate a value satisfying the schema constraints."""
     if schema is None or depth > 8:
         return None
@@ -67,9 +65,9 @@ def generate_valid(
         return rng.randint(lo, max(lo, hi))
 
     if stype == "number":
-        lo = schema.minimum if schema.minimum is not None else 1.0
-        hi = schema.maximum if schema.maximum is not None else lo + 100.0
-        return round(rng.uniform(lo, hi), 2)
+        flo = schema.minimum if schema.minimum is not None else 1.0
+        fhi = schema.maximum if schema.maximum is not None else flo + 100.0
+        return round(rng.uniform(flo, fhi), 2)
 
     if stype == "boolean":
         return True
@@ -91,7 +89,7 @@ def generate_valid(
 
 
 def generate_invalid(
-    schema: Optional[SchemaNode], rng: random.Random, depth: int = 0
+    schema: SchemaNode | None, rng: random.Random, depth: int = 0
 ) -> list[tuple[str, Any]]:
     """Generate values violating exactly one constraint each.
 
@@ -124,13 +122,17 @@ def generate_invalid(
         base = _random_string(rng, 5)
         if schema.min_length is not None:
             violations.append(
-                (f"length < minLength({schema.min_length})",
-                 _random_string(rng, max(schema.min_length - 1, 0)))
+                (
+                    f"length < minLength({schema.min_length})",
+                    _random_string(rng, max(schema.min_length - 1, 0)),
+                )
             )
         if schema.max_length is not None:
             violations.append(
-                (f"length > maxLength({schema.max_length})",
-                 _random_string(rng, schema.max_length + 5))
+                (
+                    f"length > maxLength({schema.max_length})",
+                    _random_string(rng, schema.max_length + 5),
+                )
             )
         if schema.pattern is not None:
             violations.append((f"violates pattern {schema.pattern!r}", base + "!!!"))
@@ -144,13 +146,11 @@ def generate_invalid(
             violations.append((f"value > maximum({hi})", hi + 1))
         if schema.exclusive_minimum is not None:
             violations.append(
-                (f"value <= exclusiveMinimum({schema.exclusive_minimum})",
-                 schema.exclusive_minimum)
+                (f"value <= exclusiveMinimum({schema.exclusive_minimum})", schema.exclusive_minimum)
             )
         if schema.exclusive_maximum is not None:
             violations.append(
-                (f"value >= exclusiveMaximum({schema.exclusive_maximum})",
-                 schema.exclusive_maximum)
+                (f"value >= exclusiveMaximum({schema.exclusive_maximum})", schema.exclusive_maximum)
             )
         if schema.multiple_of:
             m = schema.multiple_of
@@ -159,8 +159,7 @@ def generate_invalid(
     if stype == "array":
         if schema.min_items is not None:
             violations.append(
-                (f"{max(schema.min_items - 1, 0)} items < minItems({schema.min_items})",
-                 [])
+                (f"{max(schema.min_items - 1, 0)} items < minItems({schema.min_items})", [])
             )
         if schema.items is not None:
             bad_items = generate_invalid(schema.items, rng, depth + 1)
@@ -178,8 +177,7 @@ def generate_invalid(
         for name, sub in list(schema.properties.items())[:4]:
             for desc, val in generate_invalid(sub, rng, depth + 1)[:2]:
                 full = {
-                    n: generate_valid(s2, rng, depth + 1)
-                    for n, s2 in schema.properties.items()
+                    n: generate_valid(s2, rng, depth + 1) for n, s2 in schema.properties.items()
                 }
                 full[name] = val
                 violations.append((f"field '{name}': {desc}", full))
@@ -227,15 +225,17 @@ def operation_cases(op: Operation, seed: int) -> list[dict[str, Any]]:
         body_schema = op.request_body.content[body_media]
 
     # positive case
-    cases.append({
-        "kind": "positive",
-        "description": f"valid request to {op.key}",
-        "path_params": path_params,
-        "query": query_valid,
-        "headers": header_valid,
-        "body": generate_valid(body_schema, rng) if body_schema else None,
-        "media": body_media,
-    })
+    cases.append(
+        {
+            "kind": "positive",
+            "description": f"valid request to {op.key}",
+            "path_params": path_params,
+            "query": query_valid,
+            "headers": header_valid,
+            "body": generate_valid(body_schema, rng) if body_schema else None,
+            "media": body_media,
+        }
+    )
 
     # negative cases from parameters
     for p in op.parameters:
@@ -244,39 +244,45 @@ def operation_cases(op: Operation, seed: int) -> list[dict[str, Any]]:
                 q = dict(query_valid)
                 if p.location.value == "query":
                     q[p.name] = val
-                    cases.append({
-                        "kind": "negative",
-                        "description": f"parameter '{p.name}' invalid: {desc}",
-                        "path_params": path_params,
-                        "query": q,
-                        "headers": header_valid,
-                        "body": None,
-                        "media": None,
-                    })
+                    cases.append(
+                        {
+                            "kind": "negative",
+                            "description": f"parameter '{p.name}' invalid: {desc}",
+                            "path_params": path_params,
+                            "query": q,
+                            "headers": header_valid,
+                            "body": None,
+                            "media": None,
+                        }
+                    )
                 elif p.location.value == "path":
                     pp = dict(path_params)
                     pp[p.name] = val
-                    cases.append({
-                        "kind": "negative",
-                        "description": f"path parameter '{p.name}' invalid: {desc}",
-                        "path_params": pp,
-                        "query": query_valid,
-                        "headers": header_valid,
-                        "body": None,
-                        "media": None,
-                    })
+                    cases.append(
+                        {
+                            "kind": "negative",
+                            "description": f"path parameter '{p.name}' invalid: {desc}",
+                            "path_params": pp,
+                            "query": query_valid,
+                            "headers": header_valid,
+                            "body": None,
+                            "media": None,
+                        }
+                    )
 
     # negative cases from body
     if body_schema is not None:
         for desc, val in generate_invalid(body_schema, rng):
-            cases.append({
-                "kind": "negative",
-                "description": f"request body invalid: {desc}",
-                "path_params": path_params,
-                "query": query_valid,
-                "headers": header_valid,
-                "body": val,
-                "media": body_media,
-            })
+            cases.append(
+                {
+                    "kind": "negative",
+                    "description": f"request body invalid: {desc}",
+                    "path_params": path_params,
+                    "query": query_valid,
+                    "headers": header_valid,
+                    "body": val,
+                    "media": body_media,
+                }
+            )
 
     return cases

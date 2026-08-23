@@ -24,9 +24,7 @@ def _grouped(
 ) -> dict[str, dict[str, list[tuple[str, str]]]]:
     """service -> operation -> [(severity_label, text)]"""
     severity_by_change = {f.change_id: f.severity for f in findings if f.change_id}
-    grouped: dict[str, dict[str, list[tuple[str, str]]]] = defaultdict(
-        lambda: defaultdict(list)
-    )
+    grouped: dict[str, dict[str, list[tuple[str, str]]]] = defaultdict(lambda: defaultdict(list))
     for change in changes:
         sev = severity_by_change.get(change.id, Severity.INFO)
         grouped["API"][change.operation_key].append(
@@ -56,14 +54,12 @@ def render_markdown(
         "",
     ]
     counts: dict[str, int] = defaultdict(int)
-    for entries in grouped.values():
-        for items in entries.values():
+    for op_entries in grouped.values():
+        for items in op_entries.values():
             for badge, _ in items:
                 counts[badge] += 1
     if counts:
-        lines.append(
-            " | ".join(f"{badge} ×{n}" for badge, n in sorted(counts.items()))
-        )
+        lines.append(" | ".join(f"{badge} x{n}" for badge, n in sorted(counts.items())))
         lines.append("")
     for service, operations in sorted(grouped.items()):
         lines.append(f"## {service}")
@@ -103,14 +99,8 @@ def render_html(
         for op in sorted(operations):
             parts.append(f"<h3><code>{html.escape(op)}</code></h3><ul>")
             for badge, text in operations[op]:
-                css = (
-                    "breaking" if "BREAKING" in badge
-                    else "risky" if "RISKY" in badge
-                    else "info"
-                )
-                parts.append(
-                    f'<li class="{css}">{html.escape(badge)} — {html.escape(text)}</li>'
-                )
+                css = "breaking" if "BREAKING" in badge else "risky" if "RISKY" in badge else "info"
+                parts.append(f'<li class="{css}">{html.escape(badge)} — {html.escape(text)}</li>')
             parts.append("</ul>")
     parts.append("</body></html>")
     return "".join(parts)

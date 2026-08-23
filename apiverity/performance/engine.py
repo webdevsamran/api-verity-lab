@@ -4,11 +4,16 @@ Policies like ``GET /users p95 <= 250ms`` are parsed and evaluated
 against measured samples; baselines enable regression gates with stable
 CI exit codes.
 """
+
 from __future__ import annotations
-import re, statistics, time
-from typing import Any, Optional
+
+import re
+import time
+from typing import Any
+
 import httpx
 from pydantic import BaseModel, Field
+
 from apiverity.core.model import Service
 from apiverity.fuzz.generate import fill_path, generate_valid
 
@@ -28,7 +33,9 @@ def parse_policy(text: str) -> Policy:
     m = _POLICY_RE.match(text.strip())
     if not m:
         raise ValueError(f"invalid policy '{text}'; expected e.g. 'GET /users p95 <= 250ms'")
-    return Policy(operation_key=f"{m['method']} {m['path']}", metric=m["metric"], value=float(m["value"]))
+    return Policy(
+        operation_key=f"{m['method']} {m['path']}", metric=m["metric"], value=float(m["value"])
+    )
 
 
 class OperationStats(BaseModel):
@@ -84,8 +91,12 @@ def measure(
             t0 = time.monotonic()
             for _ in range(iterations):
                 try:
-                    resp = client.request(op.method, path, params=query or None,
-                                          json=body if body is not None else None)
+                    resp = client.request(
+                        op.method,
+                        path,
+                        params=query or None,
+                        json=body if body is not None else None,
+                    )
                     if resp.status_code >= 500 or resp.status_code == 429:
                         errors += 1
                 except httpx.TimeoutException:
@@ -118,23 +129,30 @@ def evaluate_policies(report: PerformanceReport, policies: list[str]) -> list[st
     for policy in parsed:
         stats = by_key.get(policy.operation_key)
         if stats is None:
-            violations.append(f"{policy.operation_key}: no measurements for policy "
-                              f"'{policy.metric} <= {policy.value}'")
+            violations.append(
+                f"{policy.operation_key}: no measurements for policy "
+                f"'{policy.metric} <= {policy.value}'"
+            )
             continue
-        actual_map = {"p50": stats.p50_ms, "p90": stats.p90_ms, "p95": stats.p95_ms,
-                      "p99": stats.p99_ms,
-                      "error_rate": (100.0 * (stats.errors + stats.timeouts) / max(stats.requests, 1)),
-                      "throughput": stats.throughput_rps}
+        actual_map = {
+            "p50": stats.p50_ms,
+            "p90": stats.p90_ms,
+            "p95": stats.p95_ms,
+            "p99": stats.p99_ms,
+            "error_rate": (100.0 * (stats.errors + stats.timeouts) / max(stats.requests, 1)),
+            "throughput": stats.throughput_rps,
+        }
         actual = actual_map[policy.metric]
         if actual > policy.value:
             violations.append(
-                f"{policy.operation_key}: {policy.metric}={actual} exceeds budget "
-                f"{policy.value}")
+                f"{policy.operation_key}: {policy.metric}={actual} exceeds budget {policy.value}"
+            )
     return violations
 
 
-def compare_baseline(current: PerformanceReport, baseline: dict[str, Any],
-                     tolerance_pct: float = 20.0) -> list[str]:
+def compare_baseline(
+    current: PerformanceReport, baseline: dict[str, Any], tolerance_pct: float = 20.0
+) -> list[str]:
     """Flag regressions vs a stored baseline (per-operation p95)."""
     regressions = []
     base_ops = {o["operation_key"]: o for o in baseline.get("operations", [])}
@@ -146,7 +164,8 @@ def compare_baseline(current: PerformanceReport, baseline: dict[str, Any],
         if op.p95_ms > limit and prev.get("p95_ms", 0) > 0:
             regressions.append(
                 f"{op.operation_key}: p95 regressed {prev['p95_ms']}ms -> {op.p95_ms}ms "
-                f"(tolerance {tolerance_pct}%)")
+                f"(tolerance {tolerance_pct}%)"
+            )
         prev_err = prev.get("errors", 0)
         if prev_err == 0 and op.errors > 0:
             regressions.append(f"{op.operation_key}: new errors appeared ({op.errors})")

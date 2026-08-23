@@ -8,7 +8,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any, Optional
+from typing import Any
 
 from apiverity.core.model import Operation, Service
 from apiverity.fuzz.generate import generate_valid
@@ -19,9 +19,9 @@ class FaultConfig:
     """Development fault modes — never enabled by default."""
 
     latency_ms: int = 0
-    force_status: Optional[int] = None
+    force_status: int | None = None
     malformed_json: bool = False
-    rate_limit_after: Optional[int] = None  # return 429 after N requests
+    rate_limit_after: int | None = None  # return 429 after N requests
     seed: int = 0
 
 
@@ -41,7 +41,7 @@ class MockServer:
         *,
         host: str = "127.0.0.1",
         port: int = 0,
-        faults: Optional[FaultConfig] = None,
+        faults: FaultConfig | None = None,
     ) -> None:
         self.service = service
         self.host = host
@@ -49,8 +49,8 @@ class MockServer:
         self.faults = faults or FaultConfig()
         self.state = _State()
         self._rng = random.Random(self.faults.seed)
-        self._httpd: Optional[ThreadingHTTPServer] = None
-        self._thread: Optional[threading.Thread] = None
+        self._httpd: ThreadingHTTPServer | None = None
+        self._thread: threading.Thread | None = None
         ops = {op.key: op for op in service.operations}
         outer = self
 
@@ -93,8 +93,7 @@ class MockServer:
                     return
 
                 status_code = outer.faults.force_status or self._pick_status(op)
-                body = self._build_body(op, status_code, method, path,
-                                        request_body=request_body)
+                body = self._build_body(op, status_code, method, path, request_body=request_body)
 
                 if outer.faults.malformed_json:
                     payload = b'{"truncated...'
@@ -102,7 +101,7 @@ class MockServer:
                     payload = json.dumps(body).encode("utf-8")
                 self._respond(status_code, payload, raw=True)
 
-            def _match_template(self, method: str, path: str) -> Optional[Operation]:
+            def _match_template(self, method: str, path: str) -> Operation | None:
                 parts = [p for p in path.split("/") if p]
                 for candidate in outer.service.operations:
                     if candidate.method != method or not candidate.path:
@@ -111,8 +110,8 @@ class MockServer:
                     if len(cparts) != len(parts):
                         continue
                     ok = True
-                    for cp, pp in zip(cparts, parts):
-                        if not (cp.startswith("{") and cp.endswith("}") or cp == pp):
+                    for cp, pp in zip(cparts, parts, strict=True):
+                        if not ((cp.startswith("{") and cp.endswith("}")) or cp == pp):
                             ok = False
                             break
                         if cp.startswith("{"):
@@ -130,8 +129,13 @@ class MockServer:
                 return 200
 
             def _build_body(
-                self, op: Operation, status: int, method: str, path: str,
-                *, request_body: Any = None,
+                self,
+                op: Operation,
+                status: int,
+                method: str,
+                path: str,
+                *,
+                request_body: Any = None,
             ) -> Any:
                 # prefer declared examples
                 for ex in op.examples:
@@ -196,7 +200,7 @@ class MockServer:
             self._thread.join(timeout=2.0)
             self._thread = None
 
-    def __enter__(self) -> "MockServer":
+    def __enter__(self) -> MockServer:
         self.start()
         return self
 
@@ -208,7 +212,7 @@ def serve(
     service: Service,
     host: str = "127.0.0.1",
     port: int = 8090,
-    faults: Optional[FaultConfig] = None,
+    faults: FaultConfig | None = None,
 ) -> None:
     """Run the mock server in the foreground until interrupted."""
     server = MockServer(service, host=host, port=port, faults=faults)
