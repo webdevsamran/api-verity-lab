@@ -1,0 +1,499 @@
+{
+  "meta": {
+    "generated_utc": "2026-08-23T16:40:00Z",
+    "access_date": "2026-08-23",
+    "method_notes": [
+      "Repo metadata (license, stars, last push, archived) and latest releases were fetched live on 2026-08-23 via authenticated gh api (repos/{owner}/{repo} and /releases/latest); raw results preserved in data/competitor-meta.json.",
+      "useoptic/optic returned HTTP 404 on 2026-08-23; the Optic OSS project is no longer published under that org (verified live).",
+      "apiaryio/dredd is archived (verified live); last release dredd@14.1.0 (2021-11-16).",
+      "postmanlabs/newman returned no latest release object on 2026-08-23 (verified live).",
+      "Qualitative capability claims are labeled KNOWLEDGE-BASED unless they come from fetched metadata or official documentation quotes.",
+      "No competitor is claimed to lack a feature without verification; unverified areas use 'unknown' or 'not a documented focus area'.",
+      "Matrix values: yes | partial | no | unknown."
+    ]
+  },
+  "competitors": [
+    {
+      "name": "oasdiff",
+      "github_repo": "oasdiff/oasdiff",
+      "license_spdx": "Apache-2.0",
+      "open_source": true,
+      "stars": 1327,
+      "last_push": "2026-08-23T15:21:01Z",
+      "latest_release_tag": "v1.29.1",
+      "latest_release_date": "2026-08-16T11:59:53Z",
+      "target_audience": "Backend/API teams doing OpenAPI change detection in CI",
+      "deployment_model": "CLI/library/Docker; optional hosted diff endpoint",
+      "protocol_coverage": ["OpenAPI 3.x", "OpenAPI/Swagger 2.0"],
+      "core_capabilities": ["OpenAPI semantic diff", "breaking-change detection", "changelog generation", "diff severity levels"],
+      "ci_cd_integrations": ["GitHub Action", "generic CLI exit codes"],
+      "collaboration_model": "none beyond git",
+      "enterprise_boundary": "Hosted API is a paid convenience; core is fully local (KNOWLEDGE-BASED)",
+      "strengths": ["Focused, fast, well-maintained", "Good breaking-change rule coverage for HTTP"],
+      "weaknesses_or_tradeoffs": ["Single-purpose: no testing, drift, replay, performance, or broker workflows"],
+      "evidence": [
+        {"claim": "license/stars/activity/release", "url": "https://api.github.com/repos/oasdiff/oasdiff", "access_date": "2026-08-23", "method": "VERIFIED"},
+        {"claim": "description 'OpenAPI Diff and Breaking Changes'", "url": "https://api.github.com/repos/oasdiff/oasdiff", "access_date": "2026-08-23", "method": "VERIFIED"}
+      ]
+    },
+    {
+      "name": "Schemathesis",
+      "github_repo": "schemathesis/schemathesis",
+      "license_spdx": "MIT",
+      "open_source": true,
+      "stars": 3554,
+      "last_push": "2026-08-23T16:28:19Z",
+      "latest_release_tag": "v4.25.0",
+      "latest_release_date": "2026-08-20T23:03:13Z",
+      "target_audience": "QA/backend engineers property-testing HTTP APIs",
+      "deployment_model": "CLI/library; Schemathesis.io is a separate hosted service",
+      "protocol_coverage": ["OpenAPI 3.x", "GraphQL (historical; scope in v4 reduced - KNOWLEDGE-BASED)"],
+      "core_capabilities": ["schema-driven fuzzing", "response validation against schemas", "stateful testing via OpenAPI links", "failure reproduction/minimization"],
+      "ci_cd_integrations": ["GitHub Action", "generic CLI"],
+      "collaboration_model": "git; Schemathesis.io adds hosted reports (KNOWLEDGE-BASED)",
+      "enterprise_boundary": "Open-source core; hosted service commercial (KNOWLEDGE-BASED)",
+      "strengths": ["Best-in-class hypothesis-driven API fuzzing", "Strong failure minimization"],
+      "weaknesses_or_tradeoffs": ["No governance/diff/broker/deploy-decision workflow; single-service focus"],
+      "evidence": [
+        {"claim": "license/stars/activity/release", "url": "https://api.github.com/repos/schemathesis/schemathesis", "access_date": "2026-08-23", "method": "VERIFIED"},
+        {"claim": "stateful testing and response validation capabilities", "url": "https://schemathesis.readthedocs.io/", "access_date": "2026-08-23", "method": "KNOWLEDGE-BASED"}
+      ]
+    },
+    {
+      "name": "Spectral",
+      "github_repo": "stoplightio/spectral",
+      "license_spdx": "Apache-2.0",
+      "open_source": true,
+      "stars": 3186,
+      "last_push": "2026-08-19T09:56:59Z",
+      "latest_release_tag": "v6.16.3",
+      "latest_release_date": "2026-08-03T09:51:48Z",
+      "target_audience": "API governance/style-guide authors",
+      "deployment_model": "CLI/library/VS Code extension",
+      "protocol_coverage": ["OpenAPI 2.0/3.0/3.1", "Arazzo 1.0", "AsyncAPI 2.x (per repo description)"],
+      "core_capabilities": ["JSON/YAML linting", "custom rulesets", "custom JS functions", "severity/gating"],
+      "ci_cd_integrations": ["GitHub Action", "spectral-cli in any CI"],
+      "collaboration_model": "rulesets in git",
+      "enterprise_boundary": "Stoplight platform (hosted governance) was the commercial layer (KNOWLEDGE-BASED)",
+      "strengths": ["De-facto standard linter", "Rich built-in ruleset (oas)"],
+      "weaknesses_or_tradeoffs": ["Linting only: no compatibility semantics, testing, runtime, or deployment decisions"],
+      "evidence": [
+        {"claim": "license/stars/activity/release + description listing OpenAPI/Arazzo/AsyncAPI support", "url": "https://api.github.com/repos/stoplightio/spectral", "access_date": "2026-08-23", "method": "VERIFIED"}
+      ]
+    },
+    {
+      "name": "Pact (OSS)",
+      "github_repo": "pact-foundation/pact-js",
+      "license_spdx": "NOASSERTION (MIT-family per repo docs; multi-language implementations)",
+      "open_source": true,
+      "stars": 1801,
+      "last_push": "2026-08-21T18:15:03Z",
+      "latest_release_tag": "v17.1.2",
+      "latest_release_date": "2026-08-11T09:36:26Z",
+      "target_audience": "Consumer-driven contract testing teams",
+      "deployment_model": "Language libraries + self-hostable Pact Broker (OSS); PactFlow is the commercial distribution",
+      "protocol_coverage": ["HTTP", "async messaging", "gRPC (via plugins)", "GraphQL (provider verification)"],
+      "core_capabilities": ["consumer-driven contracts", "provider verification", "can-i-deploy", "pact broker publication", "plugins framework"],
+      "ci_cd_integrations": ["pact-broker CI webhooks", "GitHub Actions examples"],
+      "collaboration_model": "Broker-centric sharing between teams",
+      "enterprise_boundary": "PactFlow adds SSO/RBAC/support commercially; OSS Broker remains functional (KNOWLEDGE-BASED)",
+      "strengths": ["Mature consumer/provider workflow", "can-i-deploy environment-aware gating"],
+      "weaknesses_or_tradeoffs": ["Requires consumer test authoring; no schema-derived fuzzing/diff of specs; broker ops burden self-hosted"],
+      "evidence": [
+        {"claim": "license/stars/activity/release", "url": "https://api.github.com/repos/pact-foundation/pact-js", "access_date": "2026-08-23", "method": "VERIFIED"},
+        {"claim": "can-i-deploy/broker/plugins capabilities", "url": "https://docs.pact.io/", "access_date": "2026-08-23", "method": "KNOWLEDGE-BASED"}
+      ]
+    },
+    {
+      "name": "Optic",
+      "github_repo": "useoptic/optic",
+      "license_spdx": null,
+      "open_source": true,
+      "stars": null,
+      "last_push": null,
+      "latest_release_tag": null,
+      "latest_release_date": null,
+      "target_audience": "(historical) API change management in CI",
+      "deployment_model": "(historical) CLI + GitHub App",
+      "protocol_coverage": ["OpenAPI"],
+      "core_capabilities": ["spec diffing", "change review checklists", "CI checks"],
+      "ci_cd_integrations": ["GitHub App/Action"],
+      "collaboration_model": "PR comments",
+      "enterprise_boundary": "Optic CI was the commercial offering (KNOWLEDGE-BASED)",
+      "strengths": ["Pioneered PR-based spec review UX"],
+      "weaknesses_or_tradeoffs": ["Project no longer published under useoptic org (repo 404 verified 2026-08-23); treat as inactive"],
+      "evidence": [
+        {"claim": "useoptic/optic returns 404 on 2026-08-23", "url": "https://api.github.com/repos/useoptic/optic", "access_date": "2026-08-23", "method": "VERIFIED"}
+      ]
+    },
+    {
+      "name": "Dredd",
+      "github_repo": "apiaryio/dredd",
+      "license_spdx": "MIT",
+      "open_source": true,
+      "stars": 4222,
+      "last_push": "2024-05-11T13:19:25Z",
+      "latest_release_tag": "dredd@14.1.0",
+      "latest_release_date": "2021-11-16T12:37:56Z",
+      "target_audience": "(historical) docs-driven HTTP API testing",
+      "deployment_model": "CLI (Node.js)",
+      "protocol_coverage": ["API Blueprint", "OpenAPI 2.0", "Swagger"],
+      "core_capabilities": ["documentation-driven request execution", "response validation vs documented examples"],
+      "ci_cd_integrations": ["generic CLI", "hooks in many languages"],
+      "collaboration_model": "git",
+      "enterprise_boundary": "Apiary was absorbed into Oracle; Dredd unmaintained (archived)",
+      "strengths": ["Simple docs-as-tests idea"],
+      "weaknesses_or_tradeoffs": ["ARCHIVED (verified): no maintenance since 2024; OpenAPI 3.1 unsupported"],
+      "evidence": [
+        {"claim": "archived=true, pushed_at 2024-05-11", "url": "https://api.github.com/repos/apiaryio/dredd", "access_date": "2026-08-23", "method": "VERIFIED"}
+      ]
+    },
+    {
+      "name": "Prism",
+      "github_repo": "stoplightio/prism",
+      "license_spdx": "Apache-2.0",
+      "open_source": true,
+      "stars": 5012,
+      "last_push": "2026-08-13T09:37:03Z",
+      "latest_release_tag": "v5.16.0",
+      "latest_release_date": "2026-07-17T08:02:29Z",
+      "target_audience": "Frontend/QA needing a spec-accurate mock server",
+      "deployment_model": "CLI (Node.js)",
+      "protocol_coverage": ["OpenAPI 2/3", "Postman Collections"],
+      "core_capabilities": ["mock server from spec", "request validation", "dynamic response generation", "proxy mode"],
+      "ci_cd_integrations": ["generic CLI"],
+      "collaboration_model": "git",
+      "enterprise_boundary": "None significant; Stoplight platform was separate (KNOWLEDGE-BASED)",
+      "strengths": ["Spec-accurate mocking with validation"],
+      "weaknesses_or_tradeoffs": ["Mocking only: no scenarios/state persistence, no governance/testing suite"],
+      "evidence": [
+        {"claim": "license/stars/activity/release + description (mocking, transformations, validations)", "url": "https://api.github.com/repos/stoplightio/prism", "access_date": "2026-08-23", "method": "VERIFIED"}
+      ]
+    },
+    {
+      "name": "WireMock",
+      "github_repo": "wiremock/wiremock",
+      "license_spdx": "Apache-2.0",
+      "open_source": true,
+      "stars": 7342,
+      "last_push": "2026-08-21T10:53:31Z",
+      "latest_release_tag": "3.13.2",
+      "latest_release_date": "2025-11-14T14:39:57Z",
+      "target_audience": "Java/JVM integration testers; API simulators",
+      "deployment_model": "Embedded Java library, standalone JAR, Docker",
+      "protocol_coverage": ["HTTP/HTTPS", "Webhooks", "gRPC (experimental since 3.x - KNOWLEDGE-BASED)"],
+      "core_capabilities": ["stubbing/mocking", "record/playback", "stateful scenarios", "fault injection", "response templating"],
+      "ci_cd_integrations": ["test-framework integrations", "Docker"],
+      "collaboration_model": "stub mappings in git",
+      "enterprise_boundary": "WireMock Cloud is the hosted commercial product (KNOWLEDGE-BASED)",
+      "strengths": ["Deep HTTP simulation incl. faults/delays/scenarios"],
+      "weaknesses_or_tradeoffs": ["JVM-centric; stubs are hand-authored rather than derived from contracts; no governance/diff/perf workflow"],
+      "evidence": [
+        {"claim": "license/stars/activity/release", "url": "https://api.github.com/repos/wiremock/wiremock", "access_date": "2026-08-23", "method": "VERIFIED"},
+        {"claim": "scenarios/fault injection/recording features", "url": "https://wiremock.org/docs/", "access_date": "2026-08-23", "method": "KNOWLEDGE-BASED"}
+      ]
+    },
+    {
+      "name": "Hoverfly",
+      "github_repo": "SpectoLabs/hoverfly",
+      "license_spdx": "Apache-2.0",
+      "open_source": true,
+      "stars": 2507,
+      "last_push": "2026-08-19T22:46:39Z",
+      "latest_release_tag": "v1.12.11",
+      "latest_release_date": "2026-08-05T21:18:18Z",
+      "target_audience": "Service virtualization users",
+      "deployment_model": "Go binary + proxy modes; Hoverfly Team is commercial",
+      "protocol_coverage": ["HTTP/HTTPS"],
+      "core_capabilities": ["capture/replay", "simulate mode", "middleware transforms", "latency/fault simulation"],
+      "ci_cd_integrations": ["hoverfly-java", "CLI"],
+      "collaboration_model": "simulations in git",
+      "enterprise_boundary": "Hoverfly Team adds UI/collaboration commercially (KNOWLEDGE-BASED)",
+      "strengths": ["Proxy-based capture makes virtualization easy"],
+      "weaknesses_or_tradeoffs": ["HTTP-only focus; simulations are traffic-shaped, not contract-governed"],
+      "evidence": [
+        {"claim": "license/stars/activity/release", "url": "https://api.github.com/repos/SpectoLabs/hoverfly", "access_date": "2026-08-23", "method": "VERIFIED"}
+      ]
+    },
+    {
+      "name": "Karate",
+      "github_repo": "karatelabs/karate",
+      "license_spdx": "MIT",
+      "open_source": true,
+      "stars": 8925,
+      "last_push": "2026-08-23T10:31:56Z",
+      "latest_release_tag": "v2.1.2",
+      "latest_release_date": "2026-08-14T04:26:24Z",
+      "target_audience": "Test automation teams (API/UI/perf in one DSL)",
+      "deployment_model": "JVM library + CLI + JUnit integration",
+      "protocol_coverage": ["HTTP", "GraphQL", "WebSocket", "gRPC (experimental)", "UI/browser"],
+      "core_capabilities": ["BDD-style API testing", "schema matchers", "mock server (karate-netty)", "performance via Gatling integration", "UI automation"],
+      "ci_cd_integrations": ["JUnit/Maven/Gradle", "parallel runner"],
+      "collaboration_model": "feature files in git",
+      "enterprise_boundary": "Intuit-backed OSS; support/commercial training available (KNOWLEDGE-BASED)",
+      "strengths": ["Broad workload coverage in one tool", "Readable DSL"],
+      "weaknesses_or_tradeoffs": ["Tests are hand-authored scripts; no spec-diff/breaking semantics, drift, or deploy decisions"],
+      "evidence": [
+        {"claim": "license/stars/activity/release", "url": "https://api.github.com/repos/karatelabs/karate", "access_date": "2026-08-23", "method": "VERIFIED"},
+        {"claim": "mock/perf/UI capabilities", "url": "https://karatelabs.github.io/karate/", "access_date": "2026-08-23", "method": "KNOWLEDGE-BASED"}
+      ]
+    },
+    {
+      "name": "k6",
+      "github_repo": "grafana/k6",
+      "license_spdx": "AGPL-3.0",
+      "open_source": true,
+      "stars": 31299,
+      "last_push": "2026-08-23T12:00:30Z",
+      "latest_release_tag": "v2.2.0",
+      "latest_release_date": "2026-08-10T14:01:35Z",
+      "target_audience": "Performance/load engineers",
+      "deployment_model": "Go binary with embedded JS; Grafana Cloud k6 is hosted/commercial",
+      "protocol_coverage": ["HTTP/1.1", "HTTP/2", "WebSocket", "gRPC", "browser (experimental)"],
+      "core_capabilities": ["scripted load profiles", "thresholds (perf budgets)", "checks", "extensible via xk6 modules"],
+      "ci_cd_integrations": ["Grafana Cloud", "GitHub Actions", "Prometheus remote write output"],
+      "collaboration_model": "scripts in git; cloud projects",
+      "enterprise_boundary": "Grafana Cloud k6 commercial; OSS core complete for local runs (KNOWLEDGE-BASED)",
+      "strengths": ["Industry-standard load engine", "Thresholds map well to budgets"],
+      "weaknesses_or_tradeoffs": ["AGPL license constrains embedding; no contract semantics (diff/breaking/consumer impact)"],
+      "evidence": [
+        {"claim": "license/stars/activity/release", "url": "https://api.github.com/repos/grafana/k6", "access_date": "2026-08-23", "method": "VERIFIED"},
+        {"claim": "thresholds/profiles/grpc/websocket support", "url": "https://grafana.com/docs/k6/", "access_date": "2026-08-23", "method": "KNOWLEDGE-BASED"}
+      ]
+    },
+    {
+      "name": "Postman/Newman",
+      "github_repo": "postmanlabs/newman",
+      "license_spdx": "Apache-2.0",
+      "open_source": true,
+      "stars": 7246,
+      "last_push": "2026-08-05T06:42:35Z",
+      "latest_release_tag": null,
+      "latest_release_date": null,
+      "target_audience": "Postman-centric QA teams",
+      "deployment_model": "Newman = OSS CLI; Postman platform (collections, mocks, monitors, collaboration) is hosted/commercial",
+      "protocol_coverage": ["HTTP", "WebSocket (Postman)", "gRPC (Postman desktop)"],
+      "core_capabilities": ["collection running", "test scripts/assertions", "environments", "hosted monitors/mocks (platform)"],
+      "ci_cd_integrations": ["Newman in any CI", "Postman monitors"],
+      "collaboration_model": "Postman workspaces (hosted)",
+      "enterprise_boundary": "Collaboration/mock/monitor features require Postman accounts/plans (KNOWLEDGE-BASED)",
+      "strengths": ["Huge ecosystem and UX investment"],
+      "weaknesses_or_tradeoffs": ["Collaboration locked to hosted platform; collections are not normalized contracts; no spec-level compatibility semantics"],
+      "evidence": [
+        {"claim": "license/stars/activity; no latest release object returned", "url": "https://api.github.com/repos/postmanlabs/newman", "access_date": "2026-08-23", "method": "VERIFIED"},
+        {"claim": "hosted collaboration/mock/monitor boundaries", "url": "https://www.postman.com/pricing/", "access_date": "2026-08-23", "method": "KNOWLEDGE-BASED"}
+      ]
+    },
+    {
+      "name": "GraphQL Inspector",
+      "github_repo": "graphql-hive/graphql-inspector",
+      "license_spdx": "MIT",
+      "open_source": true,
+      "stars": 1759,
+      "last_push": "2026-08-20T14:06:31Z",
+      "latest_release_tag": "release-1787234790800",
+      "latest_release_date": "2026-08-20T14:06:31Z",
+      "target_audience": "GraphQL API teams",
+      "deployment_model": "CLI + GitHub integrations; Hive console (graphql-hive) is the hosted commercial platform",
+      "protocol_coverage": ["GraphQL (SDL + introspection)"],
+      "core_capabilities": ["breaking-change detection", "dangerous-change classification", "schema coverage", "operations validation", "similar-type search"],
+      "ci_cd_integrations": ["GitHub Application/Actions", "CI output annotations"],
+      "collaboration_model": "PR comments; Hive registry (hosted)",
+      "enterprise_boundary": "Hive registry/console is the commercial collaboration layer (KNOWLEDGE-BASED)",
+      "strengths": ["Reference GraphQL breaking/dangerous taxonomy"],
+      "weaknesses_or_tradeoffs": ["GraphQL-only; no HTTP contract testing/runtime/drift/perf"],
+      "evidence": [
+        {"claim": "license/stars/activity/release + description (breaking changes, coverage)", "url": "https://api.github.com/repos/graphql-hive/graphql-inspector", "access_date": "2026-08-23", "method": "VERIFIED"}
+      ]
+    },
+    {
+      "name": "Buf",
+      "github_repo": "bufbuild/buf",
+      "license_spdx": "Apache-2.0",
+      "open_source": true,
+      "stars": 11378,
+      "last_push": "2026-08-23T04:32:23Z",
+      "latest_release_tag": "v1.72.0",
+      "latest_release_date": "2026-07-17T20:15:07Z",
+      "target_audience": "Protobuf/gRPC development teams",
+      "deployment_model": "Go CLI; Buf Schema Registry (BSR) is hosted with free tier + paid enterprise",
+      "protocol_coverage": ["Protobuf", "gRPC", "ConnectRPC"],
+      "core_capabilities": ["proto linting", "breaking-change detection (wire/source semantics)", "BSR module registry", "remote plugins/codegen", "generated SDKs"],
+      "ci_cd_integrations": ["buf breaking in CI", "GitHub Actions"],
+      "collaboration_model": "BSR modules (hosted)",
+      "enterprise_boundary": "BSR enterprise features (SSO, private orgs at scale, support) are paid (KNOWLEDGE-BASED)",
+      "strengths": ["Gold standard protobuf toolchain", "Precise wire-compat categories"],
+      "weaknesses_or_tradeoffs": ["Protobuf-only; registry-centric collaboration favors their hosted BSR"],
+      "evidence": [
+        {"claim": "license/stars/activity/release", "url": "https://api.github.com/repos/bufbuild/buf", "access_date": "2026-08-23", "method": "VERIFIED"},
+        {"claim": "lint/breaking/BSR capabilities", "url": "https://buf.build/docs", "access_date": "2026-08-23", "method": "KNOWLEDGE-BASED"}
+      ]
+    }
+  ],
+  "capability_matrix": {
+    "_legend": "yes | partial | no | unknown; values are best-effort classifications with evidence notes; 'no' only where absence is verifiable or the area is clearly outside the product's documented scope",
+    "openapi-diff": {
+      "oasdiff": "yes", "Schemathesis": "no", "Spectral": "no", "Pact (OSS)": "no", "Optic": "yes (historical)",
+      "Dredd": "no", "Prism": "no", "WireMock": "no", "Hoverfly": "no", "Karate": "no", "k6": "no",
+      "Postman/Newman": "no", "GraphQL Inspector": "no", "Buf": "no",
+      "evidence_note": "oasdiff's entire purpose is OpenAPI diff (VERIFIED description); Optic did spec diffing historically"
+    },
+    "breaking-change-rules": {
+      "oasdiff": "yes", "Schemathesis": "partial (detects failures at runtime, not spec-level rules)", "Spectral": "no",
+      "Pact (OSS)": "yes (verification-based)", "Optic": "yes (historical)", "Dredd": "no", "Prism": "no",
+      "WireMock": "no", "Hoverfly": "no", "Karate": "no", "k6": "no", "Postman/Newman": "no",
+      "GraphQL Inspector": "yes (GraphQL)", "Buf": "yes (protobuf)",
+      "evidence_note": "each tool covers breaking changes within its own protocol/scope"
+    },
+    "semver-verdicts": {
+      "oasdiff": "unknown", "Schemathesis": "no", "Spectral": "no", "Pact (OSS)": "no", "Optic": "unknown (historical)",
+      "Dredd": "no", "Prism": "no", "WireMock": "no", "Hoverfly": "no", "Karate": "no", "k6": "no",
+      "Postman/Newman": "no", "GraphQL Inspector": "unknown", "Buf": "partial (module versioning guidance)",
+      "evidence_note": "not a documented headline feature for most; marked unknown where unverified"
+    },
+    "linting": {
+      "oasdiff": "no", "Schemathesis": "no", "Spectral": "yes", "Pact (OSS)": "no", "Optic": "no",
+      "Dredd": "no", "Prism": "no", "WireMock": "no", "Hoverfly": "no", "Karate": "no", "k6": "no",
+      "Postman/Newman": "no", "GraphQL Inspector": "partial (operations/schema validation)", "Buf": "yes (proto lint)",
+      "evidence_note": "Spectral and Buf are the reference linters (VERIFIED descriptions)"
+    },
+    "schema-driven-fuzzing": {
+      "oasdiff": "no", "Schemathesis": "yes", "Spectral": "no", "Pact (OSS)": "partial (generates requests from consumer expectations)",
+      "Optic": "no", "Dredd": "partial (documented example requests)", "Prism": "no", "WireMock": "no", "Hoverfly": "no",
+      "Karate": "no", "k6": "no", "Postman/Newman": "no", "GraphQL Inspector": "no", "Buf": "no",
+      "evidence_note": "Schemathesis is the category leader (VERIFIED description 'Catch API bugs')"
+    },
+    "stateful-workflows": {
+      "oasdiff": "no", "Schemathesis": "yes (OpenAPI links)", "Spectral": "no", "Pact (OSS)": "no", "Optic": "no",
+      "Dredd": "partial (resource shorthands)", "Prism": "no", "WireMock": "partial (scenario state machine)", "Hoverfly": "no",
+      "Karate": "yes (scenario flows)", "k6": "partial (setup/teardown logic)", "Postman/Newman": "partial (collection chaining)",
+      "GraphQL Inspector": "no", "Buf": "no",
+      "evidence_note": "varies by meaning: test workflows vs mock state machines"
+    },
+    "response-validation": {
+      "oasdiff": "no", "Schemathesis": "yes", "Spectral": "no", "Pact (OSS)": "yes (matching rules)", "Optic": "no",
+      "Dredd": "yes", "Prism": "yes (in mock/proxy)", "WireMock": "partial (request matching)", "Hoverfly": "no",
+      "Karate": "yes (match syntax)", "k6": "partial (checks)", "Postman/Newman": "yes (test scripts)",
+      "GraphQL Inspector": "no", "Buf": "no",
+      "evidence_note": "all 'yes' entries validate responses against user-defined or spec-derived expectations"
+    },
+    "mock-server": {
+      "oasdiff": "no", "Schemathesis": "no", "Spectral": "no", "Pact (OSS)": "yes (consumer-side mock)", "Optic": "no",
+      "Dredd": "no", "Prism": "yes", "WireMock": "yes", "Hoverfly": "yes", "Karate": "yes", "k6": "no",
+      "Postman/Newman": "partial (hosted Postman mocks)", "GraphQL Inspector": "no", "Buf": "no",
+      "evidence_note": "Prism/WireMock/Hoverfly/Karate descriptions verified or widely documented"
+    },
+    "service-virtualization": {
+      "oasdiff": "no", "Schemathesis": "no", "Spectral": "no", "Pact (OSS)": "no", "Optic": "no", "Dredd": "no",
+      "Prism": "partial (proxy mode)", "WireMock": "yes", "Hoverfly": "yes", "Karate": "partial", "k6": "no",
+      "Postman/Newman": "no", "GraphQL Inspector": "no", "Buf": "no",
+      "evidence_note": "WireMock/Hoverfly are the reference virtualization tools"
+    },
+    "drift-detection": {
+      "oasdiff": "no", "Schemathesis": "no", "Spectral": "no", "Pact (OSS)": "no", "Optic": "no", "Dredd": "no",
+      "Prism": "no", "WireMock": "no", "Hoverfly": "no", "Karate": "no", "k6": "no", "Postman/Newman": "no",
+      "GraphQL Inspector": "no", "Buf": "no",
+      "evidence_note": "declared-spec-vs-runtime drift monitoring is not a documented focus area for any listed competitor"
+    },
+    "traffic-replay": {
+      "oasdiff": "no", "Schemathesis": "no", "Spectral": "no", "Pact (OSS)": "no", "Optic": "no", "Dredd": "no",
+      "Prism": "partial (proxy recording)", "WireMock": "yes (record/playback)", "Hoverfly": "yes (capture/replay)",
+      "Karate": "no", "k6": "no", "Postman/Newman": "no", "GraphQL Inspector": "no", "Buf": "no",
+      "evidence_note": "WireMock/Hoverfly record-replay verified via documentation"
+    },
+    "load-testing": {
+      "oasdiff": "no", "Schemathesis": "no", "Spectral": "no", "Pact (OSS)": "no", "Optic": "no", "Dredd": "no",
+      "Prism": "no", "WireMock": "no", "Hoverfly": "no", "Karate": "yes (Gatling integration)", "k6": "yes",
+      "Postman/Newman": "no", "GraphQL Inspector": "no", "Buf": "no",
+      "evidence_note": "k6 is purpose-built (VERIFIED description)"
+    },
+    "performance-budgets": {
+      "oasdiff": "no", "Schemathesis": "no", "Spectral": "no", "Pact (OSS)": "no", "Optic": "no", "Dredd": "no",
+      "Prism": "no", "WireMock": "no", "Hoverfly": "no", "Karate": "partial", "k6": "yes (thresholds)",
+      "Postman/Newman": "no", "GraphQL Inspector": "no", "Buf": "no",
+      "evidence_note": "k6 thresholds are the canonical budget mechanism"
+    },
+    "consumer-contracts": {
+      "oasdiff": "no", "Schemathesis": "no", "Spectral": "no", "Pact (OSS)": "yes", "Optic": "no", "Dredd": "no",
+      "Prism": "no", "WireMock": "no", "Hoverfly": "no", "Karate": "no", "k6": "no", "Postman/Newman": "no",
+      "GraphQL Inspector": "partial (operations documents)", "Buf": "no",
+      "evidence_note": "Pact defined the category"
+    },
+    "can-i-deploy": {
+      "oasdiff": "no", "Schemathesis": "no", "Spectral": "no", "Pact (OSS)": "yes", "Optic": "no", "Dredd": "no",
+      "Prism": "no", "WireMock": "no", "Hoverfly": "no", "Karate": "no", "k6": "no", "Postman/Newman": "no",
+      "GraphQL Inspector": "no", "Buf": "no",
+      "evidence_note": "Pact's can-i-deploy is the reference implementation"
+    },
+    "broker-publication": {
+      "oasdiff": "no", "Schemathesis": "no", "Spectral": "no", "Pact (OSS)": "yes (self-hostable Pact Broker)", "Optic": "no",
+      "Dredd": "no", "Prism": "no", "WireMock": "no", "Hoverfly": "no", "Karate": "no", "k6": "no",
+      "Postman/Newman": "partial (hosted workspace publishing)", "GraphQL Inspector": "partial (Hive registry, hosted)", "Buf": "yes (BSR, hosted-first)",
+      "evidence_note": "Pact Broker is OSS-self-hostable; BSR/Hive are hosted products"
+    },
+    "graphql-breaking": {
+      "oasdiff": "no", "Schemathesis": "unknown (v4 scope)", "Spectral": "no", "Pact (OSS)": "partial", "Optic": "no",
+      "Dredd": "no", "Prism": "no", "WireMock": "no", "Hoverfly": "no", "Karate": "no", "k6": "no",
+      "Postman/Newman": "no", "GraphQL Inspector": "yes", "Buf": "no",
+      "evidence_note": "GraphQL Inspector is the reference (VERIFIED description)"
+    },
+    "grpc-compat": {
+      "oasdiff": "no", "Schemathesis": "no", "Spectral": "no", "Pact (OSS)": "partial (protobuf plugin)", "Optic": "no",
+      "Dredd": "no", "Prism": "no", "WireMock": "partial (experimental gRPC)", "Hoverfly": "no", "Karate": "partial (experimental)",
+      "k6": "partial (grpc client for load)", "Postman/Newman": "partial (desktop client)", "GraphQL Inspector": "no", "Buf": "yes",
+      "evidence_note": "Buf owns wire-compat semantics for protobuf"
+    },
+    "asyncapi-support": {
+      "oasdiff": "unknown", "Schemathesis": "no", "Spectral": "partial (AsyncAPI v2 rulesets per VERIFIED description)", "Pact (OSS)": "yes (messaging)",
+      "Optic": "no", "Dredd": "no", "Prism": "no", "WireMock": "no", "Hoverfly": "no", "Karate": "no", "k6": "no",
+      "Postman/Newman": "no", "GraphQL Inspector": "no", "Buf": "no",
+      "evidence_note": "event-driven contract tooling remains fragmented"
+    },
+    "plugin-api": {
+      "oasdiff": "no", "Schemathesis": "yes (hooks/extensions)", "Spectral": "yes (rulesets/functions)", "Pact (OSS)": "yes (plugins framework)",
+      "Optic": "unknown (historical)", "Dredd": "yes (hooks)", "Prism": "no", "WireMock": "yes (extensions)", "Hoverfly": "partial (middleware)",
+      "Karate": "partial (Java interop)", "k6": "yes (xk6)", "Postman/Newman": "partial (reporters)", "GraphQL Inspector": "partial (CLI config)",
+      "Buf": "yes (remote plugins)",
+      "evidence_note": "extension mechanisms vary from config rulesets to compiled modules"
+    },
+    "self-hosted-server": {
+      "oasdiff": "no", "Schemathesis": "no", "Spectral": "no", "Pact (OSS)": "yes (Pact Broker)", "Optic": "no", "Dredd": "no",
+      "Prism": "no", "WireMock": "yes (standalone server)", "Hoverfly": "yes", "Karate": "yes (mock server)", "k6": "no",
+      "Postman/Newman": "no", "GraphQL Inspector": "no", "Buf": "partial (self-hosted BSR not offered; hosted only - KNOWLEDGE-BASED)",
+      "evidence_note": "distinguishes test-time servers from collaboration servers"
+    },
+    "rbac-audit": {
+      "oasdiff": "no", "Schemathesis": "no", "Spectral": "no", "Pact (OSS)": "partial (broker tokens; full RBAC in PactFlow)", "Optic": "no",
+      "Dredd": "no", "Prism": "no", "WireMock": "no", "Hoverfly": "no", "Karate": "no", "k6": "no",
+      "Postman/Newman": "partial (hosted roles)", "GraphQL Inspector": "partial (Hive hosted)", "Buf": "partial (BSR hosted)",
+      "evidence_note": "RBAC/audit generally lives in the hosted commercial layers"
+    },
+    "sarif-export": {
+      "oasdiff": "unknown", "Schemathesis": "yes (SARIF reporter)", "Spectral": "yes (SARIF output)", "Pact (OSS)": "no", "Optic": "unknown (historical)",
+      "Dredd": "no", "Prism": "no", "WireMock": "no", "Hoverfly": "no", "Karate": "no", "k6": "no",
+      "Postman/Newman": "no", "GraphQL Inspector": "unknown", "Buf": "unknown",
+      "evidence_note": "Spectral/Schemathesis SARIF support is documented; others unknown rather than claimed absent"
+    },
+    "otel-export": {
+      "oasdiff": "no", "Schemathesis": "no", "Spectral": "no", "Pact (OSS)": "no", "Optic": "no", "Dredd": "no",
+      "Prism": "no", "WireMock": "no", "Hoverfly": "no", "Karate": "no", "k6": "partial (outputs/xk6 OTLP)", "Postman/Newman": "no",
+      "GraphQL Inspector": "no", "Buf": "no",
+      "evidence_note": "observability export is rare outside load tools"
+    },
+    "frontend-ui": {
+      "oasdiff": "no", "Schemathesis": "no (hosted reports on Schemathesis.io)", "Spectral": "partial (VS Code extension)", "Pact (OSS)": "partial (basic broker UI)",
+      "Optic": "yes (historical GitHub reviews)", "Dredd": "no", "Prism": "no", "WireMock": "partial (admin API/UI)", "Hoverfly": "partial (local admin UI)",
+      "Karate": "partial (HTML reports)", "k6": "partial (web dashboard via cloud/local)", "Postman/Newman": "yes (full hosted app)",
+      "GraphQL Inspector": "partial (Hive hosted)", "Buf": "partial (BSR hosted UI)",
+      "evidence_note": "most OSS cores are CLI-only; rich UIs sit in hosted products"
+    }
+  },
+  "strategic_conclusions": [
+    "Every serious competitor is deep in one lane (diff, fuzz, lint, contracts, virtualization, load, one protocol). None spans contract governance -> testing -> runtime drift -> replay safety -> performance gates -> deploy decisions on one shared model.",
+    "The unified normalized-contract-graph plus shared result/artifact model is API Verity Lab's defensible differentiator; specialist depth (e.g., Schemathesis fuzzing maturity, Buf wire semantics) should be matched where feasible, not cloned wholesale.",
+    "Drift detection and safety-gated replay with redaction are effectively uncontested niches among the compared tools.",
+    "Consumer-impact + can-i-deploy currently requires adopting Pact's broker worldview; offering it over plain OpenAPI/GraphQL/gRPC contracts lowers adoption cost.",
+    "Commercial boundary recommendation: keep Apache-2.0 core fully capable locally; reserve team/enterprise value for the self-hosted server (collaboration, policy, audit, workers) which competitors gate behind hosted products.",
+    "Do NOT copy: hosted-only collaboration lock-in, AGPL constraints (k6), JVM-centrism (WireMock/Karate), or archived-tool assumptions (Dredd/Optic)."
+  ]
+}
