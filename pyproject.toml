@@ -33,7 +33,7 @@ dependencies = [
   "pydantic>=2.7,<3.0",
   "PyYAML>=6.0,<7.0",
   "click>=8.1,<9.0",
-  "rich>=13.7,<14.0",
+  "rich>=13.7,<16.0",
   "jsonschema>=4.21,<5.0",
   "packaging>=24.0,<25.0",
 ]
