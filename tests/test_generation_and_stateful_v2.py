@@ -45,9 +45,21 @@ class TestBoundary:
             method="GET",
             path="/x",
             parameters=[
-                Parameter(name="a", location=ParameterLocation.QUERY, schema_node=SchemaNode(enum=["1", "2"])),
-                Parameter(name="b", location=ParameterLocation.QUERY, schema_node=SchemaNode(enum=["x", "y"])),
-                Parameter(name="c", location=ParameterLocation.QUERY, schema_node=SchemaNode(enum=["p", "q"])),
+                Parameter(
+                    name="a",
+                    location=ParameterLocation.QUERY,
+                    schema_node=SchemaNode(enum=["1", "2"]),
+                ),
+                Parameter(
+                    name="b",
+                    location=ParameterLocation.QUERY,
+                    schema_node=SchemaNode(enum=["x", "y"]),
+                ),
+                Parameter(
+                    name="c",
+                    location=ParameterLocation.QUERY,
+                    schema_node=SchemaNode(enum=["p", "q"]),
+                ),
             ],
         )
         cases = pairwise_parameter_cases(op)
@@ -62,8 +74,16 @@ class TestBoundary:
             method="GET",
             path="/x",
             parameters=[
-                Parameter(name="a", location=ParameterLocation.QUERY, schema_node=SchemaNode(enum=["1", "2"])),
-                Parameter(name="b", location=ParameterLocation.QUERY, schema_node=SchemaNode(enum=["x", "y"])),
+                Parameter(
+                    name="a",
+                    location=ParameterLocation.QUERY,
+                    schema_node=SchemaNode(enum=["1", "2"]),
+                ),
+                Parameter(
+                    name="b",
+                    location=ParameterLocation.QUERY,
+                    schema_node=SchemaNode(enum=["x", "y"]),
+                ),
             ],
         )
         assert pairwise_parameter_cases(op, seed=7) == pairwise_parameter_cases(op, seed=7)
@@ -140,7 +160,10 @@ class TestWorkflowGraph:
                 ),
             ],
             cleanup=[
-                WorkflowStep(name="del", request=WorkflowRequest(method="DELETE", path="/things/{{ thing_id }}")),
+                WorkflowStep(
+                    name="del",
+                    request=WorkflowRequest(method="DELETE", path="/things/{{ thing_id }}"),
+                ),
             ],
         )
         result = validate_workflow_graph(wf)

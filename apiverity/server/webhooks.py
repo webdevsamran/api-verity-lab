@@ -41,6 +41,7 @@ def dispatch(
 ) -> list[Delivery]:
     """Send ``event`` to every subscribed webhook. Never raises."""
     if transport is None:
+
         def transport(url: str, body: str, headers: dict[str, str]) -> int:
             raise RuntimeError("no webhook transport configured")
 

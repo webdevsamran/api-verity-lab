@@ -68,7 +68,9 @@ def classify_target(base_url: str) -> TargetClassification:
             classification="production",
             allowed_modes=["read-only"],
         )
-    return TargetClassification(base_url=base_url, classification="unknown", allowed_modes=["read-only"])
+    return TargetClassification(
+        base_url=base_url, classification="unknown", allowed_modes=["read-only"]
+    )
 
 
 @dataclass(frozen=True)
@@ -116,8 +118,7 @@ def check_replay_safety(
     if classification.classification == "production":
         return SafetyDecision(
             False,
-            "target classified as production; replay/load against production "
-            "is refused by design",
+            "target classified as production; replay/load against production is refused by design",
         )
 
     used_methods = {e.method.upper() for e in entries}
@@ -128,8 +129,7 @@ def check_replay_safety(
         if unapproved:
             return SafetyDecision(
                 False,
-                f"destructive methods {sorted(unapproved)} are not in the "
-                "destructive allowlist",
+                f"destructive methods {sorted(unapproved)} are not in the destructive allowlist",
             )
         expected = confirmation_token(base_url, destructive_used, len(entries))
         if not confirmation or not hmac.compare_digest(expected, confirmation):

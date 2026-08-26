@@ -150,7 +150,9 @@ class CompatAnalyzer:
                 if p.location.value == "header"
                 and p.required
                 and not any(
-                    q.name == p.name and q.required for q in old_op.parameters if q.location.value == "header"
+                    q.name == p.name and q.required
+                    for q in old_op.parameters
+                    if q.location.value == "header"
                 )
             ]
             for name in newly_required:

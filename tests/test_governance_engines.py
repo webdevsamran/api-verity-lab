@@ -78,7 +78,9 @@ class TestLint:
         assert "LINT-AMBIGUOUS-COMPOSITION" in ids
 
     def test_invalid_example_detected(self) -> None:
-        schema = SchemaNode(type="object", required=["id"], properties={"id": SchemaNode(type="integer")})
+        schema = SchemaNode(
+            type="object", required=["id"], properties={"id": SchemaNode(type="integer")}
+        )
         op = _op(
             request_body=RequestBody(content={"application/json": schema}),
             examples=[],  # examples live on operation; inject via model below
@@ -107,7 +109,9 @@ class TestPolicy:
         ids = {f.rule_id for f in PolicyEngine().evaluate(svc)}
         assert "GOV-DEPRECATION-METADATA" in ids
         # with metadata but no sunset date -> GOV-SUNSET-MISSING
-        op2 = _op(path="/c", deprecated=True, deprecation=DeprecationInfo(announced_date="2026-01-01"))
+        op2 = _op(
+            path="/c", deprecated=True, deprecation=DeprecationInfo(announced_date="2026-01-01")
+        )
         ids2 = {f.rule_id for f in PolicyEngine().evaluate(_svc(operations=[op2]))}
         assert "GOV-SUNSET-MISSING" in ids2
 
@@ -132,7 +136,13 @@ class TestPolicy:
             version="1.0.0",
             description="d",
             rules=(
-                RuleDefinition(rule_id="CRASH", severity=Severity.WARN, rationale="r", remediation="x", check=boom),
+                RuleDefinition(
+                    rule_id="CRASH",
+                    severity=Severity.WARN,
+                    rationale="r",
+                    remediation="x",
+                    check=boom,
+                ),
             ),
         )
         findings = PolicyEngine(packs=[pack]).evaluate(_svc())
@@ -148,7 +158,11 @@ class TestPolicy:
             name=name,
             version="1.0.0",
             description="d",
-            rules=(RuleDefinition(rule_id="X", severity=Severity.INFO, rationale="r", remediation="x", check=rule),),
+            rules=(
+                RuleDefinition(
+                    rule_id="X", severity=Severity.INFO, rationale="r", remediation="x", check=rule
+                ),
+            ),
         )
         with pytest.raises(ValueError):
             PolicyEngine(packs=[mk("a"), mk("b")])
@@ -178,8 +192,18 @@ class TestSuppressions:
         )
         sups = load_suppressions(path)
         findings = [
-            Finding(rule_id="LINT-DUP-OPID", severity=Severity.ERROR, message="m", operation_key="GET /a"),
-            Finding(rule_id="LINT-DUP-OPID", severity=Severity.ERROR, message="m", operation_key="GET /b"),
+            Finding(
+                rule_id="LINT-DUP-OPID",
+                severity=Severity.ERROR,
+                message="m",
+                operation_key="GET /a",
+            ),
+            Finding(
+                rule_id="LINT-DUP-OPID",
+                severity=Severity.ERROR,
+                message="m",
+                operation_key="GET /b",
+            ),
         ]
         result = apply_suppressions(findings, sups, today=date(2026, 1, 1))
         assert len(result.active) == 1
@@ -225,7 +249,9 @@ class TestCompatAnalyzer:
     def test_media_type_removed(self) -> None:
         old = _svc(
             operations=[
-                _op(request_body=RequestBody(content={"application/xml": SchemaNode(type="object")}))
+                _op(
+                    request_body=RequestBody(content={"application/xml": SchemaNode(type="object")})
+                )
             ]
         )
         new = _svc(operations=[_op()])

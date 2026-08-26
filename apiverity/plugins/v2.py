@@ -129,7 +129,9 @@ class PluginManager:
             self.diagnostics.append(diag)
             return None
 
-    def call_isolated(self, loaded: LoadedPlugin, method: str, *args: Any) -> tuple[Any, str | None]:
+    def call_isolated(
+        self, loaded: LoadedPlugin, method: str, *args: Any
+    ) -> tuple[Any, str | None]:
         """Invoke ``method`` on a plugin, capturing any exception.
 
         Returns ``(result, error)``; exactly one of the two is None.

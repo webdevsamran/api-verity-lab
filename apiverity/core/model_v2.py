@@ -113,7 +113,9 @@ def migrate_artifact(artifact: dict[str, Any]) -> tuple[dict[str, Any], Superses
     values and UTC provenance. Nothing is removed; readers of either version
     keep working (backwards-compatible reader policy).
     """
-    version = str(artifact.get("result_schema_version") or artifact.get("artifact_schema_version") or "1.0")
+    version = str(
+        artifact.get("result_schema_version") or artifact.get("artifact_schema_version") or "1.0"
+    )
     notes: list[str] = []
     migrated = dict(artifact)
     if version == ARTIFACT_SCHEMA_VERSION:

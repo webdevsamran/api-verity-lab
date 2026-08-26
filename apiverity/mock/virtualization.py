@@ -38,9 +38,7 @@ class VirtualizationWorkspace:
     def start(self) -> dict[str, str]:
         """Start all mocks; returns name -> base_url mapping."""
         for vs in self.definition.services:
-            faults = self.definition.faults.get(vs.name) or FaultConfig(
-                seed=self.definition.seed
-            )
+            faults = self.definition.faults.get(vs.name) or FaultConfig(seed=self.definition.seed)
             server = MockServer(vs.service, port=vs.port, faults=faults)
             server.start()
             self.servers[vs.name] = server

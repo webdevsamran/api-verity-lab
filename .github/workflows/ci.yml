@@ -36,7 +36,7 @@ jobs:
       - name: Dependency scan (pip-audit)
         run: |
           pip install pip-audit
-          pip-audit --skip-editable || true   # report; strict gate tracked via Dependabot
+          pip-audit --skip-editable --progress-spinner off
       - name: Fixture end-to-end validation
         run: python scripts/e2e.py
 

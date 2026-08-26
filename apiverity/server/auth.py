@@ -73,7 +73,9 @@ class LocalTokenProvider:
         return user["subject"], {"org_id": user["org_id"], "role": user["role"]}
 
 
-def authenticate(providers: list[IdentityProvider], token: str, org_id: int | None = None) -> Identity | None:
+def authenticate(
+    providers: list[IdentityProvider], token: str, org_id: int | None = None
+) -> Identity | None:
     """Try each provider in order; build an Identity from verified claims."""
     for provider in providers:
         result = provider.verify(token)
