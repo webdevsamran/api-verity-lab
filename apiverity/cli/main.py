@@ -127,6 +127,11 @@ def cmd_breaking(args: argparse.Namespace) -> int:
             rule_id, _, sev = item.partition("=")
             overrides[rule_id] = sev.upper()
     findings = evaluate_breaking(changes, overrides or None)
+    # whole-contract HTTP compatibility + protocol-specific (GraphQL/gRPC) rules
+    from apiverity.diff.compat import analyze_compat
+    from apiverity.diff.protocol_compat import analyze_protocol_compat
+
+    findings = findings + analyze_compat(old, new) + analyze_protocol_compat(old, new)
     if args.check_semver:
         policy = SemverPolicy(
             args.old_version or old.version,
