@@ -42,7 +42,8 @@ jobs:
           git fetch origin "${{ github.base_ref }}" --depth=1
           SPECS=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" \
             | grep -E '\.(yaml|yml|json)$' \
-            | grep -Eiv 'package|lock|\.github' || true)
+            | grep -Eiv 'package|lock|\.github' \
+            | grep -Ev '^(data|web|schemas|docs|build|dist)/' || true)
           echo "specs<<EOF" >> "$GITHUB_OUTPUT"
           echo "$SPECS" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
