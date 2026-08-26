@@ -514,6 +514,72 @@ def cmd_serve(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def cmd_server_db(args: argparse.Namespace) -> int:
+    """Administer a self-hosted server SQLite database.
+
+    Actions: backup (consistent snapshot), restore (from a snapshot),
+    export (org JSON snapshot without token hashes), import (snapshot as a
+    new org).
+    """
+    from apiverity.server.store import Store
+
+    action = args.action
+    if action == "backup":
+        store = Store(args.db)
+        out = store.backup_to(args.output)
+        _emit(
+            {"tool": "apiverity", "command": "server-db", "action": "backup", "output": str(out)},
+            args.json,
+        )
+        return EXIT_OK
+    if action == "restore":
+        store = Store.restore_from(args.db, target=args.output)
+        orgs = store.conn.execute("SELECT COUNT(*) FROM orgs").fetchone()[0]
+        store.close()
+        _emit(
+            {
+                "tool": "apiverity",
+                "command": "server-db",
+                "action": "restore",
+                "target": args.output,
+                "orgs_restored": int(orgs),
+            },
+            args.json,
+        )
+        return EXIT_OK
+    if action == "export":
+        store = Store(args.db)
+        snap = store.export_org(int(args.org_id))
+        Path(args.output).write_text(json.dumps(snap, indent=2), encoding="utf-8")
+        _emit(
+            {
+                "tool": "apiverity",
+                "command": "server-db",
+                "action": "export",
+                "org_id": int(args.org_id),
+                "output": args.output,
+            },
+            args.json,
+        )
+        return EXIT_OK
+    if action == "import":
+        store = Store(args.db)
+        snap = json.loads(Path(args.input).read_text(encoding="utf-8"))
+        new_org = store.import_org(snap)
+        _emit(
+            {
+                "tool": "apiverity",
+                "command": "server-db",
+                "action": "import",
+                "new_org_id": new_org,
+            },
+            args.json,
+        )
+        return EXIT_OK
+    print(f"error: unknown action '{action}'", file=sys.stderr)
+    return EXIT_USAGE
+
+
 def cmd_plugins(args: argparse.Namespace) -> int:
     from apiverity.plugins.registry import list_entry_points
 
@@ -657,6 +723,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("directory")
     p.add_argument("--port", type=int, default=8080)
     p.set_defaults(func=cmd_serve)
+    p = sub.add_parser("server-db", help="backup/restore/export/import a server database")
+    p.add_argument("action", choices=["backup", "restore", "export", "import"])
+    p.add_argument("--db", required=True, help="server SQLite database path")
+    p.add_argument("-o", "--output", help="backup file / restored db / export JSON path")
+    p.add_argument("--input", help="snapshot JSON to import")
+    p.add_argument("--org-id", type=int, help="org id for export")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_server_db)
     p = sub.add_parser("plugins")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_plugins)

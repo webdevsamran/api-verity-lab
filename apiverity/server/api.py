@@ -21,7 +21,12 @@ _METRICS = {
     "errors_total": 0,
     "auth_failures_total": 0,
     "latency_sum_ms": 0.0,
+    "jobs_enqueued_total": 0,
+    "jobs_rejected_total": 0,
+    "rate_limited_total": 0,
 }
+
+_RATE_BUCKETS: dict[tuple[str, int], tuple[int, int]] = {}
 
 
 def create_app(
@@ -30,14 +35,37 @@ def create_app(
     providers: list[IdentityProvider] | None = None,
     webhook_transport: Any = None,
     secret_resolver: Any = None,
+    rate_limit_per_minute: int | None = None,
+    max_active_jobs: int = 4,
 ) -> Flask:
     app = Flask("apiverity-server")
     if providers is None:
         providers = [LocalTokenProvider(store)]
 
+    def _rate_bucket_key() -> str:
+        auth = request.headers.get("Authorization", "")
+        import hashlib as _hashlib
+
+        return _hashlib.sha256(auth.encode()).hexdigest()[:16] if auth.strip() else "anon"
+
     @app.before_request
-    def _start_timer() -> None:
+    def _start_timer() -> Any:
         g.started = time.monotonic()
+        if rate_limit_per_minute is not None and request.path != "/healthz":
+            window = int(time.monotonic() // 60)
+            key = (_rate_bucket_key(), window)
+            count, seen_window = _RATE_BUCKETS.get(key, (0, window))
+            if seen_window != window:
+                count = 0
+            if count >= rate_limit_per_minute:
+                _METRICS["rate_limited_total"] += 1
+                return jsonify({"error": "rate limit exceeded"}), 429
+            _RATE_BUCKETS[key] = (count + 1, window)
+            # opportunistic cleanup of stale windows
+            if len(_RATE_BUCKETS) > 10_000:
+                for stale in [k for k in _RATE_BUCKETS if k[1] != window]:
+                    del _RATE_BUCKETS[stale]
+        return None
 
     @app.after_request
     def _record(resp: Response) -> Response:
@@ -98,6 +126,12 @@ def create_app(
             f"apiverity_auth_failures_total {_METRICS['auth_failures_total']}",
             "# TYPE apiverity_latency_ms summary",
             f"apiverity_latency_ms_sum {_METRICS['latency_sum_ms']:.1f}",
+            "# TYPE apiverity_jobs_enqueued_total counter",
+            f"apiverity_jobs_enqueued_total {_METRICS['jobs_enqueued_total']}",
+            "# TYPE apiverity_jobs_rejected_total counter",
+            f"apiverity_jobs_rejected_total {_METRICS['jobs_rejected_total']}",
+            "# TYPE apiverity_rate_limited_total counter",
+            f"apiverity_rate_limited_total {_METRICS['rate_limited_total']}",
         ]
         return Response(chr(10).join(lines) + chr(10), mimetype="text/plain")
 
@@ -241,6 +275,92 @@ def create_app(
             return err
         ok = store.cancel_run(run_id)
         return (jsonify({"cancelled": True}), 200) if ok else (jsonify({"cancelled": False}), 409)
+
+    # --- workers & distributed jobs ---------------------------------------------------
+
+    from apiverity.server.jobs import JobQueue, QueueFull
+
+    queue = JobQueue(store, max_active_per_org=max_active_jobs)
+
+    @app.post("/v1/workers")
+    def enroll_worker() -> Any:
+        g.identity, err = current_identity("record_run")
+        if err:
+            return err
+        body = request.get_json(force=True)
+        worker_id = store.register_worker(
+            g.identity.org_id,
+            body["name"],
+            labels=body.get("labels", []),
+            capacity=int(body.get("capacity", 1)),
+        )
+        store.audit_append(g.identity.org_id, g.identity.subject, "worker.enrolled", body["name"])
+        return jsonify({"worker_id": worker_id}), 201
+
+    @app.get("/v1/workers")
+    def list_workers() -> Any:
+        g.identity, err = current_identity("read")
+        if err:
+            return err
+        return jsonify(store.list_workers(g.identity.org_id))
+
+    @app.post("/v1/jobs")
+    def enqueue_job() -> Any:
+        """Enqueue a distributed run; idempotent by ``idempotency_key``."""
+        g.identity, err = current_identity("record_run")
+        if err:
+            return err
+        body = request.get_json(force=True)
+        try:
+            run_id, created = queue.enqueue(
+                g.identity.org_id,
+                body["kind"],
+                g.identity.subject,
+                verification_for=body.get("verification_for"),
+                environment=body.get("environment"),
+                idempotency_key=body.get("idempotency_key"),
+            )
+        except QueueFull as exc:
+            _METRICS["jobs_rejected_total"] += 1
+            return jsonify({"error": str(exc)}), 409
+        _METRICS["jobs_enqueued_total"] += 1
+        return (
+            jsonify({"run_id": run_id, "deduplicated": not created}),
+            201 if created else 200,
+        )
+
+    @app.post("/v1/jobs/claim")
+    def claim_job() -> Any:
+        """Worker pull endpoint: claim the next queued job for this org."""
+        g.identity, err = current_identity("record_run")
+        if err:
+            return err
+        body = request.get_json(force=True) or {}
+        worker_name = body.get("worker") or f"anon-{g.identity.subject}"
+        job = queue.claim(g.identity.org_id, worker_name)
+        if job is None:
+            return jsonify({"job": None}), 204
+        return jsonify(job)
+
+    @app.get("/v1/runs/<int:run_id>/events")
+    def run_events(run_id: int) -> Any:
+        """SSE stream of run progress events (deterministic: current history + final)."""
+        g.identity, err = current_identity("read")
+        if err:
+            return err
+        run = store.get_run(run_id)
+        if run is None or run["org_id"] != g.identity.org_id:
+            return jsonify({"error": "not found"}), 404
+
+        def generate() -> Any:
+            for ev in store.list_run_events(run_id):
+                data = json.dumps(ev)
+                yield f"id: {ev['id']}\nevent: progress\ndata: {data}\n\n"
+            final = store.get_run(run_id)
+            status = final["status"] if final else "unknown"
+            yield f"event: status\ndata: {json.dumps({'run_id': run_id, 'status': status})}\n\n"
+
+        return Response(generate(), mimetype="text/event-stream")
 
     # --- environments -----------------------------------------------------------------
 
