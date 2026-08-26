@@ -37,7 +37,7 @@ s = s.replace(
     "def verify(self, token: str) -> tuple[str, dict[str, Any]] | None:",
 )
 s = s.replace(
-    'def __init__(self, store) -> None:',
+    "def __init__(self, store) -> None:",
     "def __init__(self, store: Any) -> None:",
 )
 p.write_text(s, encoding="utf-8")
@@ -64,8 +64,7 @@ s = s.replace(
 )
 s = s.replace(
     "def compute_can_i_deploy(store: Store, org_id: int, body: dict) -> dict:",
-    "def compute_can_i_deploy(store: Store, org_id: int, body: dict[str, Any])"
-    " -> dict[str, Any]:",
+    "def compute_can_i_deploy(store: Store, org_id: int, body: dict[str, Any]) -> dict[str, Any]:",
 )
 s = s.replace("-> list[dict]:", "-> list[dict[str, Any]]:")
 p.write_text(s, encoding="utf-8")
