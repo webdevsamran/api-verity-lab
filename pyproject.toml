@@ -52,7 +52,7 @@ dev = [
 ]
 
 [project.scripts]
-apiverity = "apiverity.cli.main:cli"
+apiverity = "apiverity.cli.main:main"
 
 [project.entry-points."apiverity.specs"]
 openapi = "apiverity.specs.openapi:OpenApiSpecPlugin"
@@ -91,6 +91,8 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4", "RUF"]
 ignore = ["E501"]
 
 [tool.mypy]
+# Kept at 3.12 deliberately: some shipped stubs (httpx chain) use PEP 695
+# syntax that cannot be parsed when targeting 3.11.
 python_version = "3.12"
 strict = true
 warn_unreachable = true

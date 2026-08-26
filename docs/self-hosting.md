@@ -15,6 +15,18 @@ app.run(port=8090)
 "
 ```
 
+### Docker
+
+```bash
+docker build -t apiverity-server .
+docker run -p 8090:8090 -v verity-data:/data apiverity-server
+```
+
+Configuration via environment variables: `VERITY_DB` (SQLite path inside the
+container, default `/data/verity.db`) and `VERITY_PORT` (default `8090`).
+Prebuilt images are published to `ghcr.io/webdevsamran/api-verity-lab-server`
+on every tagged release (`docker pull ghcr.io/webdevsamran/api-verity-lab-server:latest`).
+
 Endpoints: `/healthz`, `/readyz`, `/metrics`, and `/v1/*` for orgs, users,
 contracts, findings, runs, environments, policies, approvals, webhooks,
 can-i-deploy, workers and jobs. RBAC: `owner > admin > member > viewer`;
