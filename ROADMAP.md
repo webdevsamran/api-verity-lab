@@ -36,15 +36,25 @@ Status legend: ✅ shipped · 🚧 in progress · 📋 planned
   comment, updated on push; validate/diff/breaking/semver gate)
 - ✅ Deterministic fixture APIs + integration tests
 
-## v0.2 — Deepening
+## v0.2 — Deepening (second transformation pass, 2026-08-26)
 
+- ✅ Protocol-aware compatibility: GraphQL breaking rules + dangerous-change category; gRPC wire-compat rules; whole-contract HTTP compat findings surfaced by `apiverity breaking`
+- ✅ GraphQL loader FIXED (kind-casing bug silently loaded zero operations); return types captured for nullability analysis
 - 📋 GraphQL fuzzing: argument-level case generation from SDL
-- 📋 gRPC reflection-based drift checks against live servers
-- 📋 AsyncAPI spec plugin
-- 📋 Workflow inference from explicit OpenAPI link objects
-- 📋 Drift over recorded traffic corpora at scale (streaming)
-- 📋 Performance: soak profiles, per-endpoint concurrency curves
-- 📋 Coverage: security-scheme exercise matrix in HTML report
+- 📋 AsyncAPI message/channel compatibility rules
+- 📋 Workflow inference from explicit OpenAPI link objects (safe subset done)
+- 📋 Shadow contract inference from sanitized traffic corpora
+- 📋 Response-size/bandwidth metrics, TLS timing breakdown
+
+## v0.2-server — Self-hosted team/enterprise layer
+
+- ✅ Worker enrollment + pull-based job queue (idempotency keys, backpressure)
+- ✅ SSE run progress streaming (`GET /v1/runs/<id>/events`)
+- ✅ Backup/restore/export/import incl. `apiverity server-db`
+- ✅ API rate limiting + job/rate-limit Prometheus counters
+- ✅ Opt-in redacted OTLP trace export
+- 📋 Concrete OIDC/SAML providers (IdentityProvider protocol exists; needs a real IdP)
+- 📋 Per-operation consumer registry over the existing can-i-deploy data
 
 ## v0.3 — Ecosystem
 
@@ -54,10 +64,10 @@ Status legend: ✅ shipped · 🚧 in progress · 📋 planned
 - 📋 OpenTelemetry trace correlation for drift findings
 - 📋 Multi-contract aggregation reports (monorepo mode)
 
-## Known v0.1 limitations
+## Known limitations
 
-- GraphQL/gRPC are foundations: loading + structural diffing only;
-  testing/fuzzing parity with OpenAPI is a v0.2 goal.
+- GraphQL/gRPC testing parity with OpenAPI is partial: conformance harnesses
+  exist as interfaces; live validation needs real servers (BLOCKED).
 - Performance measurement is sequential; concurrency curves arrive in v0.2.
 - Workflow graph rendering is tabular (step list) rather than a visual DAG.
 
