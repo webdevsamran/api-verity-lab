@@ -30,7 +30,7 @@ jobs:
       - name: Type check
         run: mypy apiverity
       - name: Tests with coverage
-        run: pytest tests/ -q --cov=apiverity --cov-report=term-missing --cov-fail-under=60
+        run: pytest tests/ -q --cov=apiverity --cov-report=term-missing --cov-fail-under=72
       - name: Build distribution
         run: python -m build
       - name: Dependency scan (pip-audit)
