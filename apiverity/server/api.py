@@ -55,8 +55,10 @@ def create_app(
             _METRICS["auth_failures_total"] += 1
             return None, (jsonify({"error": "unauthenticated"}), 401)
         if not authorize(identity, action):
-            return None, (jsonify({"error": f"forbidden: role '{identity.role.value}'"
-                                   f" cannot '{action}'"}), 403)
+            return None, (
+                jsonify({"error": f"forbidden: role '{identity.role.value}' cannot '{action}'"}),
+                403,
+            )
         return identity, None
 
     def notify(event: str, payload: dict[str, Any]) -> None:
@@ -117,12 +119,20 @@ def create_app(
             return err
         body = request.get_json(force=True)
         user_id = store.add_user(
-            org_id, body["subject"], body.get("role", "viewer"),
+            org_id,
+            body["subject"],
+            body.get("role", "viewer"),
             display_name=body.get("display_name", ""),
-            kind=body.get("kind", "user"), token=body.get("token"),
+            kind=body.get("kind", "user"),
+            token=body.get("token"),
         )
-        store.audit_append(org_id, g.identity.subject, "user.added", body["subject"],
-                           {"role": body.get("role", "viewer")})
+        store.audit_append(
+            org_id,
+            g.identity.subject,
+            "user.added",
+            body["subject"],
+            {"role": body.get("role", "viewer")},
+        )
         return jsonify({"user_id": user_id}), 201
 
     @app.get("/v1/orgs/<int:org_id>/users")
@@ -141,13 +151,22 @@ def create_app(
             return err
         body = request.get_json(force=True)
         contract_id = store.publish_contract(
-            g.identity.org_id, body["title"], body["version"], body.get("protocol", "openapi"),
-            body["spec"], g.identity.subject,
+            g.identity.org_id,
+            body["title"],
+            body["version"],
+            body.get("protocol", "openapi"),
+            body["spec"],
+            g.identity.subject,
         )
         if isinstance(body.get("findings"), list):
             store.add_findings(contract_id, body["findings"])
-        store.audit_append(g.identity.org_id, g.identity.subject, "contract.published",
-                           f"{body['title']}@{body['version']}", {"checksum": True})
+        store.audit_append(
+            g.identity.org_id,
+            g.identity.subject,
+            "contract.published",
+            f"{body['title']}@{body['version']}",
+            {"checksum": True},
+        )
         notify("contract.published", {"title": body["title"], "version": body["version"]})
         return jsonify({"contract_id": contract_id}), 201
 
@@ -195,8 +214,11 @@ def create_app(
             return err
         body = request.get_json(force=True)
         run_id = store.record_run(
-            g.identity.org_id, body["kind"], g.identity.subject,
-            result=body.get("result"), status=body.get("status", "queued"),
+            g.identity.org_id,
+            body["kind"],
+            g.identity.subject,
+            result=body.get("result"),
+            status=body.get("status", "queued"),
             verification_for=body.get("verification_for"),
             environment=body.get("environment"),
         )
@@ -229,12 +251,20 @@ def create_app(
             return err
         body = request.get_json(force=True)
         env_id = store.register_environment(
-            g.identity.org_id, body["name"], body["base_url"],
-            body.get("safety_class", "dev"), body.get("owner"),
+            g.identity.org_id,
+            body["name"],
+            body["base_url"],
+            body.get("safety_class", "dev"),
+            body.get("owner"),
             body.get("allowed_modes", "read-only"),
         )
-        store.audit_append(g.identity.org_id, g.identity.subject, "environment.registered",
-                           body["name"], {"safety_class": body.get("safety_class", "dev")})
+        store.audit_append(
+            g.identity.org_id,
+            g.identity.subject,
+            "environment.registered",
+            body["name"],
+            {"safety_class": body.get("safety_class", "dev")},
+        )
         return jsonify({"environment_id": env_id}), 201
 
     @app.get("/v1/environments")
@@ -271,8 +301,12 @@ def create_app(
             return err
         body = request.get_json(force=True)
         approval_id = store.request_approval(
-            g.identity.org_id, body["contract_title"], body["from_version"],
-            body["to_version"], body["justification"], g.identity.subject,
+            g.identity.org_id,
+            body["contract_title"],
+            body["from_version"],
+            body["to_version"],
+            body["justification"],
+            g.identity.subject,
             body.get("migration_guide"),
         )
         notify("approval.requested", {"approval_id": approval_id})
@@ -290,8 +324,9 @@ def create_app(
             return jsonify({"error": "invalid decision"}), 400
         if not ok:
             return jsonify({"error": "already decided or missing"}), 409
-        store.audit_append(g.identity.org_id, g.identity.subject, f"approval.{decision}",
-                           str(approval_id))
+        store.audit_append(
+            g.identity.org_id, g.identity.subject, f"approval.{decision}", str(approval_id)
+        )
         notify(f"approval.{decision}", {"approval_id": approval_id})
         return jsonify({"ok": True})
 
@@ -314,7 +349,9 @@ def create_app(
         if err:
             return err
         events = store.audit_list(g.identity.org_id)
-        return jsonify({"events": events, "chain_valid": store.audit_verify_chain(g.identity.org_id)})
+        return jsonify(
+            {"events": events, "chain_valid": store.audit_verify_chain(g.identity.org_id)}
+        )
 
     @app.post("/v1/webhooks")
     def register_webhook() -> Any:

@@ -142,9 +142,7 @@ class Store:
     # --- orgs & users ---------------------------------------------------
 
     def create_org(self, name: str) -> int:
-        cur = self.conn.execute(
-            "INSERT INTO orgs (name, created_at) VALUES (?, ?)", (name, _now())
-        )
+        cur = self.conn.execute("INSERT INTO orgs (name, created_at) VALUES (?, ?)", (name, _now()))
         self.conn.commit()
         return int(cur.lastrowid or 0)
 
@@ -194,9 +192,7 @@ class Store:
         spec: dict[str, Any],
         published_by: str,
     ) -> int:
-        checksum = hashlib.sha256(
-            json.dumps(spec, sort_keys=True).encode("utf-8")
-        ).hexdigest()
+        checksum = hashlib.sha256(json.dumps(spec, sort_keys=True).encode("utf-8")).hexdigest()
         # supersede any prior latest? keep full history; mark nothing deleted
         cur = self.conn.execute(
             "INSERT INTO contracts (org_id, title, version, protocol, checksum,"
@@ -207,8 +203,10 @@ class Store:
         return int(cur.lastrowid or 0)
 
     def list_contracts(self, org_id: int, title: str | None = None) -> list[dict[str, Any]]:
-        sql = "SELECT id, title, version, protocol, checksum, published_by, published_at" \
-              " FROM contracts WHERE org_id = ?"
+        sql = (
+            "SELECT id, title, version, protocol, checksum, published_by, published_at"
+            " FROM contracts WHERE org_id = ?"
+        )
         params: tuple[Any, ...] = (org_id,)
         if title:
             sql += " AND title = ?"
@@ -269,15 +267,22 @@ class Store:
             "INSERT INTO runs (org_id, kind, status, requested_by, result_json,"
             " verification_for, environment, created_at, updated_at)"
             " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (org_id, kind, status, requested_by, json.dumps(result) if result else None,
-             verification_for, environment, ts, ts),
+            (
+                org_id,
+                kind,
+                status,
+                requested_by,
+                json.dumps(result) if result else None,
+                verification_for,
+                environment,
+                ts,
+                ts,
+            ),
         )
         self.conn.commit()
         return int(cur.lastrowid or 0)
 
-    def update_run(
-        self, run_id: int, *, status: str, result: dict[str, Any] | None = None
-    ) -> None:
+    def update_run(self, run_id: int, *, status: str, result: dict[str, Any] | None = None) -> None:
         self.conn.execute(
             "UPDATE runs SET status = ?, result_json = COALESCE(?, result_json),"
             " updated_at = ? WHERE id = ?",
@@ -303,8 +308,13 @@ class Store:
     # --- environments ------------------------------------------------------
 
     def register_environment(
-        self, org_id: int, name: str, base_url: str, safety_class: str,
-        owner: str | None = None, allowed_modes: str = "read-only",
+        self,
+        org_id: int,
+        name: str,
+        base_url: str,
+        safety_class: str,
+        owner: str | None = None,
+        allowed_modes: str = "read-only",
     ) -> int:
         cur = self.conn.execute(
             "INSERT OR REPLACE INTO environments (org_id, name, base_url, safety_class,"
@@ -340,15 +350,29 @@ class Store:
     # --- approvals ---------------------------------------------------------------
 
     def request_approval(
-        self, org_id: int, contract_title: str, from_version: str, to_version: str,
-        justification: str, requested_by: str, migration_guide: str | None = None,
+        self,
+        org_id: int,
+        contract_title: str,
+        from_version: str,
+        to_version: str,
+        justification: str,
+        requested_by: str,
+        migration_guide: str | None = None,
     ) -> int:
         cur = self.conn.execute(
             "INSERT INTO approvals (org_id, contract_title, from_version, to_version,"
             " justification, migration_guide, requested_by, created_at)"
             " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (org_id, contract_title, from_version, to_version, justification,
-             migration_guide, requested_by, _now()),
+            (
+                org_id,
+                contract_title,
+                from_version,
+                to_version,
+                justification,
+                migration_guide,
+                requested_by,
+                _now(),
+            ),
         )
         self.conn.commit()
         return int(cur.lastrowid or 0)
@@ -365,15 +389,18 @@ class Store:
         return cur.rowcount > 0
 
     def get_approval(self, approval_id: int) -> dict[str, Any] | None:
-        row = self.conn.execute(
-            "SELECT * FROM approvals WHERE id = ?", (approval_id,)
-        ).fetchone()
+        row = self.conn.execute("SELECT * FROM approvals WHERE id = ?", (approval_id,)).fetchone()
         return dict(row) if row else None
 
     # --- audit (hash-chained, append-only) ------------------------------------------
 
     def audit_append(
-        self, org_id: int, actor: str, action: str, target: str, payload: dict[str, Any] | None = None
+        self,
+        org_id: int,
+        actor: str,
+        action: str,
+        target: str,
+        payload: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         last = self.conn.execute(
             "SELECT entry_hash FROM audit_events WHERE org_id = ? ORDER BY id DESC LIMIT 1",
@@ -416,9 +443,10 @@ class Store:
                 f"{r['prev_hash']}|{r['ts']}|{r['actor']}|{r['action']}|{r['target']}"
                 f"|{r['payload_json']}"
             )
-            if r["prev_hash"] != prev or r["entry_hash"] != hashlib.sha256(
-                basis.encode("utf-8")
-            ).hexdigest():
+            if (
+                r["prev_hash"] != prev
+                or r["entry_hash"] != hashlib.sha256(basis.encode("utf-8")).hexdigest()
+            ):
                 return False
             prev = r["entry_hash"]
         return True
@@ -452,9 +480,7 @@ class Store:
         cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
         purged: dict[str, int] = {}
         for table in ("findings",):
-            cur = self.conn.execute(
-                f"DELETE FROM {table} WHERE created_at < ?", (cutoff,)
-            )
+            cur = self.conn.execute(f"DELETE FROM {table} WHERE created_at < ?", (cutoff,))
             purged[table] = cur.rowcount
         cur = self.conn.execute("DELETE FROM runs WHERE created_at < ?", (cutoff,))
         purged["runs"] = cur.rowcount

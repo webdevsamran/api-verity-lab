@@ -52,9 +52,7 @@ class TestSecurityPack:
             method="POST",
             path="/login",
             responses=[],
-            examples=[
-                Example(name="creds", value={"api_key": "sk-live-abcdef1234567890ab"})
-            ],
+            examples=[Example(name="creds", value={"api_key": "sk-live-abcdef1234567890ab"})],
         )
         svc = _svc(operations=[op])
         findings = PolicyEngine(packs=[SECURITY_PACK]).evaluate(svc)
@@ -78,7 +76,9 @@ class TestSecurityPack:
         op = Operation(
             method="GET",
             path="/c",
-            examples=[Example(name="resp", value={"headers": {"Access-Control-Allow-Origin": "*"}})],
+            examples=[
+                Example(name="resp", value={"headers": {"Access-Control-Allow-Origin": "*"}})
+            ],
         )
         svc = _svc(operations=[op])
         findings = PolicyEngine(packs=[SECURITY_PACK]).evaluate(svc)
@@ -105,7 +105,9 @@ class TestOAuthScopes:
                 Operation(
                     method="POST",
                     path="/items",
-                    security=[SecurityRequirement(scheme_name="oauth", scopes=["admin"])],  # undeclared
+                    security=[
+                        SecurityRequirement(scheme_name="oauth", scopes=["admin"])
+                    ],  # undeclared
                 ),
             ],
         )

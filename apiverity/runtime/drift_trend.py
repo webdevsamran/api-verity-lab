@@ -40,9 +40,7 @@ def compare_to_baseline(
     return out
 
 
-def resolved_since_baseline(
-    baseline_fingerprints: set[str], current: DriftReport
-) -> list[str]:
+def resolved_since_baseline(baseline_fingerprints: set[str], current: DriftReport) -> list[str]:
     """Baseline findings no longer present — drift that was fixed."""
     current_fps = {_fingerprint(f) for f in current.findings}
     return sorted(baseline_fingerprints - current_fps)

@@ -63,7 +63,11 @@ class ModelBasedRunner:
         self.resource_id: str | None = None
 
     def _path(self) -> str:
-        return f"{self.collection_path}/{self.resource_id}" if self.resource_id else self.collection_path
+        return (
+            f"{self.collection_path}/{self.resource_id}"
+            if self.resource_id
+            else self.collection_path
+        )
 
     def run(self) -> WorkflowResult:
         results: list[StepResult] = []

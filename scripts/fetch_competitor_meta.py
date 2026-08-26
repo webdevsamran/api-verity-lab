@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 REPOS = [
@@ -75,7 +75,7 @@ def main() -> None:
         results[repo] = entry
 
     payload = {
-        "fetched_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "fetched_utc": datetime.now(UTC).isoformat(timespec="seconds"),
         "tool": "gh api (authenticated)",
         "repos": results,
     }

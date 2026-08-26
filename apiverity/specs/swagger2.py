@@ -86,7 +86,9 @@ class Swagger2Parser:
             out["headers"] = headers
         return out
 
-    def _security_scheme(self, name: str, node: dict[str, Any]) -> tuple[SecurityScheme | None, Finding | None]:
+    def _security_scheme(
+        self, name: str, node: dict[str, Any]
+    ) -> tuple[SecurityScheme | None, Finding | None]:
         stype = str(node.get("type"))
         if stype == "apiKey":
             loc_raw = str(node.get("in", "header"))
@@ -142,7 +144,9 @@ class Swagger2Parser:
             if not isinstance(item, dict):
                 continue
             path_params = [
-                self._param_to_oas3(p) for p in (item.get("parameters") or []) if isinstance(p, dict)
+                self._param_to_oas3(p)
+                for p in (item.get("parameters") or [])
+                if isinstance(p, dict)
             ]
             for method in _HTTP_METHODS:
                 op_node = item.get(method)
@@ -234,7 +238,7 @@ class Swagger2Parser:
             ),
             source_file=file_label,
         )
-        findings.extend(self.oas.findings[len(findings):])
+        findings.extend(self.oas.findings[len(findings) :])
         return service, findings
 
     def _read(self, source: str) -> tuple[str, bytes]:

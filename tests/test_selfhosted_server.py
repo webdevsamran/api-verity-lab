@@ -50,7 +50,9 @@ class TestStore:
     def test_contract_publish_and_history(self, store: Store) -> None:
         org_id = store.create_org("c")
         store.publish_contract(org_id, "Catalog", "1.0.0", "openapi", {"openapi": "3.1.0"}, "a")
-        i2 = store.publish_contract(org_id, "Catalog", "1.1.0", "openapi", {"openapi": "3.1.0"}, "a")
+        i2 = store.publish_contract(
+            org_id, "Catalog", "1.1.0", "openapi", {"openapi": "3.1.0"}, "a"
+        )
         versions = [c["version"] for c in store.list_contracts(org_id, title="Catalog")]
         assert versions == ["1.0.0", "1.1.0"]
         full = store.get_contract(i2)
@@ -63,9 +65,7 @@ class TestStore:
         store.audit_append(org_id, "alice", "contract.published", "X@1")
         assert store.audit_verify_chain(org_id)
         # tamper with a payload directly in SQL
-        store.conn.execute(
-            "UPDATE audit_events SET target = 'TAMPERED' WHERE id = 1"
-        )
+        store.conn.execute("UPDATE audit_events SET target = 'TAMPERED' WHERE id = 1")
         store.conn.commit()
         assert not store.audit_verify_chain(org_id)
 
@@ -138,9 +138,13 @@ class TestAPI:
     def test_publish_list_get_contract(self, client) -> None:
         resp = client.post(
             "/v1/contracts",
-            json={"title": "Catalog", "version": "2.0.0", "protocol": "openapi",
-                  "spec": {"openapi": "3.1.0"},
-                  "findings": [{"rule_id": "GOV-X", "severity": "WARN", "message": "m"}]},
+            json={
+                "title": "Catalog",
+                "version": "2.0.0",
+                "protocol": "openapi",
+                "spec": {"openapi": "3.1.0"},
+                "findings": [{"rule_id": "GOV-X", "severity": "WARN", "message": "m"}],
+            },
         )
         assert resp.status_code == 201
         cid = resp.get_json()["contract_id"]
@@ -160,15 +164,20 @@ class TestAPI:
         store.add_user(o2, "u2", "owner", token=t2)
         app = create_app(store)
         c = app.test_client()
-        cid = c.post("/v1/contracts", json={"title": "S", "version": "1", "spec": {}},
-                     headers=_auth(t1)).get_json()["contract_id"]
+        cid = c.post(
+            "/v1/contracts", json={"title": "S", "version": "1", "spec": {}}, headers=_auth(t1)
+        ).get_json()["contract_id"]
         assert c.get(f"/v1/contracts/{cid}", headers=_auth(t2)).status_code == 404
 
     def test_runs_lifecycle(self, client) -> None:
         rid = client.post(
             "/v1/runs",
-            json={"kind": "verification", "verification_for": "Catalog@2.0.0",
-                  "environment": "staging", "status": "passed"},
+            json={
+                "kind": "verification",
+                "verification_for": "Catalog@2.0.0",
+                "environment": "staging",
+                "status": "passed",
+            },
         ).get_json()["run_id"]
         run = client.get(f"/v1/runs/{rid}").get_json()
         assert run["status"] == "passed"
@@ -181,9 +190,15 @@ class TestAPI:
             json={"provider": "Pay", "provider_version": "3.1.0", "environment": "prod"},
         ).get_json()
         assert denied["deployable"] is False
-        client.post("/v1/runs", json={
-            "kind": "verification", "verification_for": "Pay@3.1.0",
-            "environment": "prod", "status": "passed"})
+        client.post(
+            "/v1/runs",
+            json={
+                "kind": "verification",
+                "verification_for": "Pay@3.1.0",
+                "environment": "prod",
+                "status": "passed",
+            },
+        )
         allowed = client.post(
             "/v1/can-i-deploy",
             json={"provider": "Pay", "provider_version": "3.1.0", "environment": "prod"},
@@ -196,17 +211,42 @@ class TestAPI:
         store.add_user(org_id, "adm", "admin", token="tok-adm")
         app = create_app(store)
         c = app.test_client()
-        aid = c.post("/v1/approvals", headers=_auth("tok-mem"), json={
-            "contract_title": "Pay", "from_version": "1.0.0", "to_version": "2.0.0",
-            "justification": "removing legacy field"}).get_json()["approval_id"]
+        aid = c.post(
+            "/v1/approvals",
+            headers=_auth("tok-mem"),
+            json={
+                "contract_title": "Pay",
+                "from_version": "1.0.0",
+                "to_version": "2.0.0",
+                "justification": "removing legacy field",
+            },
+        ).get_json()["approval_id"]
         # member cannot decide
-        assert c.post(f"/v1/approvals/{aid}/decision", headers=_auth("tok-mem"),
-                      json={"decision": "approved"}).status_code == 403
-        assert c.post(f"/v1/approvals/{aid}/decision", headers=_auth("tok-adm"),
-                      json={"decision": "approved"}).status_code == 200
+        assert (
+            c.post(
+                f"/v1/approvals/{aid}/decision",
+                headers=_auth("tok-mem"),
+                json={"decision": "approved"},
+            ).status_code
+            == 403
+        )
+        assert (
+            c.post(
+                f"/v1/approvals/{aid}/decision",
+                headers=_auth("tok-adm"),
+                json={"decision": "approved"},
+            ).status_code
+            == 200
+        )
         # double decision conflicts
-        assert c.post(f"/v1/approvals/{aid}/decision", headers=_auth(owner_token),
-                      json={"decision": "approved"}).status_code == 409
+        assert (
+            c.post(
+                f"/v1/approvals/{aid}/decision",
+                headers=_auth(owner_token),
+                json={"decision": "approved"},
+            ).status_code
+            == 409
+        )
 
     def test_audit_endpoint_chain_valid(self, client) -> None:
         client.post("/v1/contracts", json={"title": "A", "version": "1", "spec": {}})
@@ -221,13 +261,20 @@ class TestAPI:
             delivered.append((url, body, headers.get("X-Verity-Signature", "")))
             return 200
 
-        app = create_app(store, webhook_transport=transport,
-                         secret_resolver=lambda ref: f"secret-for-{ref}")
+        app = create_app(
+            store, webhook_transport=transport, secret_resolver=lambda ref: f"secret-for-{ref}"
+        )
         c = app.test_client()
         owner = _auth("owner-token-123")
-        c.post("/v1/webhooks", headers=owner, json={
-            "url": "https://hooks.internal/verity", "secret_ref": "wh-1",
-            "events": ["contract.published"]})
+        c.post(
+            "/v1/webhooks",
+            headers=owner,
+            json={
+                "url": "https://hooks.internal/verity",
+                "secret_ref": "wh-1",
+                "events": ["contract.published"],
+            },
+        )
         c.post("/v1/contracts", headers=owner, json={"title": "W", "version": "1", "spec": {}})
         assert len(delivered) == 1
         url, body, sig = delivered[0]
@@ -235,7 +282,10 @@ class TestAPI:
         assert sig == sign_payload("secret-for-wh-1", body)
 
     def test_policies(self, client) -> None:
-        assert client.put("/v1/policies/breaking", json={"content": "max_breaking=0"}).status_code == 200
+        assert (
+            client.put("/v1/policies/breaking", json={"content": "max_breaking=0"}).status_code
+            == 200
+        )
         got = client.get("/v1/policies/breaking").get_json()
         assert got["content"] == "max_breaking=0"
 
@@ -248,9 +298,12 @@ class TestWebhookSigning:
     def test_dispatch_filters_events(self) -> None:
         calls: list[str] = []
         result = dispatch(
-            [{"url": "http://h/1", "events": ["a"], "secret_ref": ""},
-             {"url": "http://h/2", "events": [], "secret_ref": ""}],
-            event="b", payload={},
+            [
+                {"url": "http://h/1", "events": ["a"], "secret_ref": ""},
+                {"url": "http://h/2", "events": [], "secret_ref": ""},
+            ],
+            event="b",
+            payload={},
             transport=lambda url, body, headers: calls.append(url) or 200,
         )
         assert [r.webhook_url for r in result] == ["http://h/2"]
@@ -260,6 +313,10 @@ class TestWebhookSigning:
         def boom(url: str, body: str, headers: dict[str, str]) -> int:
             raise OSError("down")
 
-        result = dispatch([{"url": "http://h", "events": [], "secret_ref": ""}],
-                          event="x", payload={}, transport=boom)
+        result = dispatch(
+            [{"url": "http://h", "events": [], "secret_ref": ""}],
+            event="x",
+            payload={},
+            transport=boom,
+        )
         assert result[0].error is not None

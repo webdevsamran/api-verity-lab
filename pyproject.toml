@@ -103,6 +103,7 @@ disallow_untyped_defs = false
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --strict-markers"
+asyncio_default_fixture_loop_scope = "function"
 markers = [
   "integration: end-to-end fixture integration tests",
   "property: hypothesis property-based tests",

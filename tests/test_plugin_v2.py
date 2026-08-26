@@ -42,8 +42,9 @@ class BadPlugin:
 
 class TestManifest:
     def test_capability_validation(self) -> None:
-        m = PluginManifest(name="x", version="1", entry_point="a:b",
-                           capabilities=["rules", "warp_drive"])
+        m = PluginManifest(
+            name="x", version="1", entry_point="a:b", capabilities=["rules", "warp_drive"]
+        )
         assert m.validate_capabilities() == ["warp_drive"]
 
     def test_host_negotiation(self) -> None:
@@ -122,8 +123,10 @@ class TestConformance:
 
     def test_bad_api_version_flagged(self) -> None:
         class Old:
-            manifest = PluginManifest(name="o", version="1", entry_point="a:b",
-                                      api_version="1.0", capabilities=["rules"])
+            manifest = PluginManifest(
+                name="o", version="1", entry_point="a:b", api_version="1.0", capabilities=["rules"]
+            )
+
             def check(self, service: object) -> list[Finding]:
                 return []
 
@@ -157,8 +160,10 @@ def test_scaffold_creates_conforming_plugin(tmp_path: Path) -> None:
     # Import the generated plugin and verify conformance.
     sys.path.insert(0, str(tmp_path))
     try:
-        mod = pytest.importorskip("acme_lint.plugin") if False else __import__(
-            "acme_lint.plugin", fromlist=["AcmeLint"]
+        mod = (
+            pytest.importorskip("acme_lint.plugin")
+            if False
+            else __import__("acme_lint.plugin", fromlist=["AcmeLint"])
         )
         instance = mod.AcmeLint()
         assert conformance_report(instance)["conforms"] is True
