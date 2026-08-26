@@ -7,6 +7,7 @@ is detectable.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import sqlite3
@@ -116,6 +117,24 @@ CREATE TABLE IF NOT EXISTS webhooks (
     active INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS workers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    org_id INTEGER NOT NULL REFERENCES orgs(id),
+    name TEXT NOT NULL,
+    labels TEXT NOT NULL DEFAULT '[]',
+    capacity INTEGER NOT NULL DEFAULT 1,
+    last_seen TEXT NOT NULL,
+    active INTEGER NOT NULL DEFAULT 1,
+    UNIQUE (org_id, name)
+);
+CREATE TABLE IF NOT EXISTS run_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id INTEGER NOT NULL REFERENCES runs(id),
+    ts TEXT NOT NULL,
+    message TEXT NOT NULL,
+    pct INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_runs_org_status ON runs(org_id, status);
 """
 
 
@@ -134,6 +153,17 @@ class Store:
         self.conn = sqlite3.connect(str(path), check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(_SCHEMA)
+        # backwards-compatible column migrations (no-ops when already applied)
+        for stmt in (
+            "ALTER TABLE runs ADD COLUMN worker_name TEXT",
+            "ALTER TABLE runs ADD COLUMN idempotency_key TEXT",
+        ):
+            with contextlib.suppress(sqlite3.OperationalError):
+                self.conn.execute(stmt)  # column already exists
+        self.conn.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_runs_idem"
+            " ON runs(org_id, idempotency_key) WHERE idempotency_key IS NOT NULL"
+        )
         self.conn.commit()
 
     def close(self) -> None:
@@ -251,37 +281,6 @@ class Store:
 
     # --- runs -----------------------------------------------------------------
 
-    def record_run(
-        self,
-        org_id: int,
-        kind: str,
-        requested_by: str,
-        *,
-        result: dict[str, Any] | None = None,
-        status: str = "queued",
-        verification_for: str | None = None,
-        environment: str | None = None,
-    ) -> int:
-        ts = _now()
-        cur = self.conn.execute(
-            "INSERT INTO runs (org_id, kind, status, requested_by, result_json,"
-            " verification_for, environment, created_at, updated_at)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (
-                org_id,
-                kind,
-                status,
-                requested_by,
-                json.dumps(result) if result else None,
-                verification_for,
-                environment,
-                ts,
-                ts,
-            ),
-        )
-        self.conn.commit()
-        return int(cur.lastrowid or 0)
-
     def update_run(self, run_id: int, *, status: str, result: dict[str, Any] | None = None) -> None:
         self.conn.execute(
             "UPDATE runs SET status = ?, result_json = COALESCE(?, result_json),"
@@ -304,6 +303,129 @@ class Store:
             return False
         self.update_run(run_id, status="cancelled")
         return True
+
+    # --- workers & distributed jobs ---------------------------------------------
+
+    def register_worker(
+        self, org_id: int, name: str, *, labels: list[str] | None = None, capacity: int = 1
+    ) -> int:
+        """Enroll (or re-heartbeat) a runner inside a private network."""
+        self.conn.execute(
+            "INSERT INTO workers (org_id, name, labels, capacity, last_seen, active)"
+            " VALUES (?, ?, ?, ?, ?, 1)"
+            " ON CONFLICT(org_id, name) DO UPDATE SET labels = excluded.labels,"
+            " capacity = excluded.capacity, last_seen = excluded.last_seen, active = 1",
+            (org_id, name, json.dumps(labels or []), capacity, _now()),
+        )
+        self.conn.commit()
+        row = self.conn.execute(
+            "SELECT id FROM workers WHERE org_id = ? AND name = ?", (org_id, name)
+        ).fetchone()
+        assert row is not None
+        return int(row["id"])
+
+    def list_workers(self, org_id: int) -> list[dict[str, Any]]:
+        rows = self.conn.execute(
+            "SELECT id, name, labels, capacity, last_seen, active FROM workers WHERE org_id = ?",
+            (org_id,),
+        ).fetchall()
+        out = []
+        for r in rows:
+            d = dict(r)
+            d["labels"] = json.loads(d["labels"])
+            out.append(d)
+        return out
+
+    def record_run(
+        self,
+        org_id: int,
+        kind: str,
+        requested_by: str,
+        *,
+        result: dict[str, Any] | None = None,
+        status: str = "queued",
+        verification_for: str | None = None,
+        environment: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> int:
+        ts = _now()
+        try:
+            cur = self.conn.execute(
+                "INSERT INTO runs (org_id, kind, status, requested_by, result_json,"
+                " verification_for, environment, created_at, updated_at, idempotency_key)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    org_id,
+                    kind,
+                    status,
+                    requested_by,
+                    json.dumps(result) if result else None,
+                    verification_for,
+                    environment,
+                    ts,
+                    ts,
+                    idempotency_key,
+                ),
+            )
+        except sqlite3.IntegrityError:
+            # duplicate idempotency key → return the existing run id
+            row = self.conn.execute(
+                "SELECT id FROM runs WHERE org_id = ? AND idempotency_key = ?",
+                (org_id, idempotency_key),
+            ).fetchone()
+            assert row is not None
+            return int(row["id"])
+        self.conn.commit()
+        return int(cur.lastrowid or 0)
+
+    def find_run_by_idempotency_key(self, org_id: int, key: str) -> dict[str, Any] | None:
+        row = self.conn.execute(
+            "SELECT * FROM runs WHERE org_id = ? AND idempotency_key = ?", (org_id, key)
+        ).fetchone()
+        return self._run_row(row) if row else None
+
+    def claim_next_run(self, org_id: int, worker_name: str) -> dict[str, Any] | None:
+        """Atomically claim the oldest queued run for this org (worker pull model)."""
+        cur = self.conn.execute(
+            "UPDATE runs SET status = 'running', worker_name = ?, updated_at = ?"
+            " WHERE id = (SELECT id FROM runs WHERE org_id = ? AND status = 'queued'"
+            " ORDER BY id LIMIT 1)"
+            " RETURNING id",
+            (worker_name, _now(), org_id),
+        )
+        row = cur.fetchone()
+        self.conn.commit()
+        if row is None:
+            return None
+        claimed = self.get_run(int(row["id"]))
+        self.append_run_event(int(row["id"]), f"claimed by worker '{worker_name}'", 0)
+        return claimed
+
+    def active_run_count(self, org_id: int) -> int:
+        row = self.conn.execute(
+            "SELECT COUNT(*) AS n FROM runs WHERE org_id = ? AND status IN ('queued','running')",
+            (org_id,),
+        ).fetchone()
+        return int(row["n"]) if row else 0
+
+    def append_run_event(self, run_id: int, message: str, pct: int | None = None) -> None:
+        self.conn.execute(
+            "INSERT INTO run_events (run_id, ts, message, pct) VALUES (?, ?, ?, ?)",
+            (run_id, _now(), message, pct),
+        )
+        self.conn.commit()
+
+    def list_run_events(self, run_id: int) -> list[dict[str, Any]]:
+        rows = self.conn.execute(
+            "SELECT id, ts, message, pct FROM run_events WHERE run_id = ? ORDER BY id",
+            (run_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def _run_row(self, row: sqlite3.Row) -> dict[str, Any]:
+        d = dict(row)
+        d["result"] = json.loads(d["result_json"]) if d.pop("result_json") else None
+        return d
 
     # --- environments ------------------------------------------------------
 
@@ -486,3 +608,92 @@ class Store:
         purged["runs"] = cur.rowcount
         self.conn.commit()
         return purged
+
+    # --- backup / restore / export / import --------------------------------------
+
+    def backup_to(self, path: str | Path) -> Path:
+        """Consistent online snapshot via the SQLite backup API."""
+        out = Path(path)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        dest = sqlite3.connect(str(out))
+        try:
+            self.conn.backup(dest)
+            dest.commit()
+        finally:
+            dest.close()
+        return out
+
+    @classmethod
+    def restore_from(cls, path: str | Path, *, target: str | Path = ":memory:") -> Store:
+        """Restore a backup file into a new store at ``target``."""
+        src = sqlite3.connect(f"file:{Path(path)}?mode=ro", uri=True)
+        try:
+            dest = cls(target)
+            src.backup(dest.conn)
+            dest.conn.commit()
+        finally:
+            src.close()
+        return dest
+
+    def list_policies(self, org_id: int) -> list[dict[str, Any]]:
+        rows = self.conn.execute(
+            "SELECT name, content, updated_at FROM policies WHERE org_id = ?", (org_id,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def export_org(self, org_id: int) -> dict[str, Any]:
+        """Portable JSON snapshot of one organization (no token hashes)."""
+        org = self.get_org(org_id)
+        if org is None:
+            raise KeyError(f"org {org_id} not found")
+        users = [{k: v for k, v in u.items() if k != "token_hash"} for u in self.list_users(org_id)]
+        contracts = [self.get_contract(c["id"]) for c in self.list_contracts(org_id)]
+        return {
+            "export_schema_version": 1,
+            "exported_utc": _now(),
+            "org": org,
+            "users": users,
+            "contracts": contracts,
+            "environments": self.list_environments(org_id),
+            "policies": [
+                {"name": p["name"], "content": p["content"]} for p in self.list_policies(org_id)
+            ],
+            "webhooks": self.list_webhooks(org_id),
+        }
+
+    def import_org(self, snapshot: dict[str, Any]) -> int:
+        """Import an ``export_org`` snapshot as a NEW org; returns the new org id."""
+        name = f"{snapshot['org']['name']}-restored-{_now()}"
+        org_id = self.create_org(name)
+        for u in snapshot.get("users", []):
+            self.add_user(
+                org_id,
+                u["subject"],
+                u["role"],
+                display_name=u.get("display_name", ""),
+                kind=u.get("kind", "user"),
+            )
+        for c in snapshot.get("contracts", []):
+            if c is None:
+                continue
+            self.publish_contract(
+                org_id,
+                c["title"],
+                c["version"],
+                c["protocol"],
+                c.get("spec", {}),
+                c.get("published_by", "import"),
+            )
+        for e in snapshot.get("environments", []):
+            self.register_environment(
+                org_id,
+                e["name"],
+                e["base_url"],
+                e["safety_class"],
+                owner=e.get("owner"),
+                allowed_modes=e.get("allowed_modes", "read-only"),
+            )
+        for p in snapshot.get("policies", []):
+            self.set_policy(org_id, p["name"], p["content"])
+        self.audit_append(org_id, "system", "org.imported", name)
+        return org_id
