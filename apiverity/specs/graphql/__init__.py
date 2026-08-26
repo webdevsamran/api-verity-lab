@@ -17,6 +17,7 @@ from apiverity.core.model import (
     Parameter,
     ParameterLocation,
     Protocol,
+    Response,
     SchemaNode,
     Service,
     Severity,
@@ -24,8 +25,10 @@ from apiverity.core.model import (
 )
 from apiverity.specs import SpecPlugin
 
+_GRAPHQL_MEDIA = "application/graphql"
+
 try:
-    from graphql import build_schema, parse  # type: ignore[import-not-found]
+    from graphql import build_schema, parse
 
     _HAS_GRAPHQL = True
 except ImportError:  # pragma: no cover - optional extra
@@ -135,16 +138,19 @@ class GraphQlSpecPlugin(SpecPlugin):
                     root_names[t.name] = op_type.capitalize()
 
         for definition in doc.definitions:
-            kind = getattr(definition, "kind", "")
-            if str(kind) != "ObjectTypeDefinition" and str(kind) != "ObjectTypeExtension":
+            # graphql-core kinds are snake_case ("object_type_definition"); accept
+            # either casing so hand-built nodes also work
+            kind_str = str(getattr(definition, "kind", "")).replace("_", "").lower()
+            if kind_str not in ("objecttypedefinition", "objecttypeextension"):
                 continue
-            type_name = getattr(definition.name, "value", None)
+            name_node = getattr(definition, "name", None)
+            type_name = getattr(name_node, "value", None)
             if type_name is None:
                 continue
             role = root_names.get(type_name)
             if role is None:
                 continue
-            for field in definition.fields or []:
+            for field in getattr(definition, "fields", None) or []:
                 params: list[Parameter] = []
                 for arg in field.arguments or []:
                     params.append(
@@ -170,7 +176,12 @@ class GraphQlSpecPlugin(SpecPlugin):
                         summary=f"{role}.{field.name.value}",
                         deprecated=deprecated,
                         parameters=params,
-                        responses=[],
+                        responses=[
+                            Response(
+                                status="OK",
+                                content={_GRAPHQL_MEDIA: _type_to_schema(field.type)},
+                            )
+                        ],
                         source_location=SourceLocation(
                             file=label,
                             line=_token_line(field),
