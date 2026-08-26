@@ -100,8 +100,7 @@ def _unused_security_schemes(svc: Service) -> list[Finding]:
             Finding(
                 rule_id="GOV-UNUSED-SECURITY-SCHEME",
                 severity=Severity.INFO,
-                message=f"security scheme '{name}' is declared but never required "
-                "by any operation",
+                message=f"security scheme '{name}' is declared but never required by any operation",
             )
         )
     return out

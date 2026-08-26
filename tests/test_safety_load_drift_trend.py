@@ -145,7 +145,9 @@ class TestLoadProfiles:
             calls["n"] += 1
             return (200 if calls["n"] % 5 else 500), 12.5
 
-        result = execute(LoadProfile(kind="constant", duration_seconds=1.0, rate_start=20), transport)
+        result = execute(
+            LoadProfile(kind="constant", duration_seconds=1.0, rate_start=20), transport
+        )
         assert result.sent == calls["n"]
         assert result.status_counts.get("2xx") and result.status_counts.get("5xx")
         assert result.p50 > 0
@@ -158,7 +160,9 @@ class TestLoadProfiles:
 
             return transport
 
-        points = capacity_search(factory, concurrency_levels=(1, 2, 4, 8, 16), requests_per_level=50)
+        points = capacity_search(
+            factory, concurrency_levels=(1, 2, 4, 8, 16), requests_per_level=50
+        )
         assert points[0].concurrency == 1
         assert all(p.throughput_rps > 0 for p in points)
 

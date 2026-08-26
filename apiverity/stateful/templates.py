@@ -50,7 +50,9 @@ def crud_lifecycle_workflow(
         cleanup=[
             WorkflowStep(
                 name="delete",
-                request=WorkflowRequest(method="DELETE", path=f"{collection_path}/{{{{ {id_var} }}}}"),
+                request=WorkflowRequest(
+                    method="DELETE", path=f"{collection_path}/{{{{ {id_var} }}}}"
+                ),
                 assert_status=[200, 202, 204, 404],  # 404 tolerated: already gone
             )
         ],
@@ -105,7 +107,9 @@ def auth_refresh_workflow(
                 request=WorkflowRequest(
                     method="POST",
                     path=token_path,
-                    body={"grant_type": "refresh_token", "refresh_token": f"{{{{ {refresh_token_var} }}}}",
+                    body={
+                        "grant_type": "refresh_token",
+                        "refresh_token": f"{{{{ {refresh_token_var} }}}}",
                     },
                 ),
                 assert_status=[200],

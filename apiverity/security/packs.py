@@ -129,8 +129,7 @@ def _cors_wildcards(svc: Service) -> list[Finding]:
         for ex in op.examples:
             headers = ex.value.get("headers") if isinstance(ex.value, dict) else None
             if isinstance(headers, dict) and any(
-                k.lower() == "access-control-allow-origin" and v == "*"
-                for k, v in headers.items()
+                k.lower() == "access-control-allow-origin" and v == "*" for k, v in headers.items()
             ):
                 out.append(
                     Finding(

@@ -164,9 +164,10 @@ class TestAsyncApi:
         assert op.direction == "publish"
         assert op.request_body is not None
         schema = op.request_body.content["application/json"]
-        assert schema.properties["orderId"].type == "integer" or schema.properties[
-            "orderId"
-        ].type == "string"
+        assert (
+            schema.properties["orderId"].type == "integer"
+            or schema.properties["orderId"].type == "string"
+        )
 
     def test_servers_parsed(self, tmp_path: Path) -> None:
         svc, _ = load_asyncapi(_write(tmp_path, ASYNCAPI_DOC, "orders.yaml"))
