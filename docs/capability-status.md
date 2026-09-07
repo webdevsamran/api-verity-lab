@@ -26,6 +26,7 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
 
 ## Generation & stateful testing
 - Seeded positive/negative generation, boundary values, pairwise, example mutation, shrinking, corpus export/import/replay — EXISTING
+- Pluggable case generators via `apiverity.generators`, invoked by `apiverity test --generator` — EXISTING (`fuzz/generators.py`); built-ins: unicode, nesting, numeric, header-safety
 - Workflow engine v2 (extraction/guards/cleanup), graph validation, templates, model-based CRUD — EXISTING
 - Workflow inference from OpenAPI Links — PARTIAL (safe deterministic subset)
 

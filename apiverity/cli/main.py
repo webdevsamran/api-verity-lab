@@ -97,8 +97,23 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_changelog)
     p = sub.add_parser("test")
     p.add_argument("spec")
-    p.add_argument("--base-url", required=True)
+    p.add_argument("--base-url")
     p.add_argument("--seed", type=int, default=0)
+    p.add_argument(
+        "--generator",
+        action="append",
+        metavar="NAME",
+        help=(
+            "add a case-generation strategy beyond the schema-derived ones. "
+            "Repeatable; 'all' selects every registered generator. See "
+            "--list-generators."
+        ),
+    )
+    p.add_argument(
+        "--list-generators",
+        action="store_true",
+        help="list available generators, including installed third-party ones, and exit",
+    )
     p.add_argument("--timeout", type=float, default=10.0)
     p.add_argument("--minimize", action="store_true")
     p.add_argument("--json", action="store_true")
