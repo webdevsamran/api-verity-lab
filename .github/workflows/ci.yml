@@ -39,6 +39,11 @@ jobs:
           pip-audit --skip-editable --progress-spinner off
       - name: Fixture end-to-end validation
         run: python scripts/e2e.py
+      - name: Rule catalog doc matches the code
+        # The hand-maintained catalog documented six rule IDs the engine has
+        # never had and omitted twenty-three it does, so an override copied
+        # from the docs was silently ignored. Generated now; this catches drift.
+        run: python scripts/generate_rule_catalog.py --check
 
   schema-validation:
     name: Result artifact schema
