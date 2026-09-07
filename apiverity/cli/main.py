@@ -141,6 +141,16 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--base-url", required=True)
     p.add_argument("-o", "--output", default="perf-baseline.json")
     p.add_argument("--iterations", type=int, default=20)
+    p.add_argument(
+        "--warmup",
+        type=int,
+        default=0,
+        help=(
+            "requests made before measuring and excluded from the samples; "
+            "use the same value here as in the regression run it will be "
+            "compared against"
+        ),
+    )
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_baseline)
     p = sub.add_parser("regression")
@@ -148,8 +158,23 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--base-url", required=True)
     p.add_argument("--baseline")
     p.add_argument("--policy", action="append")
-    p.add_argument("--tolerance", type=float, default=20.0)
+    p.add_argument(
+        "--tolerance",
+        action="append",
+        metavar="PCT|METRIC=PCT",
+        help=(
+            "regression tolerance: a percentage for every metric (--tolerance 15) "
+            "or per metric (--tolerance p95=10 --tolerance error_rate=0). "
+            "Repeatable; default 20 for all."
+        ),
+    )
     p.add_argument("--iterations", type=int, default=20)
+    p.add_argument(
+        "--warmup",
+        type=int,
+        default=0,
+        help="requests made before measuring and excluded from the samples",
+    )
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_regression)
     p = sub.add_parser("report")
