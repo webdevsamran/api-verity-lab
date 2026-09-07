@@ -159,9 +159,7 @@ class TestAPI:
     def test_readyz(self, client) -> None:
         assert client.get("/readyz").status_code == 200
 
-    def test_readyz_does_not_leak_the_database_error(
-        self, store: Store, monkeypatch
-    ) -> None:
+    def test_readyz_does_not_leak_the_database_error(self, store: Store, monkeypatch) -> None:
         """An unauthenticated probe must not describe why it is unhappy.
 
         `/readyz` returned `str(exc)` from the sqlite3 failure, which carries
