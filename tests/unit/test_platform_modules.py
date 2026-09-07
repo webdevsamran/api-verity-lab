@@ -40,7 +40,9 @@ def test_renderers_all_formats() -> None:
         out = render(SAMPLE)
         assert isinstance(out, str) and len(out) > 20, fmt
     assert "BRK-OP-REMOVED" in RENDERERS["markdown"](SAMPLE)
-    assert "<html>" in RENDERERS["html"](SAMPLE).lower()
+    # `<html lang="en">`, not a bare `<html>`: the tag carries a lang
+    # attribute so a screen reader picks the right pronunciation.
+    assert "<html lang=" in RENDERERS["html"](SAMPLE).lower()
     sarif = json.loads(RENDERERS["sarif"](SAMPLE))
     assert sarif["version"] == "2.1.0"
     assert sarif["runs"][0]["results"][0]["ruleId"] == "BRK-OP-REMOVED"
