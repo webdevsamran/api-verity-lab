@@ -57,6 +57,8 @@ class OperationStats(BaseModel):
     #: tell "p95 of 100 samples" from "p95 of 4" without recomputing it.
     samples: int = 0
     warmup: int = 0
+    #: Requests where nothing answered at all, as opposed to answering badly.
+    unreachable: int = 0
     p50_ms: float = 0.0
     p90_ms: float = 0.0
     p95_ms: float = 0.0
@@ -84,6 +86,19 @@ class PerformanceReport(BaseModel):
     #: Differences the run could not resolve: over tolerance, but with
     #: overlapping intervals. Reported, never fatal -- see `Comparison`.
     inconclusive: list[str] = Field(default_factory=list)
+
+    def nothing_answered(self) -> bool:
+        """True when every request to every operation failed to connect.
+
+        `measure` catches connection errors per request so one dead endpoint
+        does not abort the run, which meant a wholly unreachable target came
+        back as a clean report of zero violations and exit 0 -- the documented
+        exit code 3 was unreachable code. A target where literally nothing
+        answered is not a passing run.
+        """
+        if not self.operations:
+            return False
+        return all(op.samples > 0 and op.unreachable == op.samples for op in self.operations)
 
 
 @dataclass(frozen=True)
@@ -126,6 +141,11 @@ def _timed_request(
         resp = client.request(method, path, params=query or None, json=body)
         if resp.status_code >= 500 or resp.status_code == 429:
             outcome = "error"
+    except httpx.ConnectError:
+        # Distinct from a 5xx: nothing answered. Kept separate so an
+        # unreachable target reports as unreachable rather than as a service
+        # with a 100% error rate, which is a different thing to tell someone.
+        outcome = "unreachable"
     except httpx.TimeoutException:
         outcome = "timeout"
     except httpx.HTTPError:
@@ -165,7 +185,7 @@ def measure(
                 schema = next(iter(op.request_body.content.values()))
                 body = generate_valid(schema, rng)
             latencies: list[float] = []
-            errors = timeouts = 0
+            errors = timeouts = unreachable = 0
 
             for _ in range(max(0, warmup)):
                 # Made, then discarded: warming is the point, measuring it is
@@ -179,6 +199,9 @@ def measure(
                 latencies.append(duration)
                 if outcome == "timeout":
                     timeouts += 1
+                elif outcome == "unreachable":
+                    errors += 1
+                    unreachable += 1
                 elif outcome == "error":
                     errors += 1
             elapsed = max(time.monotonic() - t0, 1e-9)
@@ -193,6 +216,7 @@ def measure(
                 timeouts=timeouts,
                 samples=len(latencies),
                 warmup=max(0, warmup),
+                unreachable=unreachable,
                 p50_ms=round(percentile(latencies, 50), 2),
                 p90_ms=round(percentile(latencies, 90), 2),
                 p95_ms=round(percentile(latencies, 95), 2),

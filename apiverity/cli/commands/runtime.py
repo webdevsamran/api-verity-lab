@@ -85,6 +85,9 @@ def cmd_baseline(args: argparse.Namespace) -> int:
     except Exception as exc:
         print(f"error: target unreachable: {exc}", file=sys.stderr)
         return EXIT_UNREACHABLE
+    if report.nothing_answered():
+        print(f"error: target unreachable: nothing answered at {args.base_url}", file=sys.stderr)
+        return EXIT_UNREACHABLE
     set_last_target(args.base_url)
     payload = json.loads(report.model_dump_json())
     Path(args.output).write_text(json.dumps(payload, indent=2), encoding="utf-8")
@@ -118,6 +121,9 @@ def cmd_regression(args: argparse.Namespace) -> int:
         )
     except Exception as exc:
         print(f"error: target unreachable: {exc}", file=sys.stderr)
+        return EXIT_UNREACHABLE
+    if report.nothing_answered():
+        print(f"error: target unreachable: nothing answered at {args.base_url}", file=sys.stderr)
         return EXIT_UNREACHABLE
     violations = evaluate_policies(report, args.policy or [])
     inconclusive: list[str] = []

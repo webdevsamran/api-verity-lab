@@ -304,3 +304,46 @@ def test_warmup_requests_are_made_but_not_measured() -> None:
     assert stats.requests == 14
     assert stats.samples == 10
     assert stats.warmup == 4
+
+
+# --------------------------------------------------------------- reachability
+
+
+def test_a_wholly_unreachable_target_is_not_a_passing_run() -> None:
+    """Exit code 3 was documented and unreachable.
+
+    `measure` catches connection errors per request so one dead endpoint does
+    not abort the whole run. The consequence was that a target with nothing
+    listening came back as a clean report -- zero violations, exit 0 -- and
+    the documented `3` could never be produced. Found while checking the exit
+    codes in docs/ci.md against the code rather than restating them.
+    """
+    stats = OperationStats(
+        operation_key="GET /a", requests=10, samples=10, errors=10, unreachable=10
+    )
+    assert PerformanceReport(operations=[stats]).nothing_answered()
+
+
+def test_a_target_that_answers_badly_is_reachable() -> None:
+    """A 100% 5xx rate is a broken service, not an absent one.
+
+    Different diagnosis, different thing to tell someone, so the two are
+    counted separately rather than both landing in `errors`.
+    """
+    stats = OperationStats(
+        operation_key="GET /a", requests=10, samples=10, errors=10, unreachable=0
+    )
+    assert not PerformanceReport(operations=[stats]).nothing_answered()
+
+
+def test_one_dead_endpoint_does_not_condemn_the_target() -> None:
+    dead = OperationStats(
+        operation_key="GET /a", requests=10, samples=10, errors=10, unreachable=10
+    )
+    alive = OperationStats(operation_key="GET /b", requests=10, samples=10)
+    assert not PerformanceReport(operations=[dead, alive]).nothing_answered()
+
+
+def test_an_empty_report_is_not_reported_as_unreachable() -> None:
+    """A spec with no measurable operations is a different problem."""
+    assert not PerformanceReport(operations=[]).nothing_answered()
