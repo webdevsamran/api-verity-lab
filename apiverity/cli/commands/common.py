@@ -70,12 +70,32 @@ def _pair(args: argparse.Namespace) -> tuple[Service, Service]:
     return old_service, new_service
 
 
+def _jsonable(value: Any) -> Any:
+    """Convert Pydantic models to plain JSON structures, recursively.
+
+    `json.dumps(..., default=str)` alone silently rendered every model as its
+    Python repr, so `--json` emitted strings like
+    ``"id='CHG-OP-REMOVED-1' kind=<ChangeKind.OPERATION_REMOVED: ...>"``
+    where a consumer expects an object. That defeats the point of the flag:
+    the documented contract is structured output for scripting, and no
+    consumer can parse a repr. The text renderer already called model_dump;
+    only the JSON path was wrong.
+    """
+    if hasattr(value, "model_dump"):
+        return value.model_dump(mode="json")
+    if isinstance(value, dict):
+        return {key: _jsonable(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_jsonable(item) for item in value]
+    return value
+
+
 def _emit(data: dict[str, Any], as_json: bool) -> None:
     from apiverity.core.artifact import enrich
 
     data = enrich(data, spec_path=_LAST_SPEC, target=_LAST_TARGET, seed=_LAST_SEED)
     if as_json:
-        print(json.dumps(data, indent=2, default=str))
+        print(json.dumps(_jsonable(data), indent=2, default=str))
     else:
         for key, value in data.items():
             if isinstance(value, list) and value and hasattr(value[0], "model_dump"):
