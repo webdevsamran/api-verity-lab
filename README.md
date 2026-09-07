@@ -99,7 +99,7 @@ GET /users/{id}:
       email: removed   # ← ERROR: clients reading .email will break
 ```
 
-The catalog ships 37 rules across ERROR/WARN/INFO with per-rule severity
+The catalog ships 44 rules across ERROR/WARN/INFO with per-rule severity
 overrides — see [`docs/rule-catalog.md`](docs/rule-catalog.md) or run `apiverity rules`.
 
 ## A generated failure
@@ -174,7 +174,7 @@ apiverity.generators · apiverity.exporters · apiverity.transports
 ```
 
 Spec support matrix: OpenAPI 3.0/3.1 ✅ full · GraphQL SDL ✅ foundation ·
-gRPC proto ✅ foundation · AsyncAPI 📋 planned.
+gRPC proto + compiled descriptor sets ✅ streaming, presence, reserved ranges · AsyncAPI 📋 planned.
 
 ## Frontend
 

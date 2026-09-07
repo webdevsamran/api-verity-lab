@@ -12,7 +12,7 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
 - OpenAPI 3.0/3.1 deepening (callbacks/webhooks/discriminators/security inheritance) — PARTIAL (parser-level support; compat coverage for callbacks is partial)
 - JSON Schema 2020-12-aware comparisons — PARTIAL (shared SchemaNode semantics; `$dynamicRef` not modeled)
 - GraphQL SDL import with provenance — EXISTING loader; **fixed this pass**: kind-casing bug that silently loaded zero operations
-- gRPC descriptor import — EXISTING; wire-compat metadata NEW (`diff/protocol_compat.py`)
+- gRPC: `.proto` sources and compiled `FileDescriptorSet` input (`.desc`/`.pb`/`.protoset`) — EXISTING (`specs/grpc/descriptor.py`, no protobuf runtime dependency); streaming cardinality, explicit presence, oneof membership and reserved ranges in the diff; wire-compat metadata (`diff/protocol_compat.py`)
 - SSE / WebSocket message-contract representations — EXISTING (operation kinds `EVENT`, `WS_MESSAGE`)
 
 ## Diff / breaking / governance

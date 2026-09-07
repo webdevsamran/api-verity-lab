@@ -15,6 +15,7 @@ from apiverity.core.model import (
     Change,
     ChangeKind,
     Operation,
+    OperationKind,
     Parameter,
     SchemaNode,
     Service,
@@ -153,6 +154,7 @@ class DiffEngine:
     def _diff_operation(self, old: Operation, new: Operation) -> None:
         key = old.key
         self._diff_parameters(old, new, key)
+        self._diff_grpc_signature(old, new, key)
         self._diff_request_body(old, new, key)
         self._diff_responses(old, new, key)
         self._diff_security(old, new, key)
@@ -263,6 +265,200 @@ class DiffEngine:
                     f"request parameter '{name}'",
                     "request",
                 )
+
+    def _diff_grpc_signature(self, old: Operation, new: Operation, key: str) -> None:
+        """Streaming direction changes, which no generated client survives.
+
+        A stub generated against a unary RPC calls it unary. Turning that same
+        method name into a stream is not a new shape for an existing call --
+        it is a different call that happens to share a name, and every
+        existing client fails at the transport. The `stream` markers were
+        parsed and discarded, so this produced no change at all.
+        """
+        if old.kind != OperationKind.GRPC_RPC or new.kind != OperationKind.GRPC_RPC:
+            return
+        if (old.client_streaming, old.server_streaming) == (
+            new.client_streaming,
+            new.server_streaming,
+        ):
+            return
+
+        def describe(op: Operation) -> str:
+            if op.client_streaming and op.server_streaming:
+                return "bidirectional streaming"
+            if op.client_streaming:
+                return "client streaming"
+            if op.server_streaming:
+                return "server streaming"
+            return "unary"
+
+        self._add(
+            ChangeKind.RPC_STREAMING_CHANGED,
+            key,
+            "meta",
+            f"RPC changed from {describe(old)} to {describe(new)}",
+            old_value=describe(old),
+            new_value=describe(new),
+            old_location=old.source_location,
+            new_location=new.source_location,
+            breaking_hint=(
+                "generated clients call this method with the wrong cardinality "
+                "and fail at the transport"
+            ),
+        )
+
+    @staticmethod
+    def _wire_shape(node: SchemaNode | None) -> str:
+        """How a field is encoded, as far as compatibility is concerned.
+
+        `format` carries the protobuf width, which is what decides
+        compatibility: int32 and int64 share a wire type and are
+        interchangeable, while int32 and string do not.
+        """
+        if node is None:
+            return "unknown"
+        if node.type == "array" and node.items is not None:
+            return f"repeated {DiffEngine._wire_shape(node.items)}"
+        return node.format or node.type or "unknown"
+
+    def _diff_protobuf_schema(
+        self, old: SchemaNode, new: SchemaNode, operation_key: str, label: str, direction: str
+    ) -> None:
+        """Changes that only mean something in protobuf.
+
+        Field numbers are the wire identity: a rename is safe and a renumber
+        is not, and a name-keyed comparison reports the opposite of both.
+        """
+        # A number whose name changed. Whether that matters depends entirely
+        # on the type, and getting this wrong in either direction is bad:
+        #
+        # - Same type: a rename. The wire carries numbers, not names, so old
+        #   data still decodes correctly into the renamed field. It breaks
+        #   generated code and JSON transcoding, not the wire. Reporting it as
+        #   data corruption would train people to ignore the rule.
+        # - Different type: the number now means something else. Data written
+        #   by an older client decodes into a field of the wrong type, which
+        #   is the exact failure `reserved` exists to prevent.
+        for number in sorted(set(old.field_numbers) & set(new.field_numbers)):
+            was, now = old.field_numbers[number], new.field_numbers[number]
+            if was == now:
+                continue
+            old_field = old.properties.get(was)
+            new_field = new.properties.get(now)
+            old_type = self._wire_shape(old_field)
+            new_type = self._wire_shape(new_field)
+            if old_type == new_type:
+                self._add(
+                    ChangeKind.REQUEST_SCHEMA_CHANGED
+                    if direction == "request"
+                    else ChangeKind.RESPONSE_SCHEMA_CHANGED,
+                    operation_key,
+                    direction,
+                    f"{label}: field {number} renamed from '{was}' to '{now}' "
+                    f"(same type, wire-compatible)",
+                    old_value=was,
+                    new_value=now,
+                    breaking_hint=(
+                        "the wire is unaffected, but generated code and any JSON "
+                        "transcoding use the name"
+                    ),
+                )
+                continue
+            self._add(
+                ChangeKind.FIELD_NUMBER_REUSED,
+                operation_key,
+                direction,
+                f"{label}: field number {number} changed from '{was}' ({old_type}) "
+                f"to '{now}' ({new_type})",
+                old_value=was,
+                new_value=now,
+                breaking_hint=(
+                    f"data written by older clients still carries field {number} and will "
+                    f"decode into '{now}', which has a different type; reserve the number "
+                    "instead of reusing it"
+                ),
+            )
+
+        # A number that is gone without being reserved: nothing stops the next
+        # author reusing it.
+        dropped = set(old.field_numbers) - set(new.field_numbers)
+        unreserved = sorted(dropped - set(new.reserved_numbers))
+        for number in unreserved:
+            self._add(
+                ChangeKind.RESPONSE_SCHEMA_CHANGED
+                if direction == "response"
+                else ChangeKind.REQUEST_SCHEMA_CHANGED,
+                operation_key,
+                direction,
+                f"{label}: field '{old.field_numbers[number]}' ({number}) removed "
+                "without reserving its number",
+                old_value=old.field_numbers[number],
+                new_value=None,
+                breaking_hint=(
+                    f"add `reserved {number};` so the number cannot be reused for something else"
+                ),
+            )
+
+        # Explicit presence, gained or lost.
+        for name in sorted(set(old.explicit_presence) - set(new.explicit_presence)):
+            if name not in new.properties:
+                continue
+            self._add(
+                ChangeKind.FIELD_PRESENCE_CHANGED,
+                operation_key,
+                direction,
+                f"{label}: field '{name}' lost explicit presence",
+                old_value=True,
+                new_value=False,
+                breaking_hint=(
+                    "an unset field and a field set to its default are no longer distinguishable"
+                ),
+            )
+
+        # oneof membership. Moving a field into a oneof makes it mutually
+        # exclusive with fields that were previously independent.
+        old_members = {f: g for g, fs in old.oneofs.items() for f in fs}
+        new_members = {f: g for g, fs in new.oneofs.items() for f in fs}
+        for name in sorted(set(new_members) - set(old_members)):
+            if name not in old.properties:
+                continue
+            self._add(
+                ChangeKind.ONEOF_MEMBERSHIP_CHANGED,
+                operation_key,
+                direction,
+                f"{label}: field '{name}' moved into oneof '{new_members[name]}'",
+                old_value=None,
+                new_value=new_members[name],
+                breaking_hint=(
+                    "setting this field now clears the others in the oneof; senders "
+                    "that set several will silently lose all but the last"
+                ),
+            )
+        for name in sorted(set(old_members) - set(new_members)):
+            if name not in new.properties:
+                continue
+            self._add(
+                ChangeKind.ONEOF_MEMBERSHIP_CHANGED,
+                operation_key,
+                direction,
+                f"{label}: field '{name}' moved out of oneof '{old_members[name]}'",
+                old_value=old_members[name],
+                new_value=None,
+            )
+
+        # A number un-reserved: the guard against reuse was removed.
+        for number in sorted(set(old.reserved_numbers) - set(new.reserved_numbers)):
+            if number in new.field_numbers:
+                continue
+            self._add(
+                ChangeKind.RESERVATION_CHANGED,
+                operation_key,
+                direction,
+                f"{label}: field number {number} is no longer reserved",
+                old_value=number,
+                new_value=None,
+                breaking_hint="nothing now prevents this number being reused",
+            )
 
     def _diff_request_body(self, old: Operation, new: Operation, key: str) -> None:
         old_body, new_body = old.request_body, new.request_body
@@ -423,6 +619,9 @@ class DiffEngine:
         # is omitted; changing or removing one on a response field changes what
         # callers actually receive. _diff_schema compared type, format, enum
         # and constraints but never `default`, so these passed silently.
+        if old.field_numbers or new.field_numbers:
+            self._diff_protobuf_schema(old, new, operation_key, label, direction)
+
         if old.default != new.default:
             self._add(
                 ChangeKind.REQUEST_SCHEMA_CHANGED

@@ -1,0 +1,29 @@
+syntax = "proto3";
+package demo.users;
+
+message GetUserRequest {
+  string id = 1;
+  optional string trace_id = 2;
+}
+
+message User {
+  reserved 4, 7 to 9;
+  reserved "legacy_email";
+  string id = 1;
+  string name = 2;
+  int32 age = 3;
+  oneof contact {
+    string email = 5;
+    string phone = 6;
+  }
+}
+
+enum Status {
+  STATUS_UNKNOWN = 0;
+  STATUS_ACTIVE = 1;
+}
+
+service UserService {
+  rpc GetUser(GetUserRequest) returns (User);
+  rpc WatchUsers(GetUserRequest) returns (stream User);
+}
