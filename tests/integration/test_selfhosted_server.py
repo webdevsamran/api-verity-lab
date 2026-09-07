@@ -76,6 +76,50 @@ class TestStore:
         assert purged["runs"] >= 1
         assert store.get_run(run_id) is None
 
+    def test_retention_purges_a_row_that_lands_on_the_cutoff_instant(
+        self, store: Store, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A coarse clock must not defeat retention.
+
+        `datetime.now()` resolves to roughly 15 ms on Windows under Python
+        3.11 and 3.12, so a run recorded microseconds before the cutoff is
+        computed carries a timestamp *equal* to it. Under a strict `<` the row
+        survived and `purge_older_than` reported zero -- silently retaining
+        data a retention policy had been asked to delete. Windows CI hit this
+        on both 3.11 and 3.12; nothing on Linux or on Python 3.13+ does,
+        because their clocks advance between the two calls.
+
+        Freezing the clock reproduces it on every platform, which is the only
+        way this stays a regression test rather than a coincidence.
+        """
+        from datetime import UTC, datetime, timedelta
+
+        frozen = datetime.now(UTC)
+
+        class _CoarseClock(datetime):
+            @classmethod
+            def now(cls, tz: object = None) -> datetime:  # type: ignore[override]
+                return frozen
+
+        org_id = store.create_org("coarse-clock")
+        run_id = store.record_run(org_id, "test", "a", status="passed")
+        store.conn.execute(
+            "UPDATE runs SET created_at = ? WHERE id = ?", (frozen.isoformat(), run_id)
+        )
+        store.conn.commit()
+
+        monkeypatch.setattr("apiverity.server.store.datetime", _CoarseClock)
+        # Sanity: the cutoff really is the row's own timestamp.
+        assert (_CoarseClock.now(UTC) - timedelta(days=0)).isoformat() == frozen.isoformat()
+
+        purged = store.purge_older_than(days=0)
+
+        assert purged["runs"] >= 1, (
+            "a run timestamped exactly at the cutoff survived the purge; "
+            "retention reports success while deleting nothing"
+        )
+        assert store.get_run(run_id) is None
+
     def test_run_cancel(self, store: Store) -> None:
         org_id = store.create_org("f")
         rid = store.record_run(org_id, "load", "a")

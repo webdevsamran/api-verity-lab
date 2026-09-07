@@ -473,12 +473,26 @@ class Store:
     # --- retention --------------------------------------------------------------------
 
     def purge_older_than(self, days: int) -> dict[str, int]:
+        """Delete runs and findings at or before the retention cutoff.
+
+        The comparison is ``<=``, not ``<``, because the clock is not
+        guaranteed to advance between writing a row and computing the cutoff.
+        On Windows, ``datetime.now()`` resolves to roughly 15 ms on Python 3.11
+        and 3.12, so a row recorded microseconds earlier carries a timestamp
+        *equal* to the cutoff -- and a strict ``<`` left it in place. Retention
+        then silently purged nothing, which is the failure mode a retention
+        policy exists to prevent. Found by adding Windows to CI.
+
+        For any real retention window this changes nothing: it can only differ
+        for a row landing on the cutoff instant exactly, and such a row is not
+        newer than the cutoff.
+        """
         cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
         purged: dict[str, int] = {}
         for table in ("findings",):
-            cur = self.conn.execute(f"DELETE FROM {table} WHERE created_at < ?", (cutoff,))
+            cur = self.conn.execute(f"DELETE FROM {table} WHERE created_at <= ?", (cutoff,))
             purged[table] = cur.rowcount
-        cur = self.conn.execute("DELETE FROM runs WHERE created_at < ?", (cutoff,))
+        cur = self.conn.execute("DELETE FROM runs WHERE created_at <= ?", (cutoff,))
         purged["runs"] = cur.rowcount
         self.conn.commit()
         return purged
