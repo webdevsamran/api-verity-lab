@@ -1,5 +1,14 @@
 # api-verity-lab
 
+<!-- badges -->
+[![CI](https://github.com/webdevsamran/api-verity-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/webdevsamran/api-verity-lab/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/webdevsamran/api-verity-lab/actions/workflows/codeql.yml/badge.svg)](https://github.com/webdevsamran/api-verity-lab/actions/workflows/codeql.yml)
+[![Release](https://img.shields.io/github/v/release/webdevsamran/api-verity-lab?sort=semver)](https://github.com/webdevsamran/api-verity-lab/releases)
+[![License](https://img.shields.io/github/license/webdevsamran/api-verity-lab)](https://github.com/webdevsamran/api-verity-lab/blob/main/LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue)](pyproject.toml)
+[![Coverage floor](https://img.shields.io/badge/coverage%20floor-72%25-informational)](pyproject.toml)
+<!-- /badges -->
+
 **Unified API contract governance, breaking-change analysis, schema-driven
 testing, runtime drift detection, traffic replay and performance regression
 for OpenAPI, GraphQL and gRPC.**
@@ -203,6 +212,52 @@ Stable exit codes make this a CI gate; bundles record p50/p90/p95/p99,
 throughput, timeouts and error rates.
 
 ## Architecture & plugins
+
+Every supported spec format compiles into one normalized contract model, and
+every engine downstream reads that model rather than the original document.
+That is what lets a breaking-change rule, a fuzz generator and a drift check
+agree about what an operation is. Boxes below are real packages under
+[`apiverity/`](apiverity):
+
+<!-- mermaid:architecture -->
+```mermaid
+flowchart LR
+    subgraph inputs [Inputs]
+        OAS[OpenAPI / AsyncAPI]
+        GQL[GraphQL SDL]
+        PROTO[proto / descriptor set]
+    end
+
+    SPECS[specs/<br/>spec plugins]
+    CORE[core/<br/>normalized contract<br/>+ source locations]
+
+    OAS --> SPECS
+    GQL --> SPECS
+    PROTO --> SPECS
+    SPECS --> CORE
+
+    CORE --> DIFF[diff/<br/>stable change IDs]
+    CORE --> FUZZ[fuzz/<br/>seeded case generation]
+    CORE --> STATEFUL[stateful/<br/>workflow engine]
+    CORE --> MOCK[mock/<br/>localhost mock server]
+    DIFF --> RULES[rules/<br/>breaking · semver · security]
+
+    TRAFFIC[traffic/<br/>HAR import + redaction] --> RUNTIME[runtime/<br/>drift detection]
+    CORE --> RUNTIME
+    MOCK -.serves.-> RUNTIME
+    CORE --> PERF[performance/<br/>budgets · percentiles]
+
+    RULES --> ART[core/artifact<br/>result-v1 + provenance]
+    FUZZ --> ART
+    STATEFUL --> ART
+    RUNTIME --> ART
+    PERF --> ART
+
+    ART --> REPORTS[reports/<br/>terminal · JSON · SARIF · HTML]
+    ART --> EXPORT[exporters/<br/>.apiverity bundle]
+    EXPORT --> SERVER[server/ + web/<br/>review UI]
+```
+<!-- /mermaid:architecture -->
 
 See [ARCHITECTURE.md](ARCHITECTURE.md). Six versioned plugin entry points:
 
