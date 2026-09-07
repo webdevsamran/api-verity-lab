@@ -18,13 +18,35 @@ from apiverity.cli.commands.common import (
 
 
 def cmd_test(args: argparse.Namespace) -> int:
+    from apiverity.fuzz.generators import BUILTIN_GENERATORS, load_generators
     from apiverity.fuzz.minimize import minimize_failures
     from apiverity.fuzz.runner import build_cases, run_cases
+
+    if getattr(args, "list_generators", False):
+        available = load_generators()
+        for name in sorted(available):
+            origin = "built-in" if name in BUILTIN_GENERATORS else "plugin"
+            doc = (type(available[name]).__doc__ or "").strip().splitlines()
+            print(f"{name:16} {origin:9} {doc[0] if doc else ''}")
+        print(f"{'schema':16} {'built-in':9} Valid and invalid values derived from the schema.")
+        return EXIT_OK
+
+    if not args.base_url:
+        print("error: --base-url is required", file=sys.stderr)
+        return EXIT_USAGE
+
+    selected = list(getattr(args, "generator", None) or [])
+    if "all" in selected:
+        selected = sorted(load_generators())
 
     service, _, _ = _load(args.spec)
     set_last_target(args.base_url)
     set_last_seed(args.seed)
-    cases = build_cases(service, seed=args.seed)
+    try:
+        cases = build_cases(service, seed=args.seed, generators=selected or None)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
     try:
         results = run_cases(service, args.base_url, cases, timeout=args.timeout)
     except Exception as exc:

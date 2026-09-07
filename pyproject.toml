@@ -67,6 +67,10 @@ security = "apiverity.plugins.builtins:security_checks"
 
 [project.entry-points."apiverity.generators"]
 schema-cases = "apiverity.plugins.builtins:schema_case_generator"
+unicode = "apiverity.fuzz.generators:UnicodeGenerator"
+nesting = "apiverity.fuzz.generators:NestingGenerator"
+numeric = "apiverity.fuzz.generators:NumericBoundaryGenerator"
+header-safety = "apiverity.fuzz.generators:HeaderSafetyGenerator"
 
 [project.entry-points."apiverity.exporters"]
 reports = "apiverity.plugins.builtins:report_exporters"
