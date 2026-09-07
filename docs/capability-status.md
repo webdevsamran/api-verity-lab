@@ -12,7 +12,7 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
 - AsyncAPI 2.x and 3.x adapter, registered under `apiverity.specs` — EXISTING (`specs/asyncapi.py`); direction normalized to the application's point of view so a 2.x document and its 3.x migration compare as equivalent
 - OpenAPI 3.0/3.1 deepening (callbacks/webhooks/discriminators/security inheritance) — PARTIAL (parser-level support; compat coverage for callbacks is partial)
 - JSON Schema 2020-12-aware comparisons — PARTIAL (shared SchemaNode semantics; `$dynamicRef` not modeled)
-- GraphQL SDL import with provenance — EXISTING loader; **fixed this pass**: kind-casing bug that silently loaded zero operations
+- GraphQL: SDL import with provenance, schema-driven query generation, persisted operation documents (`test --operations`), `{data, errors}` envelope assertions, and introspection-based drift (`drift --base-url`) — EXISTING (`specs/graphql/operations.py`, `specs/graphql/runner.py`)
 - gRPC descriptor import — EXISTING; wire-compat metadata NEW (`diff/protocol_compat.py`)
 - SSE / WebSocket message-contract representations — EXISTING (operation kinds `EVENT`, `WS_MESSAGE`)
 
