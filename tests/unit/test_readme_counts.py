@@ -80,3 +80,32 @@ def test_every_command_named_in_the_table_exists() -> None:
     named = set(re.findall(r"`apiverity (\w[\w-]*)", README))
     unknown = sorted(named - known - {"lab"})
     assert not unknown, f"README names commands that do not exist: {unknown}"
+
+
+def test_the_declared_version_is_the_same_everywhere() -> None:
+    """pyproject, CITATION.cff and the CHANGELOG must agree.
+
+    ToolTrace Bench shipped with these three saying three different things --
+    two of them describing a version that had never been tagged. It is a
+    one-line fix each time and it happens on every release, which is what a
+    test is for.
+    """
+    import re
+    import tomllib
+
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    declared = pyproject["project"]["version"]
+
+    citation = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
+    match = re.search(r"^version:\s*(\S+)$", citation, re.M)
+    assert match, "CITATION.cff has no version field"
+    assert match.group(1).strip("'\"") == declared, (
+        f"CITATION.cff says {match.group(1)}, pyproject says {declared}"
+    )
+
+    changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    released = re.findall(r"^## \[(\d+\.\d+\.\d+)\]", changelog, re.M)
+    assert released, "the CHANGELOG has no released version heading"
+    assert released[0] == declared, (
+        f"the newest CHANGELOG entry is {released[0]}, pyproject says {declared}"
+    )

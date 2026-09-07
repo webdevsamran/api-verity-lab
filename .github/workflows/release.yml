@@ -44,7 +44,25 @@ jobs:
         with:
           name: distributions
           path: dist/
+      # Guarded rather than unconditional. Publishing needs a Trusted
+      # Publisher registered for this project on pypi.org, which cannot be
+      # created from a repository -- it is a form on the PyPI account that
+      # owns the name. Without the guard a tagged release fails here even
+      # though the build, the GitHub Release and the image all succeeded, and
+      # a red release is indistinguishable from a broken one.
+      - name: Is Trusted Publishing configured?
+        id: guard
+        env:
+          PUBLISH_ENABLED: ${{ vars.PUBLISH_ENABLED }}
+        run: |
+          if [ "${PUBLISH_ENABLED}" = "true" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping PyPI upload: set the repository variable PUBLISH_ENABLED=true after registering a Trusted Publisher (owner webdevsamran, repo api-verity-lab, workflow release.yml, environment pypi)."
+          fi
       - name: Publish
+        if: steps.guard.outputs.enabled == 'true'
         uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
 
   github-release:
@@ -54,6 +72,13 @@ jobs:
     permissions:
       contents: write
     steps:
+      # `gh release create` shells out to git for the repository context.
+      # Without a checkout it fails with "fatal: not a git repository" -- which
+      # is exactly what happened on the first tag local-ai-hardware-bench ever
+      # pushed: build, SBOM and checksums all succeeded and no release was
+      # created. This job needs no source, only the repo, but it does need
+      # that.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: distributions

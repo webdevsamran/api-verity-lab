@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "api-verity-lab"
-version = "0.1.0"
+version = "0.2.0"
 description = "Unified API contract governance, breaking-change analysis, schema-driven testing, runtime drift detection, traffic replay and performance regression for OpenAPI, GraphQL and gRPC."
 readme = "README.md"
 license = { text = "Apache-2.0" }
