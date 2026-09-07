@@ -17,6 +17,7 @@ the live catalog at any time with `apiverity rules --json`.
 | `BRK-OP-REMOVED` | ERROR | An operation was removed; existing callers will fail. |
 | `BRK-RPC-ADDED` | INFO | A new gRPC RPC was added (additive, non-breaking). |
 | `BRK-RPC-REMOVED` | ERROR | A gRPC RPC was removed; existing callers will fail. |
+| `BRK-RPC-STREAMING-CHANGED` | ERROR | An RPC changed streaming cardinality; generated clients call it wrongly. |
 
 ## Parameters
 
@@ -76,4 +77,15 @@ the live catalog at any time with `apiverity rules --json`.
 | `BRK-DEPRECATION-REMOVED` | INFO | The deprecation marker was removed. |
 | `BRK-SECURITY-CHANGED` | ERROR | Security requirements changed; unprepared clients fail auth. |
 
-_37 rules._
+## Other
+
+| Rule | Severity | Fires when |
+|---|---|---|
+| `BRK-FIELD-NUMBER-REUSED` | ERROR | A protobuf field number now names a different field; stored data misdecodes. |
+| `BRK-FIELD-NUMBER-UNRESERVED` | WARN | A protobuf field was removed without reserving its number. |
+| `BRK-FIELD-PRESENCE-LOST` | ERROR | A protobuf field lost explicit presence; unset and default are now the same. |
+| `BRK-ONEOF-NARROWED` | ERROR | A protobuf field moved into a oneof; it is now exclusive with the others. |
+| `BRK-ONEOF-WIDENED` | INFO | A protobuf field moved out of a oneof; no existing sender can notice. |
+| `BRK-RESERVATION-REMOVED` | WARN | A protobuf field number is no longer reserved and can be reused by mistake. |
+
+_44 rules._
