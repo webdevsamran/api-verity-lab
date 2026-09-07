@@ -7,6 +7,7 @@ updates:
     groups:
       python-dev:
         dependency-type: "development"
+
   - package-ecosystem: "npm"
     directory: "/web"
     schedule:
@@ -14,7 +15,22 @@ updates:
     groups:
       npm-dev:
         dependency-type: "development"
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      # codeql-action/init, /autobuild and /analyze MUST move together.
+      # Ungrouped, Dependabot opens one PR per sub-action, so each PR leaves
+      # the trio version-skewed and the analysis fails with:
+      #   "Loaded a configuration file for version 'X', but running version 'Y'"
+      # That is what stalled #28, #30 and #31.
+      codeql:
+        patterns:
+          - "github/codeql-action*"
+      actions:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "github/codeql-action*"
