@@ -7,6 +7,7 @@ lifecycle with cleanup.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from apiverity.stateful.models import Workflow, WorkflowRequest, WorkflowStep
@@ -165,8 +166,12 @@ def resource_lifecycle_workflow(*, base_url: str, resource: str = "/orders") -> 
     )
 
 
+#: A template factory: takes a base URL (plus its own keyword options, which
+#: all have defaults) and returns a ready workflow.
+TemplateFactory = Callable[..., Workflow]
+
 #: All built-in templates by name.
-TEMPLATES = {
+TEMPLATES: dict[str, TemplateFactory] = {
     "crud-lifecycle": crud_lifecycle_workflow,
     "pagination-walk": pagination_walk_workflow,
     "auth-refresh": auth_refresh_workflow,

@@ -10,6 +10,7 @@ from apiverity.cli.commands.common import (
     EXIT_OK,
     EXIT_UNREACHABLE,
     EXIT_USAGE,
+    NL,
     _emit,
     _load,
     set_last_seed,
@@ -74,6 +75,21 @@ def cmd_test(args: argparse.Namespace) -> int:
 def cmd_workflow(args: argparse.Namespace) -> int:
     from apiverity.stateful.engine import WorkflowEngine, load_workflow_manifest
 
+    if getattr(args, "list_templates", False):
+        from apiverity.stateful.templates import TEMPLATES
+
+        for name, factory in sorted(TEMPLATES.items()):
+            doc = (factory.__doc__ or "").strip().splitlines()
+            print(f"{name:22} {doc[0] if doc else ''}")
+        return EXIT_OK
+
+    template = getattr(args, "template", None)
+    if template:
+        return _emit_template(args, template)
+
+    if getattr(args, "infer", False):
+        return _infer_workflow(args)
+
     wf = load_workflow_manifest(args.manifest)
     base_url = args.base_url or wf.base_url
     if not base_url:
@@ -124,4 +140,82 @@ def cmd_coverage(args: argparse.Namespace) -> int:
         },
         args.json,
     )
+    return EXIT_OK
+
+
+def _infer_workflow(args: argparse.Namespace) -> int:
+    """Print a draft manifest built from the spec's declared links.
+
+    Never writes over an existing file without being asked twice -- a draft
+    that silently replaced a hand-written manifest would be the worst possible
+    outcome of a command whose entire premise is caution.
+    """
+    from pathlib import Path
+
+    from apiverity.stateful.infer import infer_workflows, render_manifest
+
+    service, _, _ = _load(args.manifest)
+    drafts = infer_workflows(service)
+    manifest = render_manifest(service, drafts)
+
+    output = getattr(args, "output", None)
+    if output:
+        target = Path(output)
+        if target.exists():
+            print(f"error: {output} already exists; refusing to overwrite", file=sys.stderr)
+            return EXIT_USAGE
+        target.write_text(manifest, encoding="utf-8")
+        print(f"wrote {output}")
+    else:
+        print(manifest, end="")
+
+    if not drafts:
+        # Not an error: links are optional, and saying "no drafts" plainly is
+        # better than an exit code that reads like the spec was rejected.
+        return EXIT_OK
+    return EXIT_OK
+
+
+def _emit_template(args: argparse.Namespace, name: str) -> int:
+    """Print a built-in manifest template as YAML.
+
+    These four templates existed, were tested, and had no way to reach them
+    from the command line -- so the honest advice for "this spec declares no
+    links, now what" had nowhere to point.
+    """
+    from pathlib import Path
+
+    import yaml
+
+    from apiverity.stateful.templates import TEMPLATES
+
+    factory = TEMPLATES.get(name)
+    if factory is None:
+        known = ", ".join(sorted(TEMPLATES))
+        print(f"error: unknown template '{name}' (known: {known})", file=sys.stderr)
+        return EXIT_USAGE
+
+    workflow = factory(base_url=args.base_url or "http://127.0.0.1:8080")
+    manifest = yaml.safe_dump(
+        workflow.model_dump(mode="json", exclude_none=True), sort_keys=False, allow_unicode=True
+    )
+    summary = (factory.__doc__ or "").strip().splitlines()
+    header = NL.join(
+        [
+            f"# Built-in template '{name}'.",
+            f"# {summary[0] if summary else ''}",
+            "# Review allowed_hosts and every destructive step before running this.",
+            "",
+        ]
+    )
+    output = getattr(args, "output", None)
+    if output:
+        target = Path(output)
+        if target.exists():
+            print(f"error: {output} already exists; refusing to overwrite", file=sys.stderr)
+            return EXIT_USAGE
+        target.write_text(header + manifest, encoding="utf-8")
+        print(f"wrote {output}")
+    else:
+        print(header + manifest, end="")
     return EXIT_OK
