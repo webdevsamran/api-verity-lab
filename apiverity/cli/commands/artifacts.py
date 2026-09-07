@@ -11,81 +11,28 @@ from apiverity.cli.commands.common import EXIT_OK, EXIT_USAGE, NL, _emit
 
 
 def cmd_report(args: argparse.Namespace) -> int:
-    """Render a bundle's result.json in the requested format."""
+    """Render a bundle's result.json in the requested format.
+
+    Dispatches through the shared RENDERERS table rather than reimplementing
+    each format. This command used to carry its own copy of every renderer,
+    and they had already drifted -- its markdown had lost the findings table
+    that `apiverity.reports.renderers` still emitted, so the same bundle
+    produced two different reports depending on how you asked for it (#22).
+    """
+    from apiverity.reports.renderers import RENDERERS
+
     result_path = Path(args.bundle) / "result.json"
     if not result_path.exists():
         print(f"error: no result.json in {args.bundle}", file=sys.stderr)
         return EXIT_USAGE
     data = json.loads(result_path.read_text(encoding="utf-8"))
-    fmt = args.format
-    if fmt == "json":
-        print(json.dumps(data, indent=2))
-    elif fmt == "markdown":
-        lines = [f"# apiverity report — {data.get('command', '?')}"]
-        for k, v in data.items():
-            if k not in ("results", "findings"):
-                lines.append(f"- **{k}**: {v}")
-        print(NL.join(lines))
-    elif fmt == "junit":
-        failures = data.get("failed", data.get("errors", 0))
-        total = data.get("total", 0)
-        print('<?xml version="1.0" encoding="UTF-8"?>')
-        print(f'<testsuite name="apiverity" tests="{total}" failures="{failures}">')
-        print("</testsuite>")
-    elif fmt == "yaml":
-        import yaml
 
-        print(yaml.safe_dump(data, sort_keys=False, allow_unicode=True))
-    elif fmt == "html":
-        rows = ""
-        for f in data.get("findings", []):
-            sev = str(f.get("severity", "INFO"))
-            color = {"ERROR": "#e5484d", "WARN": "#f5a623"}.get(sev, "#3b82f6")
-            rows += (
-                f"<tr><td><code>{f.get('rule_id', '')}</code></td>"
-                f"<td style='color:{color}'><b>{sev}</b></td>"
-                f"<td>{f.get('message', '')}</td></tr>"
-            )
-        print(
-            "<!doctype html><html><head><meta charset='utf-8'>"
-            "<title>apiverity report</title>"
-            "<style>body{font-family:system-ui;margin:2rem;background:#0d1117;"
-            "color:#e6edf3}table{border-collapse:collapse;width:100%}"
-            "td,th{padding:8px;border-bottom:1px solid #30363d;text-align:left}"
-            "</style></head><body><h1>apiverity report</h1>"
-            f"<p>{data.get('command', '')} — {data.get('spec', data.get('base_url', ''))}</p>"
-            f"<table><tr><th>Rule</th><th>Severity</th><th>Message</th></tr>{rows}"
-            "</table></body></html>"
-        )
-    elif fmt == "sarif":
-        sarif = {
-            "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
-            "version": "2.1.0",
-            "runs": [
-                {
-                    "tool": {
-                        "driver": {
-                            "name": "apiverity",
-                            "informationUri": "https://github.com/webdevsamran/api-verity-lab",
-                        }
-                    },
-                    "results": [
-                        {
-                            "ruleId": f.get("rule_id", "APIVERITY"),
-                            "level": {"ERROR": "error", "WARN": "warning"}.get(
-                                str(f.get("severity")), "note"
-                            ),
-                            "message": {"text": f.get("message", "")},
-                        }
-                        for f in data.get("findings", [])
-                    ],
-                }
-            ],
-        }
-        print(json.dumps(sarif, indent=2))
-    else:
-        print(f"error: unknown format '{fmt}'", file=sys.stderr)
+    renderer = RENDERERS.get(args.format)
+    if renderer is None:
+        known = ", ".join(sorted(RENDERERS))
+        print(f"error: unknown format '{args.format}' (known: {known})", file=sys.stderr)
         return EXIT_USAGE
+    print(renderer(data))
     return EXIT_OK
 
 
