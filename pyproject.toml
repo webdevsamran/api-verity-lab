@@ -40,6 +40,10 @@ dependencies = [
 graphql = ["graphql-core>=3.2,<4.0"]
 grpc = ["grpcio-tools>=1.62,<2.0"]
 dev = [
+  # The graphql extra is a dev dependency too: without it every GraphQL test
+  # skips, and a suite that silently skips its coverage of a feature is
+  # indistinguishable from one that passes it.
+  "graphql-core>=3.2,<4.0",
   "pytest>=8.2,<10.0",
   "pytest-cov>=5.0,<8.0",
   "pytest-asyncio>=0.23,<2.0",

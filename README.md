@@ -174,7 +174,8 @@ apiverity.generators · apiverity.exporters · apiverity.transports
 ```
 
 Spec support matrix: OpenAPI 3.0/3.1 ✅ full · AsyncAPI 2.x/3.x ✅ channels,
-messages and direction-aware diffing · GraphQL SDL ✅ foundation ·
+messages and direction-aware diffing · GraphQL SDL ✅ operation testing,
+persisted operations and introspection drift ·
 gRPC proto + compiled descriptor sets ✅ streaming, presence, reserved ranges.
 
 ## Frontend

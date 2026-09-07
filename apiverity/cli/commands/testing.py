@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from typing import Any
 
 from apiverity.cli.commands.common import (
     EXIT_FINDINGS,
@@ -41,6 +42,11 @@ def cmd_test(args: argparse.Namespace) -> int:
         selected = sorted(load_generators())
 
     service, _, _ = _load(args.spec)
+    if service.protocol.value == "graphql":
+        # GraphQL cannot go through the HTTP runner: it answers a malformed
+        # query with 200 and an `errors` array, so a status-code verdict marks
+        # every failure a pass.
+        return _test_graphql(args)
     set_last_target(args.base_url)
     set_last_seed(args.seed)
     try:
@@ -219,3 +225,69 @@ def _emit_template(args: argparse.Namespace, name: str) -> int:
     else:
         print(header + manifest, end="")
     return EXIT_OK
+
+
+def _graphql_schema(spec: str) -> Any:
+    """Build a graphql-core schema, with a clear error when the extra is absent."""
+    try:
+        from graphql import build_schema
+    except ImportError as exc:  # pragma: no cover - depends on the install
+        raise ValueError(
+            "GraphQL support requires the 'graphql' extra: pip install api-verity-lab[graphql]"
+        ) from exc
+
+    from pathlib import Path
+
+    return build_schema(Path(spec).read_text(encoding="utf-8-sig"))
+
+
+def _test_graphql(args: argparse.Namespace) -> int:
+    """Run generated and persisted GraphQL operations against an endpoint."""
+    from pathlib import Path
+
+    from apiverity.specs.graphql.operations import build_cases as build_graphql_cases
+    from apiverity.specs.graphql.operations import load_persisted_operations
+    from apiverity.specs.graphql.runner import run_cases as run_graphql_cases
+
+    try:
+        schema = _graphql_schema(args.spec)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    cases = build_graphql_cases(
+        schema, include_mutations=bool(getattr(args, "include_mutations", False))
+    )
+    for document in getattr(args, "operations", None) or []:
+        path = Path(document)
+        if not path.is_file():
+            print(f"error: no such operations document: {document}", file=sys.stderr)
+            return EXIT_USAGE
+        try:
+            cases.extend(load_persisted_operations(path.read_text(encoding="utf-8-sig"), path.name))
+        except Exception as exc:
+            print(f"error: could not parse {document}: {exc}", file=sys.stderr)
+            return EXIT_USAGE
+
+    set_last_target(args.base_url)
+    try:
+        results = run_graphql_cases(args.base_url, cases, timeout=args.timeout)
+    except Exception as exc:
+        print(f"error: target unreachable: {exc}", file=sys.stderr)
+        return EXIT_UNREACHABLE
+
+    failures = [r for r in results if r.status != "pass"]
+    _emit(
+        {
+            "tool": "apiverity",
+            "command": "test",
+            "protocol": "graphql",
+            "base_url": args.base_url,
+            "total": len(results),
+            "passed": len(results) - len(failures),
+            "failed": len(failures),
+            "results": [r.as_dict() for r in results],
+        },
+        args.json,
+    )
+    return EXIT_FINDINGS if failures else EXIT_OK

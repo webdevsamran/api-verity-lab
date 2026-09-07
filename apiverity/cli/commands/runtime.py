@@ -36,6 +36,12 @@ def cmd_drift(args: argparse.Namespace) -> int:
     if corpus:
         return _drift_corpus(args, service, corpus, forbid_undeclared_fields=forbid)
 
+    if service.protocol.value == "graphql":
+        # Introspection is the only way to ask a GraphQL endpoint what it
+        # actually serves; probing one operation at a time cannot see a field
+        # the schema never declared.
+        return _drift_graphql(args)
+
     set_last_target(args.base_url)
     try:
         report = detect_drift(
@@ -233,3 +239,46 @@ def cmd_regression(args: argparse.Namespace) -> int:
         args.json,
     )
     return EXIT_FINDINGS if violations else EXIT_OK
+
+
+def _drift_graphql(args: argparse.Namespace) -> int:
+    """Compare a committed SDL against a live endpoint's introspection."""
+    from pathlib import Path
+
+    from apiverity.specs.graphql.runner import run_drift
+
+    try:
+        from graphql import build_schema
+    except ImportError:  # pragma: no cover - depends on the install
+        print(
+            "error: GraphQL support requires the 'graphql' extra: "
+            "pip install api-verity-lab[graphql]",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+
+    schema = build_schema(Path(args.spec).read_text(encoding="utf-8-sig"))
+    set_last_target(args.base_url)
+    try:
+        findings = run_drift(schema, args.base_url, timeout=args.timeout)
+    except ValueError as exc:
+        # Introspection being disabled is a fact about the endpoint, not a
+        # clean drift report. Saying so beats reporting every declared type as
+        # missing.
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_UNREACHABLE
+    except Exception as exc:
+        print(f"error: target unreachable: {exc}", file=sys.stderr)
+        return EXIT_UNREACHABLE
+
+    _emit(
+        {
+            "tool": "apiverity",
+            "command": "drift",
+            "protocol": "graphql",
+            "target": args.base_url,
+            "findings": findings,
+        },
+        args.json,
+    )
+    return EXIT_FINDINGS if findings else EXIT_OK
