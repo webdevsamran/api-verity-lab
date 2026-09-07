@@ -41,7 +41,13 @@ apiverity/
 ├── reports/       terminal/json/yaml/markdown/junit/sarif/html reporters
 ├── exporters/     .apiverity bundle writer with checksums
 ├── plugins/       Plugin loader + versioned plugin API protocols
-└── cli/           Click-based CLI: 18 commands, JSON output, exit codes
+├── security/      Defensive security checks + rule packs
+├── server/        Self-hosted Flask monolith: api.py (route factory),
+│                  store.py (SQLite persistence), schema.py (DDL + helpers),
+│                  decision.py (can-i-deploy), auth/jobs/webhooks
+└── cli/           argparse-based CLI: parser in main.py, implementations in
+                    commands/ grouped by lane (governance, testing, runtime,
+                    artifacts, platform) with shared plumbing in commands/common
 ```
 
 ## Data flow

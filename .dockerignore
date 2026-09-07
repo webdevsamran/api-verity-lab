@@ -1,0 +1,39 @@
+# Version control
+.git/
+.gitignore
+.github/
+
+# Python build/test artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.hypothesis/
+.coverage
+htmlcov/
+
+# Frontend (served separately; not needed inside the server image)
+web/node_modules/
+web/dist/
+web/coverage/
+
+# Docs, fixtures and demo data are not required by the server image
+docs/
+fixtures/
+data/
+examples/
+schemas/
+scripts/
+tests/
+
+# Local artifacts
+*.apiverity/
+.apiverity-bundles/
+demo-data/
+.env*
+Dockerfile
+.dockerignore

@@ -9,6 +9,24 @@ from typing import Any
 from apiverity.core.model import Finding, Protocol, Service
 
 
+class UnrecognizedSpecError(ValueError):
+    """Raised when a source is not an API contract in any known format.
+
+    Deliberately distinct from a parse/validation failure. "This file is not
+    a contract" and "this contract is broken" are different conditions with
+    different correct responses: the first should usually be skipped (it is
+    routine for a repository to contain YAML that is not a spec), the second
+    is a real failure that should stop a pipeline. Callers that scan mixed
+    directories -- CI contract gates especially -- need to tell them apart.
+    """
+
+    def __init__(self, source: str, tried: list[str] | None = None) -> None:
+        self.source = source
+        self.tried = list(tried or [])
+        detail = f": tried {', '.join(self.tried)}" if self.tried else ""
+        super().__init__(f"{source!r} is not an API contract in any recognized format{detail}")
+
+
 class SpecPlugin(ABC):
     """Base class for spec adapters.
 
