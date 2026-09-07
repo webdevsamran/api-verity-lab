@@ -159,6 +159,33 @@ class TestAPI:
     def test_readyz(self, client) -> None:
         assert client.get("/readyz").status_code == 200
 
+    def test_readyz_does_not_leak_the_database_error(
+        self, store: Store, monkeypatch
+    ) -> None:
+        """An unauthenticated probe must not describe why it is unhappy.
+
+        `/readyz` returned `str(exc)` from the sqlite3 failure, which carries
+        the database path and often schema detail, to anyone who could reach
+        the port. CodeQL flagged it as py/stack-trace-exposure and was right.
+        A readiness probe needs one bit; the detail goes to the server log.
+        """
+
+        class _Boom:
+            def execute(self, *_args: object, **_kw: object) -> object:
+                raise RuntimeError("no such table: runs in /srv/secret/fleet.db")
+
+        app = create_app(store)
+        app.config["TESTING"] = True
+        monkeypatch.setattr(store, "conn", _Boom())
+
+        resp = app.test_client().get("/readyz")
+
+        assert resp.status_code == 503
+        assert resp.get_json() == {"status": "not-ready"}
+        body = resp.get_data(as_text=True)
+        assert "fleet.db" not in body
+        assert "no such table" not in body
+
     def test_metrics_exposed(self, client) -> None:
         text = client.get("/metrics").get_data(as_text=True)
         assert "apiverity_requests_total" in text
