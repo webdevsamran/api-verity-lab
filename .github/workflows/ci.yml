@@ -81,6 +81,9 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      # Code splitting is invisible when it breaks: a static import of a page
+      # module collapses every chunk back into the entry and nothing fails.
+      - run: npm run check:bundle
 
   sbom:
     name: SBOM
