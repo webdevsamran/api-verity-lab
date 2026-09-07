@@ -465,6 +465,8 @@ class DiffEngine:
                 f"{label}: format changed '{old.format}' -> '{new.format}'",
                 old_value=old.format,
                 new_value=new.format,
+                old_location=old.source_location,
+                new_location=new.source_location,
             )
 
         if old.enum != new.enum:
@@ -492,6 +494,8 @@ class DiffEngine:
                     f"{label}: constraint '{attr}' changed {o_val!r} -> {n_val!r}",
                     old_value=o_val,
                     new_value=n_val,
+                    old_location=old.source_location,
+                    new_location=new.source_location,
                 )
 
         # object properties
