@@ -98,7 +98,7 @@ GET /users/{id}:
       email: removed   # ← ERROR: clients reading .email will break
 ```
 
-The catalog ships 35 rules across ERROR/WARN/INFO with per-rule severity
+The catalog ships 37 rules across ERROR/WARN/INFO with per-rule severity
 overrides — see [`docs/rule-catalog.md`](docs/rule-catalog.md) or run `apiverity rules`.
 
 ## A generated failure
