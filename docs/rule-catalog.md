@@ -40,6 +40,7 @@ the live catalog at any time with `apiverity rules --json`.
 | `BRK-REQ-FIELD-ADDED-OPTIONAL` | INFO | An optional field was added to a request body. |
 | `BRK-REQ-FIELD-ADDED-REQUIRED` | ERROR | A required field was added to a request body. |
 | `BRK-REQ-FIELD-BECAME-REQUIRED` | ERROR | A request body field became required. |
+| `BRK-REQ-FIELD-OPTIONALIZED` | INFO | A request body field became optional; senders are unaffected. |
 | `BRK-REQ-FIELD-REMOVED` | ERROR | A request body field was removed. |
 
 ## Responses
@@ -50,6 +51,7 @@ the live catalog at any time with `apiverity rules --json`.
 | `BRK-HEADER-REMOVED` | WARN | A declared response header was removed. |
 | `BRK-RESP-CONSTRAINT-TIGHTENED` | WARN | A response constraint was tightened; returned values may fall outside what clients expect. |
 | `BRK-RESP-FIELD-ADDED` | INFO | A response body field was added (consumers ignore unknown fields). |
+| `BRK-RESP-FIELD-OPTIONALIZED` | ERROR | A response field is no longer guaranteed; consumers reading it unconditionally will break. |
 | `BRK-RESP-FIELD-REMOVED` | ERROR | A response body field was removed; readers of it break. |
 | `BRK-RESP-STATUS-ADDED` | INFO | A new response status was declared. |
 | `BRK-RESP-STATUS-REMOVED` | ERROR | A declared response status was removed. |
@@ -74,4 +76,4 @@ the live catalog at any time with `apiverity rules --json`.
 | `BRK-DEPRECATION-REMOVED` | INFO | The deprecation marker was removed. |
 | `BRK-SECURITY-CHANGED` | ERROR | Security requirements changed; unprepared clients fail auth. |
 
-_35 rules._
+_37 rules._

@@ -289,6 +289,13 @@ class OpenApiParser:
         if isinstance(node.get("items"), (dict, bool)):
             out.items = self.to_schema(root, node["items"], f"{pointer}/items")
 
+        disc = node.get("discriminator")
+        if isinstance(disc, dict):
+            out.discriminator = {
+                "propertyName": disc.get("propertyName"),
+                "mapping": dict(disc.get("mapping") or {}),
+            }
+
         for key, attr in (("oneOf", "one_of"), ("anyOf", "any_of"), ("allOf", "all_of")):
             variants = node.get(key)
             if isinstance(variants, list):

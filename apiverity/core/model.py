@@ -79,6 +79,10 @@ class SchemaNode(BaseModel):
     exclusive_maximum: float | None = None
     multiple_of: float | None = None
     # composition
+    #: OpenAPI discriminator: {"propertyName": ..., "mapping": {value: ref}}.
+    #: Kept as a plain dict because only its identity matters to the diff --
+    #: which values map to which variant -- not the resolved schemas.
+    discriminator: dict[str, Any] | None = None
     one_of: list[SchemaNode] | None = None
     any_of: list[SchemaNode] | None = None
     all_of: list[SchemaNode] | None = None
