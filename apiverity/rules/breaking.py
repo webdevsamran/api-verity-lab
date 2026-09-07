@@ -114,6 +114,17 @@ CATALOG: dict[str, RuleSpec] = {
         RuleSpec("BRK-ENUM-WIDENED", Severity.INFO, "Enum values were added (additive)."),
         RuleSpec("BRK-REQ-FIELD-REMOVED", Severity.ERROR, "A request body field was removed."),
         RuleSpec(
+            "BRK-REQ-FIELD-OPTIONALIZED",
+            Severity.INFO,
+            "A request body field became optional; senders are unaffected.",
+        ),
+        RuleSpec(
+            "BRK-RESP-FIELD-OPTIONALIZED",
+            Severity.ERROR,
+            "A response field is no longer guaranteed; consumers reading it "
+            "unconditionally will break.",
+        ),
+        RuleSpec(
             "BRK-REQ-FIELD-ADDED-REQUIRED",
             Severity.ERROR,
             "A required field was added to a request body.",
@@ -244,7 +255,25 @@ class BreakingEngine:
 
         if kind == ChangeKind.PARAMETER_REQUIREDNESS:
             became_required = change.new_value is True
-            rule = "BRK-PARAM-REQUIRED" if became_required else "BRK-PARAM-OPTIONALIZED"
+            # A schema field and a query parameter are different things with
+            # different severities, and the response direction inverts which
+            # way is breaking: tightening a request breaks senders, relaxing a
+            # response breaks readers. Distinguishing them by description was
+            # the only signal available without changing the change model.
+            is_body_field = "field '" in change.description
+            if is_body_field:
+                if direction == "response":
+                    rule = (
+                        "BRK-RESP-FIELD-ADDED" if became_required else "BRK-RESP-FIELD-OPTIONALIZED"
+                    )
+                else:
+                    rule = (
+                        "BRK-REQ-FIELD-BECAME-REQUIRED"
+                        if became_required
+                        else "BRK-REQ-FIELD-OPTIONALIZED"
+                    )
+            else:
+                rule = "BRK-PARAM-REQUIRED" if became_required else "BRK-PARAM-OPTIONALIZED"
             return [self._finding(rule, change, change.description)]
 
         if kind == ChangeKind.PARAMETER_TYPE_CHANGED:

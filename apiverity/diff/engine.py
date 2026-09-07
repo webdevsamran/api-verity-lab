@@ -550,9 +550,38 @@ class DiffEngine:
                     operation_key,
                     direction,
                     f"{label}: field '{prop}' became required",
+                    # Passed explicitly: the rule engine decides severity from
+                    # this value, and without it a field *becoming required*
+                    # was classified BRK-PARAM-OPTIONALIZED at INFO -- the
+                    # exact opposite of what happened, downgrading a breaking
+                    # request change to informational so it passed CI gates.
+                    old_value=False,
+                    new_value=True,
+                    new_location=new.properties[prop].source_location,
                     breaking_hint=(
                         f"required field '{prop}' added: existing clients omitting it fail"
                         if direction == "request"
+                        else None
+                    ),
+                )
+        for prop in sorted(old_req - new_req):
+            if prop in old.properties:
+                # The reverse direction, which was not detected at all. It is
+                # relaxation in a request and breakage in a response: a client
+                # that always read this field may now receive objects without
+                # it, and nothing in the contract warned them.
+                self._add(
+                    ChangeKind.PARAMETER_REQUIREDNESS,
+                    operation_key,
+                    direction,
+                    f"{label}: field '{prop}' became optional",
+                    old_value=True,
+                    new_value=False,
+                    old_location=old.properties[prop].source_location,
+                    breaking_hint=(
+                        f"field '{prop}' is no longer guaranteed in the response; "
+                        "consumers reading it unconditionally will break"
+                        if direction == "response"
                         else None
                     ),
                 )
@@ -568,6 +597,80 @@ class DiffEngine:
                 path=f"{path}[]",
             )
 
+        # polymorphic discriminator
+        old_disc = old.discriminator or {}
+        new_disc = new.discriminator or {}
+        if old_disc or new_disc:
+            old_prop = old_disc.get("propertyName")
+            new_prop = new_disc.get("propertyName")
+            if old_prop != new_prop:
+                self._add(
+                    ChangeKind.REQUEST_SCHEMA_CHANGED
+                    if direction == "request"
+                    else ChangeKind.RESPONSE_SCHEMA_CHANGED,
+                    operation_key,
+                    direction,
+                    f"{label}: discriminator property changed {old_prop!r} -> {new_prop!r}",
+                    old_value=old_prop,
+                    new_value=new_prop,
+                    breaking_hint=(
+                        "clients branch on the discriminator property; renaming it "
+                        "breaks every consumer that deserializes this type"
+                    ),
+                )
+            old_map = dict(old_disc.get("mapping") or {})
+            new_map = dict(new_disc.get("mapping") or {})
+            for key in sorted(set(old_map) - set(new_map)):
+                self._add(
+                    ChangeKind.REQUEST_SCHEMA_CHANGED
+                    if direction == "request"
+                    else ChangeKind.RESPONSE_SCHEMA_CHANGED,
+                    operation_key,
+                    direction,
+                    f"{label}: discriminator mapping removed {key!r}",
+                    old_value=key,
+                    breaking_hint=(
+                        f"variant {key!r} can no longer be resolved; senders using it are rejected"
+                        if direction == "request"
+                        else f"variant {key!r} was withdrawn from the response contract"
+                    ),
+                )
+            for key in sorted(set(new_map) - set(old_map)):
+                # Additive in a request, but not in a response: a consumer with
+                # an exhaustive switch over the known variants meets a value it
+                # has no branch for.
+                self._add(
+                    ChangeKind.REQUEST_SCHEMA_CHANGED
+                    if direction == "request"
+                    else ChangeKind.RESPONSE_SCHEMA_CHANGED,
+                    operation_key,
+                    direction,
+                    f"{label}: discriminator mapping added {key!r}",
+                    new_value=key,
+                    breaking_hint=(
+                        f"new response variant {key!r}: consumers with an exhaustive "
+                        "switch over the previous variants will not handle it"
+                        if direction == "response"
+                        else None
+                    ),
+                )
+            for key in sorted(set(old_map) & set(new_map)):
+                if old_map[key] != new_map[key]:
+                    self._add(
+                        ChangeKind.REQUEST_SCHEMA_CHANGED
+                        if direction == "request"
+                        else ChangeKind.RESPONSE_SCHEMA_CHANGED,
+                        operation_key,
+                        direction,
+                        f"{label}: discriminator {key!r} now maps to "
+                        f"{new_map[key]!r} (was {old_map[key]!r})",
+                        old_value=old_map[key],
+                        new_value=new_map[key],
+                        breaking_hint=(
+                            f"the same discriminator value {key!r} now selects a "
+                            "different schema; clients deserialize into the wrong type"
+                        ),
+                    )
         # composition variants
         for attr in ("one_of", "any_of", "all_of"):
             o_variants, n_variants = getattr(old, attr), getattr(new, attr)
