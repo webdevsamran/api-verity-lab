@@ -54,6 +54,47 @@ jobs:
         # fails if the committed README stops matching what the code produces.
         run: python scripts/capture_readme_examples.py --check
 
+  # pyproject declares "Operating System :: OS Independent" and Python 3.11 and
+  # 3.12, but CI ran ubuntu-latest on 3.12 only -- so a 3.11 user, or anyone on
+  # Windows or macOS, was running wholly unvalidated code against a classifier
+  # that said otherwise. This job tests what the package claims to support.
+  #
+  # Deliberately a separate job rather than a matrix on `python` above: turning
+  # that one into a matrix would rename its check from
+  # "Python lint · types · tests" to "Python lint · types · tests (ubuntu-latest,
+  # 3.12)", and branch protection matches contexts byte-for-byte, so every open
+  # pull request would hang on a check that can never report.
+  #
+  # Lint, format and mypy stay on the single job: they are properties of the
+  # source, not of the interpreter running it, and mypy is pinned to 3.12 on
+  # purpose (see the note in pyproject.toml).
+  platform-matrix:
+    name: Tests (${{ matrix.os }}, ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.11", "3.12"]
+        exclude:
+          # Covered by the `python` job above, with lint and types alongside.
+          - os: ubuntu-latest
+            python-version: "3.12"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v5.6.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Tests
+        run: pytest tests/ -q
+      - name: Fixture end-to-end validation
+        run: python scripts/e2e.py
+
   schema-validation:
     name: Result artifact schema
     runs-on: ubuntu-latest

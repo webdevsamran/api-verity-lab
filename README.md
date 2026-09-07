@@ -1,5 +1,14 @@
 # api-verity-lab
 
+<!-- badges -->
+[![CI](https://github.com/webdevsamran/api-verity-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/webdevsamran/api-verity-lab/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/webdevsamran/api-verity-lab/actions/workflows/codeql.yml/badge.svg)](https://github.com/webdevsamran/api-verity-lab/actions/workflows/codeql.yml)
+[![Release](https://img.shields.io/github/v/release/webdevsamran/api-verity-lab?sort=semver)](https://github.com/webdevsamran/api-verity-lab/releases)
+[![License](https://img.shields.io/github/license/webdevsamran/api-verity-lab)](https://github.com/webdevsamran/api-verity-lab/blob/main/LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue)](pyproject.toml)
+[![Coverage floor](https://img.shields.io/badge/coverage%20floor-72%25-informational)](pyproject.toml)
+<!-- /badges -->
+
 **Unified API contract governance, breaking-change analysis, schema-driven
 testing, runtime drift detection, traffic replay and performance regression
 for OpenAPI, GraphQL and gRPC.**
@@ -204,6 +213,52 @@ throughput, timeouts and error rates.
 
 ## Architecture & plugins
 
+Every supported spec format compiles into one normalized contract model, and
+every engine downstream reads that model rather than the original document.
+That is what lets a breaking-change rule, a fuzz generator and a drift check
+agree about what an operation is. Boxes below are real packages under
+[`apiverity/`](apiverity):
+
+<!-- mermaid:architecture -->
+```mermaid
+flowchart LR
+    subgraph inputs [Inputs]
+        OAS[OpenAPI / AsyncAPI]
+        GQL[GraphQL SDL]
+        PROTO[proto / descriptor set]
+    end
+
+    SPECS[specs/<br/>spec plugins]
+    CORE[core/<br/>normalized contract<br/>+ source locations]
+
+    OAS --> SPECS
+    GQL --> SPECS
+    PROTO --> SPECS
+    SPECS --> CORE
+
+    CORE --> DIFF[diff/<br/>stable change IDs]
+    CORE --> FUZZ[fuzz/<br/>seeded case generation]
+    CORE --> STATEFUL[stateful/<br/>workflow engine]
+    CORE --> MOCK[mock/<br/>localhost mock server]
+    DIFF --> RULES[rules/<br/>breaking · semver · security]
+
+    TRAFFIC[traffic/<br/>HAR import + redaction] --> RUNTIME[runtime/<br/>drift detection]
+    CORE --> RUNTIME
+    MOCK -.serves.-> RUNTIME
+    CORE --> PERF[performance/<br/>budgets · percentiles]
+
+    RULES --> ART[core/artifact<br/>result-v1 + provenance]
+    FUZZ --> ART
+    STATEFUL --> ART
+    RUNTIME --> ART
+    PERF --> ART
+
+    ART --> REPORTS[reports/<br/>terminal · JSON · SARIF · HTML]
+    ART --> EXPORT[exporters/<br/>.apiverity bundle]
+    EXPORT --> SERVER[server/ + web/<br/>review UI]
+```
+<!-- /mermaid:architecture -->
+
 See [ARCHITECTURE.md](ARCHITECTURE.md). Six versioned plugin entry points:
 
 ```
@@ -233,6 +288,21 @@ pytest && cd web && npm install && npm run build
 
 See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md),
 [ROADMAP.md](ROADMAP.md) and [docs/](docs/).
+
+<!-- related-projects -->
+## Related projects
+
+Also by [@webdevsamran](https://github.com/webdevsamran):
+
+- **[devrepro-doctor](https://github.com/webdevsamran/devrepro-doctor)** — "works on my machine", diagnosed. Read-only scans of developer machines and project toolchains, privacy-sanitized reproducibility snapshots, machine-to-machine diffs, and repair plans that never apply themselves above LOW risk.
+
+- **[tooltrace-bench](https://github.com/webdevsamran/tooltrace-bench)** — vendor-neutral, reproducible benchmarking of AI agents on real tool-use tasks: coding, file operations, multi-step workflows and failure recovery, scored deterministically from traces rather than from the agent's own account of what it did.
+
+- **[local-ai-hardware-bench](https://github.com/webdevsamran/local-ai-hardware-bench)** — vendor-neutral benchmarking of local AI runtimes across CPUs, GPUs, NPUs and edge accelerators. One loadgen drives every backend, and every published number carries the hardware, driver, runtime version, model checksum and seed that produced it.
+
+These are independent projects: no shared library, no coupled releases, and each is usable on its own. What they do share is a rule — anything a README or a report claims has to be traceable to something the code actually produced, which is why each of them checks its own documentation in CI.
+
+<!-- /related-projects -->
 
 ## License & citation
 

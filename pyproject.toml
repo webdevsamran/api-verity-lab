@@ -130,6 +130,10 @@ source = ["apiverity"]
 branch = true
 
 [tool.coverage.report]
+# Matches the --cov-fail-under=72 that CI passes on the command line. Without
+# it, a local `pytest --cov` enforced nothing, so tests/README.md's claim that
+# CI runs "the same suite" was true of the tests but not of the gate.
+fail_under = 72
 exclude_lines = [
   "pragma: no cover",
   "if TYPE_CHECKING:",
