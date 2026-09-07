@@ -14,7 +14,11 @@ Use GitHub's private vulnerability reporting:
 https://github.com/webdevsamran/api-verity-lab/security/advisories/new
 
 Include: affected component, reproduction steps, impact assessment,
-and any suggested fix. You will receive an acknowledgment within 72 hours.
+and any suggested fix.
+
+You will receive an acknowledgment within 7 days and a status update within 30
+days. This project has a single maintainer; those are the windows that can
+actually be met, rather than a shorter number that sounds better.
 
 ## Security design principles of this project
 
