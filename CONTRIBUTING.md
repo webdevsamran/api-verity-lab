@@ -58,7 +58,7 @@ Commits are squashed or rebased into logical units on merge.
 1. Add the rule class under `apiverity/rules/breaking/`.
 2. Register it in the catalog with a stable rule ID (`BRK-###`) and default
    severity (`ERROR` / `WARN` / `INFO`).
-3. Document it in `docs/rules.md`.
+3. Document it in [`docs/rule-catalog.md`](docs/rule-catalog.md).
 4. Add positive and negative tests, including direction-awareness cases
    (request vs response).
 

@@ -295,6 +295,31 @@ class DiffEngine:
                 f"request body ({media})",
                 "request",
             )
+        # Request media types that came or went. Only the intersection was
+        # walked before, so dropping a request content type -- narrowing
+        # `application/json, application/xml` down to JSON alone -- produced no
+        # change at all, while the equivalent response-side removal was
+        # reported. Removing one breaks every client still sending it.
+        for media in sorted(old_media - new_media):
+            self._add(
+                ChangeKind.REQUEST_SCHEMA_CHANGED,
+                key,
+                "request",
+                f"request media type '{media}' removed",
+                old_value=media,
+                breaking_hint=(
+                    f"clients sending Content-Type: {media} will be rejected; "
+                    "keep accepting it or version the operation"
+                ),
+            )
+        for media in sorted(new_media - old_media):
+            self._add(
+                ChangeKind.REQUEST_SCHEMA_CHANGED,
+                key,
+                "request",
+                f"request media type '{media}' added",
+                new_value=media,
+            )
         if old_body.required != new_body.required:
             self._add(
                 ChangeKind.REQUEST_SCHEMA_CHANGED,
@@ -392,6 +417,31 @@ class DiffEngine:
         path: str = "",
     ) -> None:
         label = f"{where}{path}"
+
+        # A default is client-visible behaviour, not documentation. Introducing
+        # one on a request field changes what the server assumes when the field
+        # is omitted; changing or removing one on a response field changes what
+        # callers actually receive. _diff_schema compared type, format, enum
+        # and constraints but never `default`, so these passed silently.
+        if old.default != new.default:
+            self._add(
+                ChangeKind.REQUEST_SCHEMA_CHANGED
+                if direction == "request"
+                else ChangeKind.RESPONSE_SCHEMA_CHANGED,
+                operation_key,
+                direction,
+                f"{label}: default changed {old.default!r} -> {new.default!r}",
+                old_value=old.default,
+                new_value=new.default,
+                old_location=old.source_location,
+                new_location=new.source_location,
+                breaking_hint=(
+                    "a default introduced where there was none changes behaviour "
+                    "for callers that omit this field"
+                    if old.default is None
+                    else None
+                ),
+            )
 
         if old.type != new.type:
             self._add(
