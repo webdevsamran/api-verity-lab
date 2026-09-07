@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from apiverity.core.model import Finding, Service
 from apiverity.plugins.registry import PluginRegistry
-from apiverity.specs import SpecPlugin, read_source
+from apiverity.specs import SpecPlugin, UnrecognizedSpecError, read_source
 
 
 def _builtin_plugins() -> list[SpecPlugin]:
@@ -44,4 +44,9 @@ def detect_and_load(
                 return service, findings, plugin
         except NotImplementedError:
             continue
-    raise ValueError(f"no spec plugin could handle '{source}'")
+    tried: list[str] = []
+    for plugin in plugins:
+        name = plugin.protocol().value
+        if name not in tried:  # OpenAPI and Swagger 2.0 share a protocol value
+            tried.append(name)
+    raise UnrecognizedSpecError(source, tried=tried)
