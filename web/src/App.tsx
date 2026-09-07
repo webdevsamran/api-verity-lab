@@ -1,7 +1,13 @@
-/* App shell: theme cycling, sidebar navigation, hash-routed page rendering. */
-import { useEffect, useMemo, useState } from 'react'
+/* App shell: theme cycling, sidebar navigation, hash-routed page rendering.
+ *
+ * Pages load as separate chunks (#23), so this file and the data fetch are
+ * all the initial download carries. Hovering or tab-focusing a nav link
+ * starts its chunk early, which hides the fetch behind the time it takes to
+ * move the pointer the rest of the way.
+ */
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useData } from './hooks/useData'
-import { NAV, resolvePage } from './pages'
+import { NAV, prefetchGroup, resolvePage } from './pages'
 import { useRoute } from './router'
 
 type ThemeMode = 'dark' | 'light' | 'system'
@@ -44,14 +50,18 @@ export default function App() {
               <div className="nav-group">{g.group}</div>
               {g.items.map(([id, label]) => (
                 <a key={id} href={`#/${id}`} className={route.page === id ? 'active' : ''}
-                  aria-current={route.page === id ? 'page' : undefined}>{label}</a>
+                  aria-current={route.page === id ? 'page' : undefined}
+                  onMouseEnter={() => prefetchGroup(id)}
+                  onFocus={() => prefetchGroup(id)}>{label}</a>
               ))}
             </div>
           ))}
         </nav>
         <main>
           {error && <div className="banner error">Failed to load demo data: {error}</div>}
-          {content}
+          <Suspense fallback={<div className="muted" role="status">Loading…</div>}>
+            {content}
+          </Suspense>
         </main>
       </div>
       <footer className="muted">
