@@ -25,7 +25,7 @@ export function HomePage({ data }: { data: PageProps['data'] }) {
         <li><code>apiverity drift</code> / <code>replay</code> / <code>regression</code> — runtime truth vs declared contracts, safely</li>
         <li><code>can-i-deploy</code> — connect contract changes to registered consumers</li>
       </ul>
-      <CopyCmd cmd="pip install apiverity-lab && apiverity --help" />
+      <CopyCmd cmd="pip install api-verity-lab && apiverity --help" />
     </>
   )
 }
