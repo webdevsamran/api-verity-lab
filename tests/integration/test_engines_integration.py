@@ -88,7 +88,7 @@ def test_performance_measure_and_policies(crud_service: object, crud_base: str) 
     baseline = {"operations": [o.model_dump() for o in report.operations]}
     again = evaluate_policies(report, [])
     assert again == []
-    regressed = compare_baseline(report, baseline, tolerance_pct=400)
+    regressed = compare_baseline(report, baseline, tolerance_pct=400).regressions
     assert isinstance(regressed, list)
 
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 import time
+from dataclasses import dataclass
 from typing import Any
 
 import httpx
@@ -16,6 +17,14 @@ from pydantic import BaseModel, Field
 
 from apiverity.core.model import Service
 from apiverity.fuzz.generate import fill_path, generate_valid
+from apiverity.performance.stats import (
+    Interval,
+    bootstrap_percentile_ci,
+    bootstrap_throughput_ci,
+    overlaps,
+    percentile,
+    wilson_interval,
+)
 
 _POLICY_RE = re.compile(
     r"^(?P<method>GET|POST|PUT|PATCH|DELETE)\s+(?P<path>\S+)\s+"
@@ -43,11 +52,28 @@ class OperationStats(BaseModel):
     requests: int = 0
     errors: int = 0
     timeouts: int = 0
+    #: Measurements the percentiles were computed from. Distinct from
+    #: `requests`: warmup requests are made but not measured, so a reader can
+    #: tell "p95 of 100 samples" from "p95 of 4" without recomputing it.
+    samples: int = 0
+    warmup: int = 0
     p50_ms: float = 0.0
     p90_ms: float = 0.0
     p95_ms: float = 0.0
     p99_ms: float = 0.0
+    #: 95% bootstrap intervals, or None when there were too few samples to
+    #: say anything. None means "unknown", never "zero width".
+    p50_ci95: tuple[float, float] | None = None
+    p90_ci95: tuple[float, float] | None = None
+    p95_ci95: tuple[float, float] | None = None
+    p99_ci95: tuple[float, float] | None = None
     throughput_rps: float = 0.0
+    #: Resampled from the same latencies, so requests-per-second is on the
+    #: same footing as the percentiles rather than a single wall-clock ratio.
+    throughput_ci95: tuple[float, float] | None = None
+    #: Wilson score interval for the error proportion, as a percentage.
+    error_rate_pct: float = 0.0
+    error_rate_ci95: tuple[float, float] | None = None
 
 
 class PerformanceReport(BaseModel):
@@ -55,13 +81,56 @@ class PerformanceReport(BaseModel):
     duration_s: float = 0.0
     operations: list[OperationStats] = Field(default_factory=list)
     policy_violations: list[str] = Field(default_factory=list)
+    #: Differences the run could not resolve: over tolerance, but with
+    #: overlapping intervals. Reported, never fatal -- see `Comparison`.
+    inconclusive: list[str] = Field(default_factory=list)
 
 
-def _percentile(sorted_samples: list[float], pct: float) -> float:
-    if not sorted_samples:
-        return 0.0
-    idx = min(int(len(sorted_samples) * pct / 100), len(sorted_samples) - 1)
-    return sorted_samples[idx]
+@dataclass(frozen=True)
+class Comparison:
+    """The outcome of comparing a run to a baseline.
+
+    Two lists rather than one, because they mean different things to CI.
+    `regressions` should fail a build. `inconclusive` should not: it says the
+    run was too short to decide, and failing on that is how a gate earns a
+    reputation for crying wolf and gets switched off. Both get printed.
+    """
+
+    regressions: list[str]
+    inconclusive: list[str]
+
+
+def _bounds(interval: Interval | None) -> tuple[float, float] | None:
+    """Drop the sample count for storage; it lives on the stats object."""
+    return None if interval is None else (interval.low, interval.high)
+
+
+def _timed_request(
+    client: httpx.Client,
+    method: str,
+    path: str,
+    query: dict[str, Any] | None,
+    body: Any,
+) -> tuple[float, str]:
+    """One request, timed on its own; returns (duration_ms, outcome).
+
+    Timed individually rather than derived from a running total minus the sum
+    of everything measured before it, which is what this did: that is O(n^2)
+    and every sample carries the accumulated floating-point error of all its
+    predecessors. `perf_counter` rather than `monotonic` because the interval
+    being measured is often under a millisecond.
+    """
+    start = time.perf_counter()
+    outcome = "ok"
+    try:
+        resp = client.request(method, path, params=query or None, json=body)
+        if resp.status_code >= 500 or resp.status_code == 429:
+            outcome = "error"
+    except httpx.TimeoutException:
+        outcome = "timeout"
+    except httpx.HTTPError:
+        outcome = "error"
+    return (time.perf_counter() - start) * 1000.0, outcome
 
 
 def measure(
@@ -69,9 +138,17 @@ def measure(
     base_url: str,
     *,
     iterations: int = 20,
+    warmup: int = 0,
     concurrency: int = 1,
     timeout: float = 10.0,
 ) -> PerformanceReport:
+    """Measure each operation, optionally discarding a warmup phase.
+
+    The first requests to a cold target measure connection setup, JIT, lazy
+    imports and an empty cache -- not the thing under test. They are made
+    (the warming is the point) and then dropped, so `samples` is `iterations`
+    and `requests` is `iterations + warmup`.
+    """
     started = time.monotonic()
     report = PerformanceReport(target=base_url)
     rng = __import__("random").Random(7)
@@ -79,6 +156,7 @@ def measure(
         for op in service.operations:
             if not op.method or not op.path:
                 continue
+            method: str = op.method
             params = {p.name: generate_valid(p.schema_node, rng) for p in op.parameters}
             path = fill_path(op.path, params)
             query = {p.name: params[p.name] for p in op.parameters if p.location.value == "query"}
@@ -88,34 +166,45 @@ def measure(
                 body = generate_valid(schema, rng)
             latencies: list[float] = []
             errors = timeouts = 0
+
+            for _ in range(max(0, warmup)):
+                # Made, then discarded: warming is the point, measuring it is
+                # not. Errors here are not counted either -- a target that is
+                # still starting up should not fail an error-rate policy.
+                _timed_request(client, method, path, query, body)
+
             t0 = time.monotonic()
             for _ in range(iterations):
-                try:
-                    resp = client.request(
-                        op.method,
-                        path,
-                        params=query or None,
-                        json=body if body is not None else None,
-                    )
-                    if resp.status_code >= 500 or resp.status_code == 429:
-                        errors += 1
-                except httpx.TimeoutException:
+                duration, outcome = _timed_request(client, method, path, query, body)
+                latencies.append(duration)
+                if outcome == "timeout":
                     timeouts += 1
-                except httpx.HTTPError:
+                elif outcome == "error":
                     errors += 1
-                latencies.append((time.monotonic() - t0) * 1000 - sum(latencies))
             elapsed = max(time.monotonic() - t0, 1e-9)
-            latencies.sort()
+
+            def _ci(pct: float, values: list[float] = latencies) -> tuple[float, float] | None:
+                return _bounds(bootstrap_percentile_ci(values, pct))
+
             stats = OperationStats(
                 operation_key=op.key,
-                requests=iterations,
+                requests=iterations + max(0, warmup),
                 errors=errors,
                 timeouts=timeouts,
-                p50_ms=round(_percentile(latencies, 50), 2),
-                p90_ms=round(_percentile(latencies, 90), 2),
-                p95_ms=round(_percentile(latencies, 95), 2),
-                p99_ms=round(_percentile(latencies, 99), 2),
+                samples=len(latencies),
+                warmup=max(0, warmup),
+                p50_ms=round(percentile(latencies, 50), 2),
+                p90_ms=round(percentile(latencies, 90), 2),
+                p95_ms=round(percentile(latencies, 95), 2),
+                p99_ms=round(percentile(latencies, 99), 2),
+                p50_ci95=_ci(50),
+                p90_ci95=_ci(90),
+                p95_ci95=_ci(95),
+                p99_ci95=_ci(99),
                 throughput_rps=round(iterations / elapsed, 2),
+                throughput_ci95=_bounds(bootstrap_throughput_ci(latencies)),
+                error_rate_pct=round(100.0 * (errors + timeouts) / max(len(latencies), 1), 4),
+                error_rate_ci95=_bounds(wilson_interval(errors + timeouts, len(latencies))),
             )
             report.operations.append(stats)
     report.duration_s = round(time.monotonic() - started, 3)
@@ -150,23 +239,153 @@ def evaluate_policies(report: PerformanceReport, policies: list[str]) -> list[st
     return violations
 
 
+#: Metrics `compare_baseline` knows how to compare, and which direction is
+#: bad. Throughput is the one where smaller is worse.
+_REGRESSION_METRICS = {
+    "p50": ("p50_ms", "higher"),
+    "p90": ("p90_ms", "higher"),
+    "p95": ("p95_ms", "higher"),
+    "p99": ("p99_ms", "higher"),
+    "error_rate": ("error_rate_pct", "higher"),
+    "throughput": ("throughput_rps", "lower"),
+}
+
+
+def parse_tolerance(values: list[str] | None, default_pct: float = 20.0) -> dict[str, float]:
+    """Parse `--tolerance` into per-metric percentages.
+
+    Accepts a bare number for every metric (`--tolerance 15`) or a metric
+    assignment (`--tolerance p95=10 --tolerance error_rate=0`), so a project
+    can be strict about correctness and loose about latency without needing
+    two separate gates. Later assignments win; a bare number resets the
+    default without discarding assignments already made.
+    """
+    tolerances = dict.fromkeys(_REGRESSION_METRICS, default_pct)
+    explicit: dict[str, float] = {}
+    for raw in values or []:
+        text = str(raw).strip()
+        if "=" in text:
+            metric, _, number = text.partition("=")
+            metric = metric.strip()
+            if metric not in _REGRESSION_METRICS:
+                known = ", ".join(sorted(_REGRESSION_METRICS))
+                raise ValueError(f"unknown metric '{metric}' in tolerance (known: {known})")
+            try:
+                explicit[metric] = float(number)
+            except ValueError as exc:
+                raise ValueError(f"tolerance for '{metric}' is not a number: {number!r}") from exc
+        else:
+            try:
+                tolerances = dict.fromkeys(_REGRESSION_METRICS, float(text))
+            except ValueError as exc:
+                raise ValueError(f"tolerance is not a number: {text!r}") from exc
+    tolerances.update(explicit)
+    return tolerances
+
+
+def _actual(stats: OperationStats, field: str) -> float:
+    return float(getattr(stats, field))
+
+
+def _interval(source: OperationStats | dict[str, Any], field: str) -> Interval | None:
+    """The stored 95% interval for a metric, from either a report or a baseline.
+
+    Baselines are read as raw JSON, so an older one simply has no interval and
+    the caller falls back to the tolerance check.
+    """
+    key = f"{field.removesuffix('_ms').removesuffix('_rps').removesuffix('_pct')}_ci95"
+    raw = getattr(source, key, None) if isinstance(source, OperationStats) else source.get(key)
+    if not raw or len(raw) != 2:
+        return None
+    samples = (
+        source.samples if isinstance(source, OperationStats) else int(source.get("samples") or 0)
+    )
+    return Interval(float(raw[0]), float(raw[1]), samples)
+
+
 def compare_baseline(
-    current: PerformanceReport, baseline: dict[str, Any], tolerance_pct: float = 20.0
-) -> list[str]:
-    """Flag regressions vs a stored baseline (per-operation p95)."""
-    regressions = []
+    current: PerformanceReport,
+    baseline: dict[str, Any],
+    tolerance_pct: float | dict[str, float] = 20.0,
+) -> Comparison:
+    """Flag regressions against a stored baseline.
+
+    Two guards, in this order:
+
+    1. The change must exceed the tolerance for that metric.
+    2. The two confidence intervals must not overlap.
+
+    The second is what makes the gate usable. Twenty requests produce a p95
+    that moves by tens of percent between identical runs, so a point-estimate
+    comparison fires on noise until someone widens the tolerance far enough
+    that it stops detecting anything. Overlapping intervals mean the run
+    cannot tell the two apart, which is not the same as "no regression" -- it
+    is reported as an inconclusive note rather than silently passed, so a gate
+    that is measuring too little to say anything looks like one.
+
+    When either side has no interval -- an older baseline, or too few samples
+    -- the tolerance check stands alone, as it did before.
+    """
+    tolerances = (
+        tolerance_pct
+        if isinstance(tolerance_pct, dict)
+        else dict.fromkeys(_REGRESSION_METRICS, float(tolerance_pct))
+    )
+    regressions: list[str] = []
+    inconclusive: list[str] = []
     base_ops = {o["operation_key"]: o for o in baseline.get("operations", [])}
     for op in current.operations:
         prev = base_ops.get(op.operation_key)
         if not prev:
             continue
-        limit = prev.get("p95_ms", 0) * (1 + tolerance_pct / 100.0)
-        if op.p95_ms > limit and prev.get("p95_ms", 0) > 0:
-            regressions.append(
-                f"{op.operation_key}: p95 regressed {prev['p95_ms']}ms -> {op.p95_ms}ms "
-                f"(tolerance {tolerance_pct}%)"
+        for metric, (field, worse) in _REGRESSION_METRICS.items():
+            if field not in prev:
+                # An older baseline predates this metric. Comparing against a
+                # missing value would read as a change from zero.
+                continue
+            tolerance = tolerances.get(metric)
+            if tolerance is None:
+                continue
+            before = (
+                100.0
+                * (prev.get("errors", 0) + prev.get("timeouts", 0))
+                / max(int(prev.get("samples") or prev.get("requests") or 0), 1)
+                if metric == "error_rate"
+                else float(prev.get(field) or 0.0)
             )
-        prev_err = prev.get("errors", 0)
-        if prev_err == 0 and op.errors > 0:
+            after = _actual(op, field)
+            if before <= 0 and metric != "error_rate":
+                # No baseline value to compare a ratio against.
+                continue
+
+            if worse == "higher":
+                limit = before * (1 + tolerance / 100.0)
+                over = after > limit
+            else:
+                limit = before * (1 - tolerance / 100.0)
+                over = after < limit
+            if not over:
+                continue
+
+            # Every gated metric has an interval, so this guard applies
+            # uniformly rather than only to the percentiles. It only applies
+            # when *both* sides have one: a baseline written before intervals
+            # existed, or a run with too few samples, falls back to the
+            # tolerance check rather than silently passing everything.
+            now, then = _interval(op, field), _interval(prev, field)
+            if now is not None and then is not None and overlaps(now, then):
+                inconclusive.append(
+                    f"{op.operation_key}: {metric} moved {before} -> {after} "
+                    f"but the 95% intervals overlap ({then.low}-{then.high} vs "
+                    f"{now.low}-{now.high}, n={now.samples}); inconclusive, "
+                    f"raise --iterations to decide"
+                )
+                continue
+            regressions.append(
+                f"{op.operation_key}: {metric} regressed {before} -> {after} "
+                f"(tolerance {tolerance}%)"
+            )
+
+        if prev.get("errors", 0) == 0 and op.errors > 0:
             regressions.append(f"{op.operation_key}: new errors appeared ({op.errors})")
-    return regressions
+    return Comparison(regressions, inconclusive)

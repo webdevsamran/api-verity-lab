@@ -73,7 +73,15 @@ def cmd_baseline(args: argparse.Namespace) -> int:
 
     service, _, _ = _load(args.spec)
     try:
-        report = measure(service, args.base_url, iterations=args.iterations)
+        # Warmup matters here as much as in the comparison run: a cold
+        # baseline compared against a warm one measures the connection pool,
+        # not the service.
+        report = measure(
+            service,
+            args.base_url,
+            iterations=args.iterations,
+            warmup=getattr(args, "warmup", 0) or 0,
+        )
     except Exception as exc:
         print(f"error: target unreachable: {exc}", file=sys.stderr)
         return EXIT_UNREACHABLE
@@ -88,21 +96,49 @@ def cmd_baseline(args: argparse.Namespace) -> int:
 
 
 def cmd_regression(args: argparse.Namespace) -> int:
-    from apiverity.performance.engine import compare_baseline, evaluate_policies, measure
+    from apiverity.performance.engine import (
+        compare_baseline,
+        evaluate_policies,
+        measure,
+        parse_tolerance,
+    )
 
     service, _, _ = _load(args.spec)
     try:
-        report = measure(service, args.base_url, iterations=args.iterations)
+        tolerances = parse_tolerance(getattr(args, "tolerance", None) or None)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    try:
+        report = measure(
+            service,
+            args.base_url,
+            iterations=args.iterations,
+            warmup=getattr(args, "warmup", 0) or 0,
+        )
     except Exception as exc:
         print(f"error: target unreachable: {exc}", file=sys.stderr)
         return EXIT_UNREACHABLE
     violations = evaluate_policies(report, args.policy or [])
+    inconclusive: list[str] = []
     if args.baseline:
         baseline = json.loads(Path(args.baseline).read_text(encoding="utf-8"))
-        violations += compare_baseline(report, baseline, tolerance_pct=args.tolerance)
+        comparison = compare_baseline(report, baseline, tolerance_pct=tolerances)
+        violations += comparison.regressions
+        inconclusive = comparison.inconclusive
     report.policy_violations = violations
+    report.inconclusive = inconclusive
     _emit(
-        {"tool": "apiverity", "command": "regression", "violations": violations, "report": report},
+        {
+            "tool": "apiverity",
+            "command": "regression",
+            "violations": violations,
+            # Printed, but not fatal: "the run was too short to tell" is not a
+            # regression, and failing a build on it is how a gate gets turned
+            # off. The count is what tells you to raise --iterations.
+            "inconclusive": inconclusive,
+            "report": report,
+        },
         args.json,
     )
     return EXIT_FINDINGS if violations else EXIT_OK
