@@ -8,7 +8,8 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
 
 ## Core model & protocols
 - Protocol v2 normalized model, stable entity IDs, canonical hashes, artifact migration — EXISTING (`core/model_v2.py`)
-- Swagger 2.0 import with loss warnings; AsyncAPI adapter foundation; bundles + catalog index; ownership mapping — EXISTING
+- Swagger 2.0 import with loss warnings; bundles + catalog index; ownership mapping — EXISTING
+- AsyncAPI 2.x and 3.x adapter, registered under `apiverity.specs` — EXISTING (`specs/asyncapi.py`); direction normalized to the application's point of view so a 2.x document and its 3.x migration compare as equivalent
 - OpenAPI 3.0/3.1 deepening (callbacks/webhooks/discriminators/security inheritance) — PARTIAL (parser-level support; compat coverage for callbacks is partial)
 - JSON Schema 2020-12-aware comparisons — PARTIAL (shared SchemaNode semantics; `$dynamicRef` not modeled)
 - GraphQL SDL import with provenance — EXISTING loader; **fixed this pass**: kind-casing bug that silently loaded zero operations
