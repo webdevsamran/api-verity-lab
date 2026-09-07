@@ -82,8 +82,42 @@ def redact_json(value: Any, cfg: RedactionConfig, *, is_body: bool = True) -> An
     return value
 
 
-def import_har(path: str, cfg: RedactionConfig | None = None) -> list[dict[str, Any]]:
-    """Import a HAR file into sanitized request/response entries."""
+def _decode_body(raw: str | None, mime: str, cfg: RedactionConfig) -> tuple[Any, str | None]:
+    """Decode a HAR body, returning (value, reason it was dropped).
+
+    A HAR carries whatever the browser saw: form encodings, HTML error pages,
+    base64 images, truncated payloads. `json.loads` on all of it raised, which
+    took down the import of an entire corpus over one non-JSON entry. A body
+    that cannot be parsed is now reported as a reason rather than an
+    exception, so the corpus-quality summary can say how much was lost and
+    why.
+    """
+    if raw is None or raw == "":
+        return None, None
+    if "json" not in (mime or "").lower():
+        return None, f"body is {mime or 'an unknown type'}, not JSON"
+    try:
+        parsed = json.loads(raw)
+    except ValueError:
+        return None, "body is not parseable JSON (truncated or encoded?)"
+    return redact_json(parsed, cfg), None
+
+
+def import_har(
+    path: str,
+    cfg: RedactionConfig | None = None,
+    *,
+    include_response_bodies: bool = False,
+) -> list[dict[str, Any]]:
+    """Import a HAR file into sanitized request/response entries.
+
+    Response bodies stay out by default: a HAR recorded against a real service
+    contains real user data, and a corpus is something people commit. Drift
+    detection against a corpus needs them, so `include_response_bodies=True`
+    opts in -- redaction still applies, and every entry records why a body is
+    absent so a later report can distinguish "nothing was returned" from "we
+    chose not to keep it".
+    """
     cfg = cfg or RedactionConfig()
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     entries = []
@@ -91,7 +125,20 @@ def import_har(path: str, cfg: RedactionConfig | None = None) -> list[dict[str, 
         req = entry.get("request", {})
         resp = entry.get("response", {})
         qdict = {q["name"]: q.get("value") for q in req.get("queryString", [])}
-        post = req.get("postData", {}).get("text")
+
+        post = req.get("postData", {}) or {}
+        request_body, request_body_dropped = _decode_body(
+            post.get("text"), str(post.get("mimeType") or ""), cfg
+        )
+
+        content = resp.get("content", {}) or {}
+        if include_response_bodies:
+            response_body, response_body_dropped = _decode_body(
+                content.get("text"), str(content.get("mimeType") or ""), cfg
+            )
+        else:
+            response_body, response_body_dropped = None, "response bodies not imported"
+
         entries.append(
             {
                 "method": req.get("method"),
@@ -100,12 +147,15 @@ def import_har(path: str, cfg: RedactionConfig | None = None) -> list[dict[str, 
                     {h["name"]: h.get("value") for h in req.get("headers", [])}, cfg
                 ),
                 "query": redact_query(qdict, cfg),
-                "request_body": redact_json(json.loads(post), cfg) if post else None,
+                "request_body": request_body,
+                "request_body_dropped": request_body_dropped,
                 "status": resp.get("status"),
                 "response_headers": redact_headers(
                     {h["name"]: h.get("value") for h in resp.get("headers", [])}, cfg
                 ),
-                "response_body": None,  # bodies are not persisted by default
+                "response_body": response_body,
+                "response_body_dropped": response_body_dropped,
+                "response_mime": str(content.get("mimeType") or ""),
             }
         )
     return entries

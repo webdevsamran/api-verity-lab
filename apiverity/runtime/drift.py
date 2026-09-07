@@ -93,7 +93,13 @@ def detect_drift(
                     )
                     body = None
                 if body is not None:
-                    for v in validate_value(schema, body, forbid_undeclared_fields=True):
+                    # The parameter was accepted and then ignored: callers
+                    # passing forbid_undeclared_fields=False still got
+                    # DRIFT-UNDECLARED-FIELD findings they had asked not to
+                    # have.
+                    for v in validate_value(
+                        schema, body, forbid_undeclared_fields=forbid_undeclared_fields
+                    ):
                         rule = (
                             "DRIFT-UNDECLARED-FIELD"
                             if "undeclared field" in v

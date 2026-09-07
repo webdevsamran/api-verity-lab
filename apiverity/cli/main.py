@@ -123,7 +123,31 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_coverage)
     p = sub.add_parser("drift")
     p.add_argument("spec")
-    p.add_argument("--base-url", required=True)
+    p.add_argument(
+        "--base-url",
+        help="probe this live service (mutually exclusive with --corpus)",
+    )
+    p.add_argument(
+        "--corpus",
+        help=(
+            "compare a recorded HAR corpus against the contract instead of "
+            "probing; findings are aggregated with a frequency per operation"
+        ),
+    )
+    p.add_argument(
+        "--include-response-bodies",
+        action="store_true",
+        help=(
+            "read response bodies from the corpus so schema drift can be "
+            "checked; redaction still applies, and they are excluded by "
+            "default because a HAR of a real service holds real user data"
+        ),
+    )
+    p.add_argument(
+        "--allow-undeclared-fields",
+        action="store_true",
+        help="do not report response fields the contract does not declare",
+    )
     p.add_argument("--timeout", type=float, default=10.0)
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_drift)
