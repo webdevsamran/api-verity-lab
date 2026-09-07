@@ -115,8 +115,14 @@ def create_app(
         try:
             store.conn.execute("SELECT 1").fetchone()
             return jsonify({"status": "ready"})
-        except Exception as exc:
-            return jsonify({"status": "not-ready", "error": str(exc)}), 503
+        except Exception:
+            # `/readyz` is unauthenticated, and a sqlite3 exception string
+            # carries the database path and often schema detail. A readiness
+            # probe needs one bit; the detail belongs in the server's own log,
+            # where the operator can already see it. (CodeQL
+            # py/stack-trace-exposure, and it was right.)
+            app.logger.exception("readiness check failed")
+            return jsonify({"status": "not-ready"}), 503
 
     @app.get("/metrics")
     def metrics() -> Any:
@@ -323,9 +329,22 @@ def create_app(
                 environment=body.get("environment"),
                 idempotency_key=body.get("idempotency_key"),
             )
-        except QueueFull as exc:
+        except QueueFull:
+            # QueueFull's message names the org id and the configured limit.
+            # Both are the caller's own, but echoing an exception's text back
+            # over HTTP is the habit worth not having: the next exception to
+            # reach this handler may not be one this codebase wrote. The limit
+            # is returned as a field instead, which is also easier to act on.
             _METRICS["jobs_rejected_total"] += 1
-            return jsonify({"error": str(exc)}), 409
+            return (
+                jsonify(
+                    {
+                        "error": "concurrent job limit reached",
+                        "max_active_jobs": queue.max_active_per_org,
+                    }
+                ),
+                409,
+            )
         _METRICS["jobs_enqueued_total"] += 1
         return (
             jsonify({"run_id": run_id, "deduplicated": not created}),

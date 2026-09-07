@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+from apiverity.cli.commands.common import EXIT_FINDINGS, EXIT_OK
 from apiverity.cli.main import main as cli_main
 from apiverity.mock import MockServer
 from apiverity.specs.loader import detect_and_load
@@ -104,9 +105,17 @@ def main() -> None:
         )
         if code != 0:
             failures.append(f"baseline -> {code}")
-        # Tolerance is deliberately generous: localhost timings are noisy and
-        # the strict comparison logic is unit-tested in the pytest suite.
-        # Here we verify the command wiring and exit codes end-to-end.
+        # This step checks the command *wires up*: it loads a baseline, runs a
+        # comparison and returns a code from the documented contract. It must
+        # not check whether the numbers came out fast.
+        #
+        # It used to fail the build on any non-zero exit. EXIT_FINDINGS means
+        # "a regression was detected", which is the command working correctly,
+        # and on a contended CI runner a mock server on localhost genuinely
+        # does go from 1.7ms to 16ms -- past even the 400% tolerance chosen to
+        # be generous. That made a correctness gate depend on runner load, and
+        # a gate that reddens for reasons nobody can act on is a gate someone
+        # eventually deletes. The comparison logic itself is unit-tested.
         code = run(
             [
                 "regression",
@@ -123,8 +132,11 @@ def main() -> None:
                 "GET /users p95 <= 5000ms",
             ]
         )
-        if code != 0:
-            failures.append(f"regression -> {code}")
+        if code not in (EXIT_OK, EXIT_FINDINGS):
+            failures.append(
+                f"regression -> {code} (expected 0 or 1; anything else is a "
+                "usage, unreachable or internal error)"
+            )
 
     # 5. redaction sanity
     from apiverity.traffic.redact import RedactionConfig, redact_headers, redact_json
