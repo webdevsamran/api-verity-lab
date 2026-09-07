@@ -99,7 +99,7 @@ GET /users/{id}:
       email: removed   # ← ERROR: clients reading .email will break
 ```
 
-The catalog ships 37 rules across ERROR/WARN/INFO with per-rule severity
+The catalog ships 44 rules across ERROR/WARN/INFO with per-rule severity
 overrides — see [`docs/rule-catalog.md`](docs/rule-catalog.md) or run `apiverity rules`.
 
 ## A generated failure
@@ -174,8 +174,9 @@ apiverity.generators · apiverity.exporters · apiverity.transports
 ```
 
 Spec support matrix: OpenAPI 3.0/3.1 ✅ full · AsyncAPI 2.x/3.x ✅ channels,
-messages and direction-aware diffing · GraphQL SDL ✅ operation testing, persisted operations and introspection drift ·
-gRPC proto ✅ foundation.
+messages and direction-aware diffing · GraphQL SDL ✅ operation testing,
+persisted operations and introspection drift ·
+gRPC proto + compiled descriptor sets ✅ streaming, presence, reserved ranges.
 
 ## Frontend
 

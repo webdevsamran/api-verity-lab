@@ -82,6 +82,26 @@ class SchemaNode(BaseModel):
     #: OpenAPI discriminator: {"propertyName": ..., "mapping": {value: ref}}.
     #: Kept as a plain dict because only its identity matters to the diff --
     #: which values map to which variant -- not the resolved schemas.
+    # --- protobuf ---------------------------------------------------------
+    #: Field number -> field name, for a message. Protobuf identity is the
+    #: number, not the name: renaming a field is source-breaking and wire-safe,
+    #: while reusing a number for a different field silently corrupts data
+    #: written by older clients. A name-keyed comparison cannot tell those two
+    #: apart, so the numbering is carried alongside.
+    field_numbers: dict[int, str] = Field(default_factory=dict)
+    #: Field numbers a message has retired. Reusing one is the mistake
+    #: `reserved` exists to prevent.
+    reserved_numbers: list[int] = Field(default_factory=list)
+    #: Field names a message has retired.
+    reserved_names: list[str] = Field(default_factory=list)
+    #: Fields with explicit presence -- proto3 `optional`, or membership in a
+    #: oneof. Removing explicit presence is a behaviour change: a field that
+    #: could be distinguished from its default no longer can be.
+    explicit_presence: list[str] = Field(default_factory=list)
+    #: oneof name -> the fields in it. Moving a field into or out of a oneof
+    #: changes what a message is allowed to contain.
+    oneofs: dict[str, list[str]] = Field(default_factory=dict)
+
     discriminator: dict[str, Any] | None = None
     one_of: list[SchemaNode] | None = None
     any_of: list[SchemaNode] | None = None
@@ -233,6 +253,13 @@ class Operation(BaseModel):
     responses: list[Response] = Field(default_factory=list)
     security: list[SecurityRequirement] | None = None  # None = inherit global
     examples: list[Example] = Field(default_factory=list)
+    # gRPC streaming. Captured because changing either of these changes the
+    # wire protocol: a client generated against a unary RPC cannot call a
+    # streaming one, so the two are not the same method with a new shape --
+    # they are incompatible methods with the same name.
+    client_streaming: bool = False
+    server_streaming: bool = False
+
     # Event-driven extensions (AsyncAPI channels, SSE events, WebSocket messages)
     channel: str | None = None  # topic/channel/event name
     message_name: str | None = None
@@ -367,6 +394,10 @@ class ChangeKind(StrEnum):
     RPC_ADDED = "rpc_added"
     FIELD_NUMBER_REUSED = "field_number_reused"
     WIRE_TYPE_CHANGED = "wire_type_changed"
+    RPC_STREAMING_CHANGED = "rpc_streaming_changed"
+    FIELD_PRESENCE_CHANGED = "field_presence_changed"
+    ONEOF_MEMBERSHIP_CHANGED = "oneof_membership_changed"
+    RESERVATION_CHANGED = "reservation_changed"
 
 
 class Change(BaseModel):
