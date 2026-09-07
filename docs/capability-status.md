@@ -27,7 +27,7 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
 ## Generation & stateful testing
 - Seeded positive/negative generation, boundary values, pairwise, example mutation, shrinking, corpus export/import/replay — EXISTING
 - Workflow engine v2 (extraction/guards/cleanup), graph validation, templates, model-based CRUD — EXISTING
-- Workflow inference from OpenAPI Links — PARTIAL (safe deterministic subset)
+- Workflow inference from OpenAPI Links (`workflow --infer`) — EXISTING (`stateful/infer.py`); links-only, every step emitted commented out, destructive steps commented twice
 
 ## Runtime: drift, replay, performance
 - Drift monitor, baselines/trends, field-frequency analysis, HAR normalization with redaction DSL, replay manifests/dry-run/destructive gate — EXISTING

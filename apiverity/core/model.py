@@ -121,11 +121,31 @@ class RequestBody(BaseModel):
     source_location: SourceLocation | None = None
 
 
+class Link(BaseModel):
+    """An OpenAPI `links` entry: what you can call next, and with what.
+
+    This is the only relationship between operations that a spec states
+    outright. Everything else -- naming conventions, path prefixes, the shape
+    of an id -- is inference, and inference is how a tool ends up suggesting a
+    DELETE nobody asked for. `stateful/infer.py` uses only this.
+    """
+
+    name: str
+    #: Exactly one of these is set, per the specification.
+    operation_id: str | None = None
+    operation_ref: str | None = None
+    description: str | None = None
+    #: Parameter name -> runtime expression, e.g. `id` -> `$response.body#/id`.
+    parameters: dict[str, str] = Field(default_factory=dict)
+    request_body: Any = None
+
+
 class Response(BaseModel):
     status: str  # "200", "4XX", "default"
     description: str | None = None
     headers: dict[str, SchemaNode] = Field(default_factory=dict)
     content: dict[str, SchemaNode] = Field(default_factory=dict)
+    links: list[Link] = Field(default_factory=list)
     source_location: SourceLocation | None = None
 
 

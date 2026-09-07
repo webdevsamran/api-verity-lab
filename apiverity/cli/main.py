@@ -104,8 +104,24 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_test)
     p = sub.add_parser("workflow")
-    p.add_argument("manifest")
+    p.add_argument("manifest", help="a workflow manifest to run, or a spec with --infer")
     p.add_argument("--base-url")
+    p.add_argument(
+        "--infer",
+        action="store_true",
+        help=(
+            "read a spec instead of a manifest and print a draft workflow, "
+            "built only from the `links` objects the spec declares. Every step "
+            "is commented out; destructive ones are commented twice."
+        ),
+    )
+    p.add_argument(
+        "--template",
+        metavar="NAME",
+        help="emit a built-in manifest template instead of running one (see --list-templates)",
+    )
+    p.add_argument("--list-templates", action="store_true", help="list built-in templates and exit")
+    p.add_argument("-o", "--output", help="write the draft to a file instead of stdout")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_workflow)
     p = sub.add_parser("mock")
