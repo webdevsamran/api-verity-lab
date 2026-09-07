@@ -53,6 +53,41 @@ CATALOG: dict[str, RuleSpec] = {
             "An operation was removed; existing callers will fail.",
         ),
         RuleSpec(
+            "BRK-RPC-STREAMING-CHANGED",
+            Severity.ERROR,
+            "An RPC changed streaming cardinality; generated clients call it wrongly.",
+        ),
+        RuleSpec(
+            "BRK-FIELD-NUMBER-REUSED",
+            Severity.ERROR,
+            "A protobuf field number now names a different field; stored data misdecodes.",
+        ),
+        RuleSpec(
+            "BRK-FIELD-NUMBER-UNRESERVED",
+            Severity.WARN,
+            "A protobuf field was removed without reserving its number.",
+        ),
+        RuleSpec(
+            "BRK-FIELD-PRESENCE-LOST",
+            Severity.ERROR,
+            "A protobuf field lost explicit presence; unset and default are now the same.",
+        ),
+        RuleSpec(
+            "BRK-ONEOF-NARROWED",
+            Severity.ERROR,
+            "A protobuf field moved into a oneof; it is now exclusive with the others.",
+        ),
+        RuleSpec(
+            "BRK-ONEOF-WIDENED",
+            Severity.INFO,
+            "A protobuf field moved out of a oneof; no existing sender can notice.",
+        ),
+        RuleSpec(
+            "BRK-RESERVATION-REMOVED",
+            Severity.WARN,
+            "A protobuf field number is no longer reserved and can be reused by mistake.",
+        ),
+        RuleSpec(
             "BRK-RPC-REMOVED", Severity.ERROR, "A gRPC RPC was removed; existing callers will fail."
         ),
         RuleSpec(
@@ -240,6 +275,30 @@ class BreakingEngine:
             return [self._finding("BRK-OP-REMOVED", change, change.description)]
         if kind == ChangeKind.RPC_REMOVED:
             return [self._finding("BRK-RPC-REMOVED", change, change.description)]
+
+        # --- protobuf ------------------------------------------------------
+        if kind == ChangeKind.RPC_STREAMING_CHANGED:
+            return [self._finding("BRK-RPC-STREAMING-CHANGED", change, change.description)]
+        if kind == ChangeKind.FIELD_NUMBER_REUSED:
+            return [self._finding("BRK-FIELD-NUMBER-REUSED", change, change.description)]
+        if kind == ChangeKind.FIELD_PRESENCE_CHANGED:
+            return [self._finding("BRK-FIELD-PRESENCE-LOST", change, change.description)]
+        if kind == ChangeKind.ONEOF_MEMBERSHIP_CHANGED:
+            # Moving *into* a oneof narrows what a message may contain: two
+            # fields that could both be set no longer can. Moving out widens
+            # it, which no existing sender can notice. Two rules rather than
+            # one severity switch, so a project can override either.
+            rule = (
+                "BRK-ONEOF-NARROWED" if "moved into" in change.description else "BRK-ONEOF-WIDENED"
+            )
+            return [self._finding(rule, change, change.description)]
+        if kind == ChangeKind.RESERVATION_CHANGED:
+            return [self._finding("BRK-RESERVATION-REMOVED", change, change.description)]
+        if (
+            kind in (ChangeKind.REQUEST_SCHEMA_CHANGED, ChangeKind.RESPONSE_SCHEMA_CHANGED)
+            and "without reserving its number" in change.description
+        ):
+            return [self._finding("BRK-FIELD-NUMBER-UNRESERVED", change, change.description)]
         if kind in (ChangeKind.OPERATION_ADDED,):
             return [self._finding("BRK-OP-ADDED", change, change.description)]
         if kind == ChangeKind.RPC_ADDED:
