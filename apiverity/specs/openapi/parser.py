@@ -17,6 +17,7 @@ import yaml
 from apiverity.core.model import (
     Example,
     Finding,
+    Link,
     Operation,
     OperationKind,
     Parameter,
@@ -407,8 +408,40 @@ class OpenApiParser:
             description=node.get("description"),
             headers=headers,
             content=content,
+            links=self._to_links(node),
             source_location=self._loc(pointer, node),
         )
+
+    def _to_links(self, node: Any) -> list[Link]:
+        """Parse a response's `links` object.
+
+        Kept tolerant: a malformed link is skipped rather than failing the
+        parse. A spec is not invalid because one link entry is wrong, and the
+        rest of the document is still worth reading.
+        """
+        raw = node.get("links") if isinstance(node, dict) else None
+        if not isinstance(raw, dict):
+            return []
+        links: list[Link] = []
+        for name, entry in raw.items():
+            if not isinstance(entry, dict):
+                continue
+            parameters = {
+                str(k): str(v)
+                for k, v in (entry.get("parameters") or {}).items()
+                if isinstance(entry.get("parameters"), dict)
+            }
+            links.append(
+                Link(
+                    name=str(name),
+                    operation_id=entry.get("operationId"),
+                    operation_ref=entry.get("operationRef"),
+                    description=entry.get("description"),
+                    parameters=parameters,
+                    request_body=entry.get("requestBody"),
+                )
+            )
+        return links
 
     def _to_examples(self, root: dict[str, Any], node: Any, pointer: str) -> list[Example]:
         examples: list[Example] = []
