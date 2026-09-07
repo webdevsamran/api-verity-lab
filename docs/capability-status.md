@@ -31,6 +31,7 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
 
 ## Runtime: drift, replay, performance
 - Drift monitor, baselines/trends, field-frequency analysis, HAR normalization with redaction DSL, replay manifests/dry-run/destructive gate — EXISTING
+- Corpus drift (`drift --corpus`): aggregated frequency per finding, systematic vs one-off classification, content-negotiation-aware schema selection, corpus-quality summary — EXISTING (`runtime/corpus_drift.py`)
 - Shadow contract inference draft + reconciliation report — BLOCKED (requires sanitized traffic corpora at scale)
 - Local reverse-proxy capture mode — BLOCKED (interface specified; socket-level work outstanding)
 - Load profiles incl. Poisson + capacity search, p50–p99 metrics, budgets/regressions — EXISTING
