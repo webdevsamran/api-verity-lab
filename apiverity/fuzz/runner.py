@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import json
 import time
+import zlib
+from typing import Any
 
 import httpx
 
@@ -17,16 +19,60 @@ from apiverity.fuzz.generate import fill_path, operation_cases
 from apiverity.fuzz.models import TestCase, TestResult
 
 
-def build_cases(service: Service, seed: int = 0) -> list[TestCase]:
+def build_cases(
+    service: Service,
+    seed: int = 0,
+    *,
+    generators: list[str] | None = None,
+) -> list[TestCase]:
+    """Build the case set for a service.
+
+    `generators` selects strategies beyond the schema-derived ones -- see
+    `apiverity.fuzz.generators`. The default is the schema strategy alone,
+    which is what this produced before: the extra strategies multiply the case
+    count substantially, and a `test` run that silently got ten times longer
+    would be a worse default than an opt-in.
+    """
+    from apiverity.fuzz.generators import load_generators
+
+    extra = load_generators(generators) if generators else {}
     cases: list[TestCase] = []
     for i, op in enumerate(service.operations):
-        for j, raw in enumerate(operation_cases(op, seed + i)):
+        produced: list[tuple[str, dict[str, Any]]] = [
+            ("schema", raw) for raw in operation_cases(op, seed + i)
+        ]
+        for name, generator in sorted(extra.items()):
+            # Seeded per generator so adding one does not renumber the cases
+            # of the ones beside it -- a case id in a bug report has to keep
+            # pointing at the same case.
+            generator_seed = seed + i + (zlib.crc32(name.encode()) % 100_000)
+            try:
+                produced.extend((name, raw) for raw in generator.generate(op, generator_seed))
+            except Exception as exc:  # a third-party generator must not abort the run
+                produced.append(
+                    (
+                        name,
+                        {
+                            "kind": "negative",
+                            "description": f"generator '{name}' failed: {exc}",
+                            "path_params": {},
+                            "query": {},
+                            "headers": {},
+                            "body": None,
+                            "media": None,
+                        },
+                    )
+                )
+        for j, (origin, raw) in enumerate(produced):
+            description = raw["description"]
+            if origin != "schema":
+                description = f"[{origin}] {description}"
             cases.append(
                 TestCase(
                     id=f"TC-{i:03d}-{j:03d}",
                     operation_key=op.key,
                     kind=raw["kind"],
-                    description=raw["description"],
+                    description=description,
                     method=op.method or "GET",
                     url_path=fill_path(op.path or "", raw["path_params"]),
                     query=raw["query"],
@@ -169,7 +215,13 @@ def run_cases(
                         duration_ms=duration_ms,
                     )
                 )
-            except httpx.HTTPError as exc:
+            except (httpx.HTTPError, UnicodeError, ValueError, TypeError) as exc:
+                # Not just HTTPError: a case can be unsendable before it
+                # reaches the network -- a header value the transport cannot
+                # encode, a body that will not serialise. That is a fact about
+                # the case, and it belongs against the case. Letting it
+                # propagate aborted the whole run and, worse, surfaced as
+                # "target unreachable" when the target was fine.
                 duration_ms = int((time.monotonic() - started) * 1000)
                 results.append(
                     TestResult(
