@@ -236,7 +236,20 @@ class Operation(BaseModel):
     # Event-driven extensions (AsyncAPI channels, SSE events, WebSocket messages)
     channel: str | None = None  # topic/channel/event name
     message_name: str | None = None
-    direction: str | None = None  # "publish" | "subscribe" | "send" | "receive"
+    #: Normalized to the application's point of view: "send" means the
+    #: application produces this message, "receive" means it consumes one.
+    #:
+    #: AsyncAPI 2 and 3 disagree about this and the disagreement is inverted,
+    #: which is why it is normalized rather than stored raw. In 2.x,
+    #: `subscribe` describes messages *produced by* the application, and
+    #: `publish` describes messages *consumed by* it -- the words read
+    #: backwards because they are written from the client's side. AsyncAPI 3
+    #: replaced them with `send`/`receive` from the application's side. Storing
+    #: the raw word made a 2.x document and its own 3.x migration look like
+    #: two unrelated contracts.
+    direction: str | None = None  # "send" | "receive" | "request" | "response"
+    #: The word the document actually used, kept so a report can quote it.
+    source_action: str | None = None
     bindings: dict[str, Any] = Field(default_factory=dict)
     # Governance metadata
     lifecycle_state: LifecycleState | None = None
@@ -252,6 +265,13 @@ class Operation(BaseModel):
             return f"{(self.method or '').upper()} {self.path}"
         if self.kind == OperationKind.GRAPHQL_FIELD:
             return f"{self.service_name}.{self.rpc_name}"
+        if self.kind == OperationKind.EVENT:
+            # The channel and the direction are part of the identity. Without
+            # them two channels carrying a message of the same name collide,
+            # and a message moving between channels -- or flipping from
+            # received to sent -- is invisible to the diff.
+            channel = self.channel or self.path or ""
+            return f"{self.direction or '?'} {channel}#{self.message_name or self.rpc_name}"
         return f"{self.service_name}.{self.rpc_name}"
 
 

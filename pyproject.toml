@@ -58,6 +58,7 @@ apiverity = "apiverity.cli.main:main"
 openapi = "apiverity.specs.openapi:OpenApiSpecPlugin"
 graphql = "apiverity.specs.graphql:GraphQlSpecPlugin"
 grpc = "apiverity.specs.grpc:GrpcSpecPlugin"
+asyncapi = "apiverity.specs.asyncapi:AsyncApiSpecPlugin"
 
 [project.entry-points."apiverity.rules"]
 core = "apiverity.plugins.builtins:core_rules"
