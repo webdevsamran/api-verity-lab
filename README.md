@@ -77,13 +77,26 @@ threshold, `2` usage error, `3` target unreachable, `4` internal error).
 
 ## A diff example
 
+<!-- capture:diff -->
 ```console
 $ apiverity diff v1.yaml v2.yaml
-CHG-OPERATION-REMOVED-1   DELETE /users/{id}        removed operation
-CHG-PARAM-REQUIREDNESS-2  GET /users                query param 'limit' became required
-CHG-RESPONSE-SCHEMA-3     GET /users/{id}           response 200 field 'email' removed
-CHG-ENUM-4                POST /users               request body field 'role' enum narrowed
+tool: apiverity
+command: diff
+old_version: 1.2.0
+new_version: 2.0.0
+changes:
+  [meta] CHG-OPERATION_REMOVED-92658ed2-1  operation 'DELETE /users/{id}' was removed
+  [request] CHG-PARAMETER_REQUIREDNESS-ca0e1629-1  parameter 'limit' (query) requiredness changed False -> True
+  [request] CHG-PARAMETER_CONSTRAINT_CHANGED-ca0e1629-1  request parameter 'limit': constraint 'minimum' changed 1 -> 10
+  [request] CHG-PARAMETER_CONSTRAINT_CHANGED-ca0e1629-2  request parameter 'limit': constraint 'maximum' changed 100 -> 50
+  [response] CHG-ENUM_CHANGED-ca0e1629-1  response 200 body (application/json)[].role: enum changed (removed ['guest'], added [])
+  [response] CHG-ENUM_CHANGED-e870987d-1  response 200 body (application/json).role: enum changed (removed ['guest'], added [])
+  [request] CHG-ENUM_CHANGED-f73482dc-1  request body (application/json).role: enum changed (removed ['guest'], added [])
+  [request] CHG-REQUEST_SCHEMA_CHANGED-f73482dc-1  request body requiredness changed False -> True
+  [meta] CHG-DESCRIPTION_CHANGED-5eaae590-1  contract version changed '1.2.0' -> '2.0.0'
+# ...followed by the provenance footer every artifact carries
 ```
+<!-- /capture:diff -->
 
 ## A breaking rule (direction-aware)
 
@@ -101,6 +114,24 @@ GET /users/{id}:
 
 The catalog ships 44 rules across ERROR/WARN/INFO with per-rule severity
 overrides — see [`docs/rule-catalog.md`](docs/rule-catalog.md) or run `apiverity rules`.
+
+<!-- capture:breaking -->
+```console
+$ apiverity breaking v1.yaml v2.yaml
+tool: apiverity
+command: breaking
+findings:
+  [ERROR] BRK-OP-REMOVED  operation 'DELETE /users/{id}' was removed
+  [ERROR] BRK-PARAM-REQUIRED  parameter 'limit' (query) requiredness changed False -> True
+  [ERROR] BRK-CONSTRAINT-TIGHTENED  request parameter 'limit': constraint 'minimum' changed 1 -> 10
+  [ERROR] BRK-CONSTRAINT-TIGHTENED  request parameter 'limit': constraint 'maximum' changed 100 -> 50
+  [WARN] BRK-ENUM-NARROWED-RESPONSE  response 200 body (application/json)[].role: enum changed (removed ['guest'], added [])
+  [WARN] BRK-ENUM-NARROWED-RESPONSE  response 200 body (application/json).role: enum changed (removed ['guest'], added [])
+  [ERROR] BRK-ENUM-NARROWED-REQUEST  request body (application/json).role: enum changed (removed ['guest'], added [])
+  [ERROR] BRK-REQ-BODY-REQUIRED  request body requiredness changed False -> True
+# ...followed by the provenance footer every artifact carries
+```
+<!-- /capture:breaking -->
 
 ## A generated failure
 
@@ -146,12 +177,19 @@ cleanup:
 
 Compare what the API actually returns against what it declared:
 
+<!-- capture:drift -->
 ```console
 $ apiverity drift openapi.yaml --base-url http://localhost:8080
-DRIFT-STATUS      GET /reports     returned 503, not declared in contract
-DRIFT-FIELD       GET /users/{id}  response field 'email' missing (required)
-DRIFT-UNDECLARED  GET /users/{id}  undocumented response field 'internal_score'
+tool: apiverity
+command: drift
+findings:
+  [WARN] DRIFT-STATUS  returned status 404 which is not declared (declared: ['200'])
+  [WARN] DRIFT-MISSING-FIELD  $: missing required field 'email'
+  [WARN] DRIFT-UNDECLARED-FIELD  $: undeclared field(s) ['age', 'role']
+  [WARN] DRIFT-HEADER  declared response header 'X-Request-Id' missing
+# ...followed by the provenance footer every artifact carries
 ```
+<!-- /capture:drift -->
 
 ## Performance budgets
 

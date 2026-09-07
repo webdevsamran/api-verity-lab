@@ -2,13 +2,24 @@
 
 Compares two normalized :class:`Service` contracts and produces
 :class:`Change` records with **stable IDs** of the form
-``CHG-{KIND}-{N}`` where N is a per-kind ordinal derived from the sorted
-order of affected operation keys — so IDs survive document reordering
-but move predictably when the underlying change moves operations.
+``CHG-{KIND}-{operation-hash}-{N}``, where the hash is the first eight hex
+characters of sha256 over the canonical operation key and N is an ordinal
+within that (kind, operation) pair.
+
+Scoping the ordinal to the operation is what makes the id stable: reordering
+the operations in a spec document does not renumber anything, because no
+counter is shared across operations. An id therefore survives being quoted in
+a review or used to suppress a finding, and changes only when the underlying
+change genuinely moves to a different operation.
+
+This docstring previously described a flat ``CHG-{KIND}-{N}`` ordinal as
+having that property. It did not: a single shared counter per kind meant
+moving one operation up the file renumbered every later change of that kind.
 """
 
 from __future__ import annotations
 
+import hashlib
 from typing import Any
 
 from apiverity.core.model import (
@@ -50,6 +61,21 @@ def _schema_summary(schema: SchemaNode | None) -> str:
     return base
 
 
+def _operation_hash(operation_key: str) -> str:
+    """Short, stable digest of an operation key.
+
+    Eight hex characters of sha256. Long enough that a collision inside one
+    contract is not a practical concern, short enough that the id stays
+    readable in a terminal and a review comment. Changes that belong to no
+    single operation (a version bump, a server change) share the `global`
+    scope rather than being given a hash of the empty string, which would read
+    as though it identified something.
+    """
+    if not operation_key:
+        return "global"
+    return hashlib.sha256(operation_key.encode("utf-8")).hexdigest()[:8]
+
+
 class DiffEngine:
     """Produces the semantic change set between two contracts."""
 
@@ -75,9 +101,19 @@ class DiffEngine:
         breaking_hint: str | None = None,
     ) -> Change:
         key = kind.value.upper()
-        self._counters[key] = self._counters.get(key, 0) + 1
+        # Scoped per (kind, operation) so an id survives reordering of the spec
+        # document. ARCHITECTURE.md has always documented
+        # `CHG-{kind}-{operation-hash}-{index}` with exactly that property,
+        # but the id was a flat per-kind ordinal with no hash: moving an
+        # operation up the file renumbered every change after it, so an id
+        # quoted in a review or used to suppress a finding pointed somewhere
+        # else on the next run. The ordinal is still per-operation, because
+        # one operation can produce several changes of the same kind.
+        op_hash = _operation_hash(operation_key)
+        scope = f"{key}:{op_hash}"
+        self._counters[scope] = self._counters.get(scope, 0) + 1
         change = Change(
-            id=f"CHG-{key}-{self._counters[key]}",
+            id=f"CHG-{key}-{op_hash}-{self._counters[scope]}",
             kind=kind,
             direction=direction,
             operation_key=operation_key,

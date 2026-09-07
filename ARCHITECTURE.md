@@ -96,11 +96,31 @@ line in the original spec.
 
 ## Change identity
 
-Diff changes get **stable IDs**: `CHG-{kind}-{operation-hash}-{index}` where
-the operation hash is derived from the canonical operation key
-(`METHOD /path` or GraphQL type.field). IDs survive reordering of spec
-documents but intentionally change when the underlying change moves to a
-different operation.
+Diff changes get **stable IDs**: `CHG-{KIND}-{operation-hash}-{index}` where
+the operation hash is the first eight hex characters of sha256 over the
+canonical operation key (`METHOD /path`, or `type.field` for GraphQL, or
+`service.rpc` for gRPC). The index is an ordinal *within* that
+(kind, operation) pair. IDs intentionally change when the underlying change
+moves to a different operation.
+
+Scoping the ordinal per operation is what makes an id survive **an unrelated
+part of the contract changing**. Before, one counter was shared across every
+operation, so adding an endpoint that happened to produce the same kind of
+change renumbered changes elsewhere: a requiredness change on `GET /zebra` was
+`CHG-PARAMETER_REQUIREDNESS-1` until someone added `/alpha`, after which the
+same change became `-2`.
+
+Stability under *document reordering* is a separate guarantee, and it comes
+from `DiffEngine.run` iterating `sorted()` over operation keys rather than
+document order — that held before this change too.
+
+Changes that belong to no single operation — a contract version bump, a
+server-list change — use the literal scope `global` rather than a hash of the
+empty string, which would read as though it identified something.
+
+`apiverity diff` prints these ids. It did not until recently: the shared
+terminal renderer looked for a `severity` and a `rule_id`, and a `Change` has
+neither, so every line came out as `[]  <description>` with the id dropped.
 
 ## Direction-aware compatibility
 
@@ -162,7 +182,7 @@ performance budgets, bundle format and frontend are original to this project.
 
 ## Frontend
 
-`web/` is a React 18 + TypeScript + Vite SPA consuming only real generated
+`web/` is a React 19 + TypeScript + Vite SPA consuming only real generated
 fixture data (produced by running the bundled example APIs through the CLI).
 It renders diff reviews, breaking-change cards, test runs, drift tables,
 latency charts and coverage charts, with shareable filter URLs and
