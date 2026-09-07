@@ -69,9 +69,52 @@ def test_enrich_adds_metadata() -> None:
     payload = enrich({"tool": "apiverity", "command": "validate"}, spec_path=None)
     assert payload["result_schema_version"] == 1
     assert payload["tool_version"]
-    assert payload["redaction"]["applied"] is True
     meta = ArtifactMeta()
     assert meta.contract_hash == "0" * 64
+
+
+def test_the_artifact_version_tracks_the_package() -> None:
+    """It was a hardcoded "0.1.0" literal on the model.
+
+    Every artifact this tool ever wrote claimed 0.1.0 regardless of which
+    version produced it, so a consumer diffing two bundles would conclude the
+    tool had not changed. Compared against pyproject rather than a literal, so
+    this test cannot itself go stale.
+    """
+    import tomllib
+
+    from apiverity.core.artifact import tool_version
+
+    declared = tomllib.loads(
+        (Path(__file__).resolve().parents[2] / "pyproject.toml").read_text(encoding="utf-8")
+    )["project"]["version"]
+    assert tool_version() == declared
+
+
+def test_redaction_is_not_claimed_when_nothing_was_redacted() -> None:
+    """`enrich` performs no redaction, and used to say it had.
+
+    The envelope stamped `{"applied": True, "sensitive_field_count": 10}` onto
+    every artifact unconditionally -- a fabricated claim about a security
+    control, identical on outputs with nothing sensitive in them. Redaction is
+    real, but it happens in `traffic/redact.py` on imported corpora.
+    """
+    payload = enrich({"tool": "apiverity", "command": "validate"}, spec_path=None)
+    assert payload["redaction"]["applied"] is False
+    assert "reason" in payload["redaction"]
+
+    supplied = enrich(
+        {"command": "replay"},
+        spec_path=None,
+        redaction={"applied": True, "sensitive_field_count": 3},
+    )
+    assert supplied["redaction"] == {"applied": True, "sensitive_field_count": 3}
+
+
+def test_the_protocol_is_not_assumed_to_be_openapi() -> None:
+    """It was fixed at "openapi-3.x", so a gRPC run wrote an OpenAPI artifact."""
+    assert ArtifactMeta().protocol_version == "unknown"
+    assert enrich({"command": "diff"}, protocol="grpc")["protocol_version"] == "grpc"
 
 
 def test_auth_bearer_and_api_key(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -45,6 +45,15 @@ jobs:
         # from the docs was silently ignored. Generated now; this catches drift.
         run: python scripts/generate_rule_catalog.py --check
 
+      - name: README examples match a real run
+        # The README showed hand-written CLI output where every identifier was
+        # wrong: `CHG-OPERATION-REMOVED-1` against a code path that can only
+        # emit `CHG-OPERATION_REMOVED-1`, and `DRIFT-FIELD` against the real
+        # `DRIFT-MISSING-FIELD`. A reader who grepped for either found
+        # nothing. The examples are captured from real runs now, and this step
+        # fails if the committed README stops matching what the code produces.
+        run: python scripts/capture_readme_examples.py --check
+
   schema-validation:
     name: Result artifact schema
     runs-on: ubuntu-latest

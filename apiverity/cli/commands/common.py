@@ -22,6 +22,10 @@ if TYPE_CHECKING:
 _LAST_SPEC: str | None = None
 _LAST_TARGET: str | None = None
 _LAST_SEED: int | None = None
+#: Protocol of the last contract loaded. Recorded so an artifact reports the
+#: protocol it actually describes; the envelope used to hardcode "openapi-3.x",
+#: so every gRPC, GraphQL and AsyncAPI run wrote an artifact claiming OpenAPI.
+_LAST_PROTOCOL: str | None = None
 
 
 def set_last_target(target: str | None) -> None:
@@ -40,10 +44,12 @@ def _load(path: str) -> tuple[Service, list[Finding], SpecPlugin]:
     from apiverity.specs import UnrecognizedSpecError
     from apiverity.specs.loader import detect_and_load
 
-    global _LAST_SPEC
+    global _LAST_SPEC, _LAST_PROTOCOL
     _LAST_SPEC = path
     try:
-        return detect_and_load(path)
+        loaded = detect_and_load(path)
+        _LAST_PROTOCOL = getattr(loaded[0].protocol, "value", None)
+        return loaded
     except FileNotFoundError:
         print(f"error: file not found: {path}", file=sys.stderr)
         sys.exit(EXIT_USAGE)
@@ -93,7 +99,13 @@ def _jsonable(value: Any) -> Any:
 def _emit(data: dict[str, Any], as_json: bool) -> None:
     from apiverity.core.artifact import enrich
 
-    data = enrich(data, spec_path=_LAST_SPEC, target=_LAST_TARGET, seed=_LAST_SEED)
+    data = enrich(
+        data,
+        spec_path=_LAST_SPEC,
+        target=_LAST_TARGET,
+        seed=_LAST_SEED,
+        protocol=_LAST_PROTOCOL,
+    )
     if as_json:
         print(json.dumps(_jsonable(data), indent=2, default=str))
     else:
@@ -101,11 +113,28 @@ def _emit(data: dict[str, Any], as_json: bool) -> None:
             if isinstance(value, list) and value and hasattr(value[0], "model_dump"):
                 print(f"{key}:")
                 for item in value:
-                    d = item.model_dump()
-                    print(
-                        f"  [{d.get('severity', d.get('status', ''))}] "
-                        f"{d.get('rule_id', d.get('case_id', d.get('step', '')))} "
-                        f"{d.get('message', d.get('description', ''))}"
-                    )
+                    print("  " + _render_row(item.model_dump()))
             else:
                 print(f"{key}: {value}")
+
+
+def _render_row(d: dict[str, Any]) -> str:
+    """One line for a finding, a test result, or a change.
+
+    These three shapes share this renderer and only findings carry a
+    `severity` and a `rule_id`. A `Change` has neither, so the previous
+    formatting printed a literal empty bracket and then dropped the change id
+    entirely -- `apiverity diff` emitted lines like
+
+        []  operation 'DELETE /users/{id}' was removed
+
+    with no way to reference the change it just told you about, even though
+    every Change has a stable `id` for exactly that purpose. The label now
+    falls back to the change's direction, the identifier falls back to `id`,
+    and an absent label prints nothing rather than `[]`.
+    """
+    label = d.get("severity") or d.get("status") or d.get("direction") or ""
+    identifier = d.get("rule_id") or d.get("case_id") or d.get("step") or d.get("id") or ""
+    text = d.get("message") or d.get("description") or ""
+    prefix = f"[{label}] " if label else ""
+    return f"{prefix}{identifier}  {text}".strip()
