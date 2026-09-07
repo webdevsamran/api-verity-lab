@@ -22,14 +22,15 @@ fuzzing, drift detection, mocking and performance budgets. Each has its own
 result format, its own CI wiring and its own mental model — so findings never
 compose: you can't ask "which endpoints are both under-tested *and* drifting?"
 
-api-verity-lab answers ten questions from one place:
+api-verity-lab answers thirteen questions from one place:
 
 | Question | Command |
 |---|---|
 | What changed between API versions? | `apiverity diff old.yaml new.yaml` |
 | Is it breaking, risky or safe? | `apiverity breaking` |
 | Was semantic versioning respected? | `apiverity breaking --check-semver` |
-| Does the running API match its contract? | `apiverity drift` |
+| Does the running API match its contract? | `apiverity drift --base-url` |
+| How often did real traffic disagree with it? | `apiverity drift --corpus traffic.har` |
 | Can schema-derived edge cases break it? | `apiverity test` |
 | Do multi-step workflows fail? | `apiverity workflow run` |
 | Can sanitized traffic be replayed safely? | `apiverity replay` |
