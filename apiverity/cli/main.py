@@ -114,6 +114,23 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="list available generators, including installed third-party ones, and exit",
     )
+    p.add_argument(
+        "--operations",
+        action="append",
+        metavar="FILE.graphql",
+        help=(
+            "a document of persisted GraphQL operations to run alongside the "
+            "generated ones. Repeatable."
+        ),
+    )
+    p.add_argument(
+        "--include-mutations",
+        action="store_true",
+        help=(
+            "also generate mutation cases. Off by default: a generated mutation "
+            "is a write against whatever --base-url names."
+        ),
+    )
     p.add_argument("--timeout", type=float, default=10.0)
     p.add_argument("--minimize", action="store_true")
     p.add_argument("--json", action="store_true")
