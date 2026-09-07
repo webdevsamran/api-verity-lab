@@ -161,7 +161,13 @@ class TestAsyncApi:
         assert op.kind == OperationKind.EVENT
         assert op.channel == "orders.created"
         assert op.message_name == "OrderCreated"
-        assert op.direction == "publish"
+        # `direction` is normalized to the application's point of view, so an
+        # AsyncAPI 2 `publish` -- which describes messages the application
+        # *consumes* -- reads as "receive". The word the document used is kept
+        # separately. Without this, a 2.x document and its own 3.x migration
+        # compare as two unrelated contracts.
+        assert op.direction == "receive"
+        assert op.source_action == "publish"
         assert op.request_body is not None
         schema = op.request_body.content["application/json"]
         assert (

@@ -460,8 +460,25 @@ class DiffEngine:
                 breaking_hint="nothing now prevents this number being reused",
             )
 
+    @staticmethod
+    def _payload_direction(op: Operation) -> str:
+        """Which compatibility rules a message payload should be judged by.
+
+        For HTTP the request body is a request: tightening it breaks callers.
+        For an event the answer depends on who produces the message. A payload
+        the application *sends* is read by consumers, so removing a field from
+        it is breaking in exactly the way a response is -- and it was being
+        classified as a request relaxation, i.e. reported at INFO with the
+        message "senders are unaffected", when the application is the sender
+        and it is the consumers who break.
+        """
+        if op.kind == OperationKind.EVENT and op.direction == "send":
+            return "response"
+        return "request"
+
     def _diff_request_body(self, old: Operation, new: Operation, key: str) -> None:
         old_body, new_body = old.request_body, new.request_body
+        payload_direction = self._payload_direction(new if new_body is not None else old)
         if old_body is None and new_body is None:
             return
         if old_body is None or new_body is None:
@@ -488,8 +505,9 @@ class DiffEngine:
                 old_body.content[media],
                 new_body.content[media],
                 key,
-                f"request body ({media})",
-                "request",
+                ("message payload" if payload_direction == "response" else "request body")
+                + f" ({media})",
+                payload_direction,
             )
         # Request media types that came or went. Only the intersection was
         # walked before, so dropping a request content type -- narrowing
