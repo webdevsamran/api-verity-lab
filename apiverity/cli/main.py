@@ -39,6 +39,7 @@ from apiverity.cli.commands.platform import (
 from apiverity.cli.commands.project import cmd_config, cmd_init
 from apiverity.cli.commands.runtime import (
     cmd_baseline,
+    cmd_budget,
     cmd_drift,
     cmd_mcp_inventory,
     cmd_mcp_lock,
@@ -57,6 +58,7 @@ __all__ = [
     "build_parser",
     "cmd_baseline",
     "cmd_breaking",
+    "cmd_budget",
     "cmd_changelog",
     "cmd_config",
     "cmd_coverage",
@@ -315,6 +317,22 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--timeout", type=float, default=10.0)
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_drift)
+    p = sub.add_parser(
+        "budget",
+        help="check observed calls against a declared call budget",
+    )
+    p.add_argument("calls", help="a HAR, or a call log naming operations or tools")
+    p.add_argument("--budget", required=True, metavar="FILE", help="the budget to enforce")
+    p.add_argument(
+        "--spec",
+        help=(
+            "the contract, needed to resolve a HAR's concrete URLs to operations and to "
+            "report a limit naming an operation that does not exist"
+        ),
+    )
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_budget)
+
     p = sub.add_parser(
         "mcp-inventory",
         help="list the MCP servers this machine is configured to reach, and flag unapproved ones",

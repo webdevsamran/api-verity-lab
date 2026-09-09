@@ -29,7 +29,7 @@ Source: <https://owasp.org/www-project-mcp-top-10/>, published 2025. Read 2026-0
 | # | Control | Rules | Produced by |
 |---|---|---|---|
 | MCP01 | Token Mismanagement & Secret Exposure | `MCP-AUTH-PLAINTEXT-TRANSPORT`<br>`MCP-CALL-RESULT-CREDENTIAL`<br>`MCP-SHADOW-INLINE-CREDENTIAL` | `drift`, `mcp-inventory` |
-| MCP02 | Privilege Escalation via Scope Creep | `MCP-LOCK-TOOL-ADDED`<br>`MCP-DRIFT-TOOL-UNDECLARED`<br>`BRK-RPC-ADDED` | `breaking`, `drift`, `mcp-lock` |
+| MCP02 | Privilege Escalation via Scope Creep | `MCP-LOCK-TOOL-ADDED`<br>`MCP-DRIFT-TOOL-UNDECLARED`<br>`BRK-RPC-ADDED`<br>`BUDGET-` | `breaking`, `budget`, `drift`, `mcp-lock` |
 | MCP03 | Tool Poisoning | `MCP-POISON-`<br>`BRK-MCP-TOOL-DESCRIPTION-CHANGED`<br>`MCP-DRIFT-SCHEMA` | `breaking`, `drift`, `mcp-lock`, `validate` |
 | MCP04 | Software Supply Chain Attacks & Dependency Tampering | `MCP-LOCK-SIGNATURE-`<br>`MCP-LOCK-UNSIGNED`<br>`MCP-LOCK-TOOL-`<br>`MCP-SHADOW-FETCHED-AT-LAUNCH` | `mcp-inventory`, `mcp-lock` |
 | MCP05 | Command Injection & Execution | *not assessable* | -- |
@@ -59,7 +59,7 @@ Source: <https://genai.owasp.org/>, published 2025-12-09. Read 2026-09-09.
 | # | Control | Rules | Produced by |
 |---|---|---|---|
 | ASI01 | Agent Goal Hijack | `MCP-POISON-INSTRUCTION`<br>`MCP-POISON-CROSS-TOOL`<br>`MCP-POISON-INVISIBLE-TEXT` | `validate` |
-| ASI02 | Tool Misuse | `MCP-ANNOTATION-`<br>`MCP-DRIFT-`<br>`BRK-MCP-` | `breaking`, `drift`, `mcp-lock`, `validate` |
+| ASI02 | Tool Misuse | `MCP-ANNOTATION-`<br>`MCP-DRIFT-`<br>`BRK-MCP-`<br>`BUDGET-` | `breaking`, `budget`, `drift`, `mcp-lock`, `validate` |
 | ASI03 | Identity & Privilege Abuse | `MCP-AUTH-`<br>`SEC-AUTH-`<br>`MCP-CALL-RESULT-CREDENTIAL`<br>`MCP-SHADOW-INLINE-CREDENTIAL` | `drift`, `mcp-inventory`, `validate` |
 | ASI04 | Agentic Supply Chain Vulnerabilities | `MCP-LOCK-`<br>`MCP-SHADOW-FETCHED-AT-LAUNCH` | `mcp-inventory`, `mcp-lock` |
 | ASI05 | Unexpected Code Execution | *not assessable* | -- |
@@ -94,7 +94,7 @@ Source: <https://owasp.org/API-Security/editions/2023/en/0x11-t10/>, published 2
 | API1 | Broken Object Level Authorization | *not assessable* | -- |
 | API2 | Broken Authentication | `SEC-AUTH-`<br>`SEC-SCHEME-`<br>`MCP-AUTH-` | `drift`, `validate` |
 | API3 | Broken Object Property Level Authorization | `SEC-ADDL-PROPERTIES`<br>`BRK-RESP-FIELD-`<br>`DRIFT-RESPONSE-CREDENTIAL` | `breaking`, `drift`, `mcp-lock`, `validate` |
-| API4 | Unrestricted Resource Consumption | `SEC-RATE-LIMIT-METADATA`<br>`BRK-CONSTRAINT-` | `breaking`, `drift`, `mcp-lock`, `validate` |
+| API4 | Unrestricted Resource Consumption | `SEC-RATE-LIMIT-METADATA`<br>`BRK-CONSTRAINT-`<br>`BUDGET-` | `breaking`, `budget`, `drift`, `mcp-lock`, `validate` |
 | API5 | Broken Function Level Authorization | `SEC-UNAUTH-WRITE`<br>`SEC-AUTH-MISSING` | `validate` |
 | API6 | Unrestricted Access to Sensitive Business Flows | *not assessable* | -- |
 | API7 | Server Side Request Forgery | *not assessable* | -- |
@@ -112,7 +112,7 @@ Source: <https://owasp.org/API-Security/editions/2023/en/0x11-t10/>, published 2
 
 - **API2 Broken Authentication** — the contract's authentication *declarations*, plus what a live MCP server serves anonymously. An endpoint protected by an undeclared gateway looks identical to an unprotected one from here
 - **API3 Broken Object Property Level Authorization** — a response that grew a field, or a schema that accepts any property, is where over-exposure hides. Whether a returned field should have been visible to that caller is not something the contract states
-- **API4 Unrestricted Resource Consumption** — undeclared limits, not measured ones. `apiverity regression` measures
+- **API4 Unrestricted Resource Consumption** — undeclared limits from the contract, and observed call volume against a declared budget. `apiverity regression` measures latency; neither measures what the service can actually absorb
 - **API5 Broken Function Level Authorization** — a mutating operation with no declared authentication is the documented case
 - **API9 Improper Inventory Management** — this is the control this project is closest to being *about*: an endpoint serving something the contract does not declare, and a tool surface that moved without review
 - **API10 Unsafe Consumption of APIs** — consuming an MCP server whose behaviour has diverged from its manifest is exactly this risk, from the consumer's side

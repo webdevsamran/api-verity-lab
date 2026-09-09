@@ -97,6 +97,7 @@ _PRODUCED_BY: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("SEC-", ("validate",)),
     ("DRIFT-", ("drift",)),
     ("SCHEMA-", ("validate",)),
+    ("BUDGET-", ("budget",)),
 )
 
 
@@ -132,7 +133,12 @@ MCP_TOP_10 = Framework(
         Control(
             "MCP02",
             "Privilege Escalation via Scope Creep",
-            rules=("MCP-LOCK-TOOL-ADDED", "MCP-DRIFT-TOOL-UNDECLARED", "BRK-RPC-ADDED"),
+            rules=(
+                "MCP-LOCK-TOOL-ADDED",
+                "MCP-DRIFT-TOOL-UNDECLARED",
+                "BRK-RPC-ADDED",
+                "BUDGET-",
+            ),
             caveat=(
                 "a growing tool surface is scope creep the contract can see; privileges the "
                 "server holds behind those tools are not declared anywhere it can read"
@@ -236,7 +242,7 @@ ASI_TOP_10 = Framework(
         Control(
             "ASI02",
             "Tool Misuse",
-            rules=("MCP-ANNOTATION-", "MCP-DRIFT-", "BRK-MCP-"),
+            rules=("MCP-ANNOTATION-", "MCP-DRIFT-", "BRK-MCP-", "BUDGET-"),
             caveat=(
                 "a tool whose declared safety hints contradict its name or its served "
                 "behaviour is misuse waiting to happen; whether an agent actually misused one "
@@ -362,8 +368,12 @@ API_TOP_10 = Framework(
         Control(
             "API4",
             "Unrestricted Resource Consumption",
-            rules=("SEC-RATE-LIMIT-METADATA", "BRK-CONSTRAINT-"),
-            caveat="undeclared limits, not measured ones. `apiverity regression` measures",
+            rules=("SEC-RATE-LIMIT-METADATA", "BRK-CONSTRAINT-", "BUDGET-"),
+            caveat=(
+                "undeclared limits from the contract, and observed call volume against a "
+                "declared budget. `apiverity regression` measures latency; neither measures "
+                "what the service can actually absorb"
+            ),
         ),
         Control(
             "API5",

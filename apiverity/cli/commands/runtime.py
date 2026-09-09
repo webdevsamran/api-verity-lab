@@ -591,3 +591,99 @@ def cmd_mcp_inventory(args: argparse.Namespace) -> int:
         print()
         print(coverage_note(report))
     return _gate(report.findings)
+
+
+def _calls_from(source: str, service: Service | None) -> list[dict[str, Any]] | int:
+    """Observed calls, from a HAR or from a call log an agent wrote.
+
+    A HAR records a concrete URL, so turning one into an operation key needs
+    the contract; a call log already names the operation and does not. Refusing
+    a HAR without `--spec` is better than matching on raw paths, which would
+    budget `/orders/41` and `/orders/42` separately and never trip a limit.
+    """
+    import json as _json
+
+    from apiverity.runtime.corpus_drift import match_operation
+    from apiverity.traffic.redact import RedactionConfig, import_har
+
+    try:
+        raw = _json.loads(Path(source).read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError) as exc:
+        print(f"error: could not read {source}: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    if isinstance(raw, dict) and isinstance(raw.get("log"), dict):
+        if service is None:
+            print(
+                "error: a HAR records concrete URLs, so --spec is needed to resolve them to "
+                "operations. Without it every path parameter would be budgeted separately",
+                file=sys.stderr,
+            )
+            return EXIT_USAGE
+        calls: list[dict[str, Any]] = []
+        for entry in import_har(source, RedactionConfig()):
+            from urllib.parse import urlparse
+
+            op = match_operation(
+                service, str(entry.get("method") or ""), urlparse(str(entry.get("url") or "")).path
+            )
+            if op is None:
+                continue
+            calls.append({"operation_key": op.key, "at": entry.get("started_at")})
+        return calls
+
+    entries = raw.get("calls") if isinstance(raw, dict) else raw
+    if not isinstance(entries, list):
+        print(
+            f"error: {source} is neither a HAR nor a call log (a list of "
+            '{"operation"|"tool", "at"} objects)',
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+
+    out: list[dict[str, Any]] = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        tool = entry.get("tool")
+        key = f"tool {tool}" if isinstance(tool, str) else entry.get("operation")
+        if isinstance(key, str) and key:
+            out.append({"operation_key": key, "at": entry.get("at")})
+    return out
+
+
+def cmd_budget(args: argparse.Namespace) -> int:
+    """Observed calls against a declared call budget."""
+    from apiverity.rules.budget import BudgetError, evaluate, load_budget
+
+    service: Service | None = None
+    declared: set[str] | None = None
+    if getattr(args, "spec", None):
+        service, _, _ = _load(args.spec)
+        declared = {op.key for op in service.operations}
+
+    try:
+        budget = load_budget(args.budget)
+    except BudgetError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    calls = _calls_from(args.calls, service)
+    if isinstance(calls, int):
+        return calls
+
+    findings = evaluate(budget, calls, declared_operations=declared)
+    _emit(
+        {
+            "tool": "apiverity",
+            "command": "budget",
+            "budget": budget.source,
+            "calls_source": args.calls,
+            "calls_observed": len(calls),
+            "limits": len(budget.limits),
+            "deny_by_default": budget.deny_by_default,
+            "findings": findings,
+        },
+        getattr(args, "json", False),
+    )
+    return _gate(findings)

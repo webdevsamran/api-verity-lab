@@ -23,6 +23,7 @@
       "enum": [
         "baseline",
         "breaking",
+        "budget",
         "changelog",
         "config",
         "coverage",
