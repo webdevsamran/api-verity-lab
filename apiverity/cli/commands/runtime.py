@@ -21,6 +21,7 @@ from apiverity.cli.commands.common import (
     set_last_target,
 )
 from apiverity.core.model import Service
+from apiverity.runtime.findings import unify_all
 
 #: Severities that make a gate fail. INFO is excluded on purpose.
 #:
@@ -81,7 +82,19 @@ def cmd_drift(args: argparse.Namespace) -> int:
     except Exception as exc:
         print(f"error: target unreachable: {exc}", file=sys.stderr)
         return EXIT_UNREACHABLE
-    _emit({"tool": "apiverity", "command": "drift", "report": report}, args.json)
+    # `findings` alongside `report`, not instead of it. The four drift modes
+    # each returned a differently-shaped report and none of them was covered
+    # by the published contract, which constrains a *top-level* `findings`
+    # array. Additive: a consumer reading `report.findings` keeps working.
+    _emit(
+        {
+            "tool": "apiverity",
+            "command": "drift",
+            "report": report,
+            "findings": unify_all(report.findings),
+        },
+        args.json,
+    )
     return _gate(report.findings)
 
 
@@ -134,6 +147,7 @@ def _drift_mcp(args: argparse.Namespace, service: Service) -> int:
         "command": "drift",
         "target": args.base_url,
         "report": report,
+        "findings": unify_all(report.findings),
     }
 
     if invoke:
@@ -159,6 +173,7 @@ def _drift_mcp(args: argparse.Namespace, service: Service) -> int:
             return EXIT_UNREACHABLE
         payload["invocation"] = invocation
         report.findings.extend(invocation.findings)
+        payload["findings"] = unify_all(report.findings)
         if not execute:
             print(
                 f"dry run: {len(invocation.plan)} tool call(s) planned, none sent. "
@@ -197,7 +212,15 @@ def _drift_corpus(
         forbid_undeclared_fields=forbid_undeclared_fields,
     )
     if args.json:
-        _emit({"tool": "apiverity", "command": "drift", "report": report}, True)
+        _emit(
+            {
+                "tool": "apiverity",
+                "command": "drift",
+                "report": report,
+                "findings": unify_all(report.findings),
+            },
+            True,
+        )
         return _gate(report.findings)
 
     quality = report.quality
@@ -400,7 +423,7 @@ def _drift_graphql(args: argparse.Namespace) -> int:
             "command": "drift",
             "protocol": "graphql",
             "target": args.base_url,
-            "findings": findings,
+            "findings": unify_all(findings),
         },
         args.json,
     )

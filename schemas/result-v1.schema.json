@@ -135,8 +135,82 @@
               "object",
               "null"
             ]
+          },
+          "tool": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "MCP tool a finding belongs to, when the protocol has one."
+          },
+          "occurrences": {
+            "type": "integer",
+            "description": "Entries in which this finding occurred (corpus drift)."
+          },
+          "observations": {
+            "type": "integer",
+            "description": "Entries that could have produced it (corpus drift)."
+          },
+          "frequency": {
+            "type": "number",
+            "description": "occurrences / observations, rounded to four places."
+          },
+          "first_seen": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Earliest timestamp the corpus recorded for this finding."
+          },
+          "last_seen": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Latest such timestamp."
+          },
+          "examples": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "A capped set of example request URLs, not a second copy of the corpus."
+          },
+          "change_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The CHG-* id behind a schema-drift or breaking finding. Null on findings that did not come from a diff."
+          },
+          "source_rule_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The BRK-* rule that classified it, so a drift finding traces back to the shared catalogue."
+          },
+          "hint": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What to do about it, when the rule knows."
+          },
+          "location": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "metadata": {
+            "type": [
+              "object",
+              "null"
+            ]
           }
-        }
+        },
+        "description": "One finding, in the shape every command emits. `apiverity drift` has four detection modes and each returned a differently-shaped report nested under `report`, outside this contract entirely; every mode now also writes this array. The optional fields below are contributed by the modes that can establish them -- absent means the mode cannot, which is not the same as zero."
       }
     },
     "changes": {

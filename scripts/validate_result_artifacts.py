@@ -137,6 +137,20 @@ COMMANDS: list[tuple[str, list[str]]] = [
     # Reads the artifact `main()` wrote from a real `validate` run, so the
     # evidence pack is assembled from output this script itself produced
     # rather than from a fixture somebody typed.
+    # The command whose artifact shape varies most, and the one that was never
+    # here. Every drift mode nested its findings under `report`, outside the
+    # top-level `findings` array this schema constrains, so the contract did
+    # not apply to the command that needed it most.
+    (
+        "drift (corpus)",
+        [
+            "drift",
+            str(FIXTURES / "apis/crud/openapi.yaml"),
+            "--corpus",
+            str(FIXTURES / "traffic/crud.har"),
+            "--json",
+        ],
+    ),
     (
         "evidence",
         [

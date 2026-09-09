@@ -89,6 +89,19 @@ def main() -> None:
             if code != expected:
                 failures.append(f"{label} -> {code} (expected {expected})")
 
+    # 1e. A recorded corpus goes through the same command as a live probe and
+    #     must produce the same finding shape.
+    code = run(
+        [
+            "drift",
+            str(FIX / "apis/crud/openapi.yaml"),
+            "--corpus",
+            str(FIX / "traffic/crud.har"),
+        ]
+    )
+    if code != EXIT_FINDINGS:
+        failures.append(f"drift --corpus -> {code} (expected {EXIT_FINDINGS})")
+
     # 2. diff + breaking + semver
     code = run(["diff", str(FIX / "apis/versioned/v1.yaml"), str(FIX / "apis/versioned/v2.yaml")])
     if code != 0:
