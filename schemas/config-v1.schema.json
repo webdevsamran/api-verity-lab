@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/webdevsamran/api-verity-lab/schemas/config-v1.schema.json",
+  "title": "apiverity project configuration",
+  "description": "Project configuration for api-verity-lab. Generated from apiverity/core/config.py by scripts/generate_config_schema.py -- edit the module, not this file.",
+  "type": "object",
+  "required": [
+    "version"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "enum": [
+        1
+      ],
+      "description": "Config schema version. Only 1 exists."
+    },
+    "contracts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Glob patterns naming this project's contracts, e.g. ['api/**/*.yaml']."
+    },
+    "severity_overrides": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "enum": [
+          "ERROR",
+          "WARN",
+          "INFO"
+        ]
+      },
+      "description": "Rule id -> severity. The persistent form of --severity-override."
+    },
+    "fail_on": {
+      "type": "string",
+      "enum": [
+        "error",
+        "warn",
+        "never"
+      ],
+      "description": "Lowest severity that fails a run. 'never' reports without failing, which is how you adopt the gate on an API that already has history."
+    },
+    "suppressions": {
+      "type": "string",
+      "description": "Path to a suppressions file."
+    },
+    "check_semver": {
+      "type": "boolean",
+      "description": "Check the version bump against the changes by default."
+    },
+    "suggest_version": {
+      "type": "boolean",
+      "description": "Recommend the next version by default."
+    }
+  }
+}

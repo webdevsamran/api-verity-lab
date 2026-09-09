@@ -41,7 +41,7 @@ rule id behind it that the agent can quote and a human can check.
 
 ## What would be exposed
 
-Seven of the twenty-one commands are pure functions of files on disk. (This
+Seven of the twenty-three commands are pure functions of files on disk. (This
 document said "nine" above a table of seven for its whole life;
 `tests/unit/test_mcp_server.py` now binds both numbers to the code -- the seven
 to `len(TOOLS)` and the table's own row count, the twenty to the CLI's

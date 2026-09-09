@@ -30,6 +30,7 @@ from apiverity.cli.commands.platform import (
     cmd_self_test,
     cmd_server_db,
 )
+from apiverity.cli.commands.project import cmd_config, cmd_init
 from apiverity.cli.commands.runtime import (
     cmd_baseline,
     cmd_drift,
@@ -48,11 +49,13 @@ __all__ = [
     "cmd_baseline",
     "cmd_breaking",
     "cmd_changelog",
+    "cmd_config",
     "cmd_coverage",
     "cmd_diff",
     "cmd_drift",
     "cmd_explain",
     "cmd_export",
+    "cmd_init",
     "cmd_mock",
     "cmd_plugins",
     "cmd_regression",
@@ -74,6 +77,22 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="apiverity", description=__doc__)
     parser.add_argument("--version", action="version", version=f"apiverity {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
+
+    p = sub.add_parser(
+        "init",
+        help="detect this project's contracts and write .apiverity.yaml",
+    )
+    p.add_argument("directory", nargs="?", default=".")
+    p.add_argument("--force", action="store_true", help="overwrite an existing config")
+    p.add_argument("--dry-run", action="store_true", help="report what would be written")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_init)
+
+    p = sub.add_parser("config", help="validate or show the project config")
+    p.add_argument("action", nargs="?", default="validate", choices=["validate", "show"])
+    p.add_argument("--path", help="config file (default: nearest .apiverity.yaml)")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_config)
 
     p = sub.add_parser("validate")
     p.add_argument("spec")

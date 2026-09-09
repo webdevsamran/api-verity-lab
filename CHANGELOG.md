@@ -4,6 +4,43 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — project configuration and onboarding
+
+- **`.apiverity.yaml`, with a published schema.** There was no project config
+  at all: every run repeated its options, `--severity-override` had to be
+  retyped per invocation, and there was nowhere to record "these are our
+  contracts" so that a laptop and CI agree about what is being checked.
+
+  `schemas/config-v1.schema.json` is generated from `apiverity/core/config.py`
+  by `scripts/generate_config_schema.py --check` in CI, so the validator and
+  the published schema are built from one table and cannot disagree. If they
+  diverged, an editor would autocomplete a key the tool rejects.
+
+- **An unknown key is an ERROR, not a warning.** `severity_overides` (one 'r')
+  is a typo someone will make, and a tool that ignores it reports that nothing
+  is wrong while the override the reader believes is active does nothing at
+  all. The message carries a did-you-mean. An override naming a rule that does
+  not exist is reported too, for the same reason: it does nothing, and looks
+  like it does something.
+
+- **`apiverity init`**, deliberately not interactive. A wizard cannot run in
+  CI, cannot be scripted, and cannot be re-run to check its own output. This
+  detects the contracts actually in the repository, writes a config describing
+  what it found, prints the next three commands, and is safe to run twice.
+
+  It writes `fail_on: never`. A gate that fails on its first run against an API
+  that already has history gets removed rather than adopted; read a few reports
+  first, then turn it on.
+
+### Fixed
+
+- **`init`'s contract sniff matched the word rather than the declaration**,
+  found by running it on this repository: it proposed `schemas/**` because
+  `schemas/result-v1.schema.json` contains the string "openapi" inside an enum
+  of protocol names. A JSON Schema that mentions OpenAPI is not an OpenAPI
+  document, and a config listing the wrong files is worse than one listing
+  none — it looks configured. The sniff now requires a version *declaration*.
+
 ### Added — canonicalization before diffing
 
 - **`allOf` is collapsed, enums are deduplicated, and everything is ordered**

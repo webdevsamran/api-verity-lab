@@ -45,6 +45,12 @@ jobs:
         # from the docs was silently ignored. Generated now; this catches drift.
         run: python scripts/generate_rule_catalog.py --check
 
+      - name: Config schema matches the code
+        # The validator and the published schema are built from one table in
+        # apiverity/core/config.py. If they diverged, an editor would
+        # autocomplete a key the tool rejects.
+        run: python scripts/generate_config_schema.py --check
+
       - name: Competitive landscape matches the fetched data
         # README.md and docs/index.md both told the reader this table was
         # "rendered from committed API data" by "a checked-in script". There was

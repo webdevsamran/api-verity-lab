@@ -1,0 +1,16 @@
+# apiverity project configuration.
+#
+# Schema: schemas/config-v1.schema.json (run `apiverity config validate`).
+# Written by `apiverity init`; safe to edit by hand.
+#
+# fail_on starts at 'never' on purpose: a gate that fails on its first
+# run against an API that already has history gets removed rather than
+# adopted. Read a few reports, then switch it to 'error'.
+version: 1
+contracts:
+- fixtures/apis/crud/**/*.{yaml,yml,json}
+- fixtures/apis/drift/**/*.{yaml,yml,json}
+- fixtures/apis/openapi32/**/*.{yaml,yml,json}
+- fixtures/apis/versioned/**/*.{yaml,yml,json}
+fail_on: never
+check_semver: true

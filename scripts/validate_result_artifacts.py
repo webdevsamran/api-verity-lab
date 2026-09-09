@@ -86,6 +86,7 @@ COMMANDS: list[tuple[str, list[str]]] = [
         "coverage",
         ["coverage", str(FIXTURES / "apis/versioned/v1.yaml"), "--json"],
     ),
+    ("config", ["config", "show", "--path", str(ROOT / ".apiverity.yaml"), "--json"]),
     ("rules", ["rules", "--json"]),
     # `explain` writes a `command` value, and that field is enum-constrained.
     # A new command that emits an artifact has to be added to the schema, and

@@ -59,6 +59,12 @@ api-verity-lab answers eighteen questions from one place:
 ```bash
 pip install api-verity-lab          # or: pip install -e ".[dev]" from a clone
 
+# 0. Point it at your project. Detects your contracts, writes .apiverity.yaml,
+#    and starts with the gate OFF -- a check that fails on its first run against
+#    an API with history gets removed rather than adopted.
+apiverity init
+apiverity config validate
+
 # 1. Validate a contract
 apiverity validate fixtures/apis/crud/openapi.yaml
 
