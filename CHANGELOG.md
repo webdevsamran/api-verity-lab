@@ -4,6 +4,53 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — MCP runtime drift
+
+- **`apiverity drift <manifest> --base-url <endpoint>`** compares a declared
+  MCP tool manifest against what a live server actually serves, over Streamable
+  HTTP. Read-only: `server/discover` and `tools/list` are reads, and nothing
+  invokes a tool.
+
+  This is the leg the market leaves open. Version-to-version manifest diffing
+  is shipped by several projects; declared-vs-running is the question that
+  breaks agents in production, and it is what this engine has been doing for
+  five other protocols since v0.1.
+
+  `MCP-DRIFT-*` covers the manifest against the server — declared but not
+  served, served but not declared, schema drift, contradicted annotations.
+  Schema drift runs through `diff_services` and the shared catalogue rather
+  than a bespoke comparator, so every finding carries the `CHG-*` id and the
+  `BRK-*` rule that classified it. `MCP-CONF-*` covers the server against the
+  specification and needs no manifest at all, including a second connection to
+  check that the tool set does not vary per connection (a MUST) separately from
+  its ordering (only a SHOULD, so `INFO`).
+
+- **Three places it deliberately reports nothing**, because the run established
+  nothing: a hit `--max-list-pages` cap suppresses every missing-tool finding
+  (a tool on page fifty-one was not removed); a server that refuses the
+  protocol revision stops the run before any comparison rather than reporting
+  every declared tool as missing; and a server with no `server/discover` is
+  compared normally but never has a protocol revision recorded for it, because
+  observing the absence of a method is evidence about that method.
+
+- **stdio is unsupported, deliberately.** `SAFETY_MODEL.md` §1 is "explicit
+  targets only" and every gate under it is expressed over a URL —
+  `classify_target` derives local/dev/staging/production from a hostname and
+  cannot classify `npx -y some-mcp-server`. Shipping stdio would mean spawning
+  a command read out of a config file, before any existing control can express
+  it. `docs/mcp-drift.md` states this as a decision with its reason.
+
+- `--header NAME=VALUE` is supported because the specification lets a tool set
+  vary by the authorization presented; the report records
+  `authorization_presented` and the header *names*, never the values.
+
+- `apiverity/mock/mcp_server.py` is a deterministic in-process MCP server for
+  the tests, including the misbehaviours a well-behaved server will not produce
+  on demand: a tool set that changes between connections, a missing
+  `inputSchema`, a refused protocol version. It is threaded, because the
+  per-connection stability check opens a second connection while the first is
+  still held by keep-alive.
+
 ### Added — MCP tool manifests as a contract format
 
 - **`apiverity validate|diff|breaking|changelog` now work on an MCP

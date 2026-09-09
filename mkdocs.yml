@@ -37,6 +37,7 @@ nav:
       - Spec support: spec-support.md
       - Protocol support: protocol-support.md
       - Exit codes: exit-codes.md
+      - MCP drift: mcp-drift.md
       - MCP exposure: mcp-exposure.md
   - Guides:
       - CI contract gate: ci.md

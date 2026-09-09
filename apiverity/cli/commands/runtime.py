@@ -42,6 +42,12 @@ def cmd_drift(args: argparse.Namespace) -> int:
         # the schema never declared.
         return _drift_graphql(args)
 
+    if service.protocol.value == "mcp":
+        # Same shape of reason: `tools/list` is how an MCP server states what
+        # it serves, and calling one tool at a time could never notice a tool
+        # the manifest never declared.
+        return _drift_mcp(args, service)
+
     set_last_target(args.base_url)
     try:
         report = detect_drift(
@@ -54,6 +60,51 @@ def cmd_drift(args: argparse.Namespace) -> int:
         print(f"error: target unreachable: {exc}", file=sys.stderr)
         return EXIT_UNREACHABLE
     _emit({"tool": "apiverity", "command": "drift", "report": report}, args.json)
+    return EXIT_FINDINGS if report.findings else EXIT_OK
+
+
+def _drift_mcp(args: argparse.Namespace, service: Service) -> int:
+    """Declared MCP manifest vs a live server, read-only."""
+    from apiverity.runtime.mcp_drift import McpTransportError, detect_mcp_drift
+
+    set_last_target(args.base_url)
+    headers: dict[str, str] = {}
+    for item in getattr(args, "header", None) or []:
+        name, sep, value = item.partition("=")
+        if not sep:
+            print(f"error: --header expects NAME=VALUE, got {item!r}", file=sys.stderr)
+            return EXIT_USAGE
+        headers[name.strip()] = value.strip()
+
+    try:
+        report = detect_mcp_drift(
+            service,
+            args.base_url,
+            timeout=args.timeout,
+            headers=headers or None,
+            max_pages=getattr(args, "max_list_pages", 50),
+        )
+    except McpTransportError as exc:
+        print(f"error: target unreachable: {exc}", file=sys.stderr)
+        return EXIT_UNREACHABLE
+    except Exception as exc:  # pragma: no cover - defensive
+        print(f"error: target unreachable: {exc}", file=sys.stderr)
+        return EXIT_UNREACHABLE
+
+    # Deliberately no "protocol" key. `_drift_graphql` writes one, and
+    # schemas/result-v1.schema.json constrains it -- but the value already
+    # reaches the artifact as `protocol_version` from `_LAST_PROTOCOL`, set
+    # when the manifest was loaded. Writing it twice is how the two would
+    # eventually disagree.
+    _emit(
+        {
+            "tool": "apiverity",
+            "command": "drift",
+            "target": args.base_url,
+            "report": report,
+        },
+        args.json,
+    )
     return EXIT_FINDINGS if report.findings else EXIT_OK
 
 

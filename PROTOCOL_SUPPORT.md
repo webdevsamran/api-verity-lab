@@ -15,9 +15,9 @@ Status legend, verified against this repository's code and tests:
 | Dangerous-change category | n/a | n/a | VERIFIED | PARTIAL (width changes) | n/a | n/a | VERIFIED (hints, description edits) |
 | Lint / governance packs | VERIFIED | via v2 normalization | VERIFIED (protocol-filtered) | VERIFIED (protocol-filtered) | PARTIAL | PARTIAL | PARTIAL |
 | Case generation (pos/neg) | VERIFIED | via v2 normalization | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* |
-| Conformance testing vs runtime | VERIFIED | via v2 normalization | PARTIAL | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* |
+| Conformance testing vs runtime | VERIFIED | via v2 normalization | PARTIAL | BLOCKED* | BLOCKED* | BLOCKED* | VERIFIED (`MCP-CONF-*`) |
 | Mock / virtualization | VERIFIED | via v2 normalization | BLOCKED | BLOCKED | BLOCKED | BLOCKED | BLOCKED |
-| Drift detection | VERIFIED | via v2 normalization | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* |
+| Drift detection | VERIFIED | via v2 normalization | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* | VERIFIED (Streamable HTTP; stdio out of scope, see docs/mcp-drift.md) |
 | Performance budgets/regressions | VERIFIED | via v2 normalization | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* |
 
 \* *Interface and fixtures exist or are planned; live validation requires a real GraphQL server / gRPC

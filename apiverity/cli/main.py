@@ -198,6 +198,26 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="do not report response fields the contract does not declare",
     )
+    p.add_argument(
+        "--header",
+        action="append",
+        metavar="NAME=VALUE",
+        help=(
+            "header to present on every MCP request, repeatable. The MCP spec lets a "
+            "server's tool set vary by the authorization presented, so a report from an "
+            "unauthenticated probe records that it was one; values never reach the artifact"
+        ),
+    )
+    p.add_argument(
+        "--max-list-pages",
+        type=int,
+        default=50,
+        metavar="N",
+        help=(
+            "stop after N pages of an MCP tools/list. If the cap is reached, declared "
+            "tools that were not seen are NOT reported missing -- they may be on a later page"
+        ),
+    )
     p.add_argument("--timeout", type=float, default=10.0)
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_drift)

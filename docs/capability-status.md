@@ -40,6 +40,17 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
 
 ## Runtime: drift, replay, performance
 - Drift monitor, baselines/trends, field-frequency analysis, HAR normalization with redaction DSL, replay manifests/dry-run/destructive gate — EXISTING
+- MCP runtime drift (`drift <manifest> --base-url`): declared tool schema vs a
+  live server over Streamable HTTP. `MCP-DRIFT-*` compares the manifest to the
+  server (missing, undeclared, schema drift traced back to the `BRK-*` rule
+  that classified it, contradicted annotations); `MCP-CONF-*` checks the server
+  against the specification with no manifest at all, including a second
+  connection to verify the tool set does not vary per connection. Silent by
+  design where the run established nothing: a hit page cap suppresses every
+  missing-tool finding, and a refused protocol revision stops before any
+  comparison. stdio is deliberately unsupported -- `classify_target` works on
+  URLs, so none of the safety gates can express a command line — EXISTING
+  (`runtime/mcp_drift.py`, `specs/mcp/runner.py`)
 - Corpus drift (`drift --corpus`): aggregated frequency per finding, systematic vs one-off classification, content-negotiation-aware schema selection, corpus-quality summary — EXISTING (`runtime/corpus_drift.py`)
 - Shadow contract inference draft + reconciliation report — BLOCKED (requires sanitized traffic corpora at scale)
 - Local reverse-proxy capture mode — BLOCKED (interface specified; socket-level work outstanding)
