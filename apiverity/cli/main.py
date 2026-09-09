@@ -11,6 +11,7 @@ product lane; this module owns argument parsing and process exit codes.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import sys
 from typing import Any
 
@@ -523,7 +524,38 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _use_utf8_streams() -> None:
+    """Write UTF-8 on every platform, whatever the console codepage says.
+
+    `apiverity validate` on a contract titled in Japanese exited 4 -- the
+    documented code for "an unexpected error inside the tool" -- on a Windows
+    console, because Python encodes stdout with the locale codepage and cp1252
+    cannot represent those characters. A tool that advertises six protocols and
+    reads contracts written anywhere in the world cannot fail on the name of
+    the API. The same crash reached `changelog` (which prints emoji) and any
+    finding message containing an arrow.
+
+    The trade is explicit: a legacy console decoding cp1252 will now render
+    unfamiliar characters as mojibake instead of killing the run. Wrong-looking
+    output beats an exit code that says the tool is broken when the contract is
+    fine. `backslashreplace` is the floor beneath that -- if UTF-8 itself could
+    not be set, characters degrade to escapes and the run still finishes.
+
+    Guarded because a redirected stream (a test's StringIO, a pipe wrapped by
+    something else) may not be reconfigurable, and that is not an error.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        # A stream that cannot be reconfigured is not an error; it is a
+        # pipe somebody else already wrapped.
+        with contextlib.suppress(ValueError, OSError):
+            reconfigure(encoding="utf-8", errors="backslashreplace")
+
+
 def main(argv: list[str] | None = None) -> int:
+    _use_utf8_streams()
     parser = build_parser()
     args = parser.parse_args(argv)
     try:
