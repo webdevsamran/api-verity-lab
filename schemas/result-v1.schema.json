@@ -28,6 +28,7 @@
         "coverage",
         "diff",
         "drift",
+        "evidence",
         "explain",
         "export",
         "init",

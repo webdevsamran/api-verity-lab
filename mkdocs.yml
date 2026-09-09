@@ -42,6 +42,7 @@ nav:
       - MCP lockfile: mcp-lock.md
       - MCP inventory: mcp-inventory.md
       - Compliance mapping: compliance-mapping.md
+      - Evidence packs: evidence.md
       - MCP exposure: mcp-exposure.md
   - Guides:
       - CI contract gate: ci.md

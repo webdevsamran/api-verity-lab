@@ -134,6 +134,21 @@ COMMANDS: list[tuple[str, list[str]]] = [
             "--json",
         ],
     ),
+    # Reads the artifact `main()` wrote from a real `validate` run, so the
+    # evidence pack is assembled from output this script itself produced
+    # rather than from a fixture somebody typed.
+    (
+        "evidence",
+        [
+            "evidence",
+            str(_SCRATCH / "record.json"),
+            "-o",
+            str(_SCRATCH / "pack"),
+            "--as-of",
+            "2026-01-01T00:00:00Z",
+            "--json",
+        ],
+    ),
 ]
 
 
@@ -170,6 +185,14 @@ def main() -> int:
 
     failures: list[str] = []
     validated = 0
+
+    # `evidence` consumes an artifact rather than a contract, so one is made
+    # here from a real run instead of being checked in.
+    seed_code, seed_raw = run_json(["validate", str(FIXTURES / "apis/versioned/v1.yaml"), "--json"])
+    if seed_code not in (0, 1) or not seed_raw.strip():
+        print("error: could not produce an artifact for the evidence pack", file=sys.stderr)
+        return 1
+    (_SCRATCH / "record.json").write_text(seed_raw, encoding="utf-8")
 
     for label, argv in COMMANDS:
         code, raw = run_json(argv)

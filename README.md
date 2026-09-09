@@ -31,7 +31,7 @@ fuzzing, drift detection, mocking and performance budgets. Each has its own
 result format, its own CI wiring and its own mental model — so findings never
 compose: you can't ask "which endpoints are both under-tested *and* drifting?"
 
-api-verity-lab answers twenty-three questions from one place:
+api-verity-lab answers twenty-four questions from one place:
 
 | Question | Command |
 |---|---|
@@ -48,6 +48,7 @@ api-verity-lab answers twenty-three questions from one place:
 | Will that MCP server hand its whole tool list to a stranger? | `apiverity drift tools.json --base-url` |
 | Did an agent's tool surface change without anyone reviewing it? | `apiverity mcp-lock check --base-url` |
 | Which MCP servers is this machine even configured to reach? | `apiverity mcp-inventory --include-home` |
+| Can I hand an auditor a dated, checksummed record of all of it? | `apiverity evidence run-*.json -o evidence/` |
 | Can an agent ask *this* whether its change is breaking? | `apiverity-mcp --root .` |
 | Can schema-derived edge cases break it? | `apiverity test` |
 | Do multi-step workflows fail? | `apiverity workflow run` |
@@ -340,7 +341,7 @@ Browsable at **<https://webdevsamran.github.io/api-verity-lab/>**, or as files h
 | [docs/ci.md](docs/ci.md) | Wiring the contract gate into a pipeline |
 | [SAFETY_MODEL.md](SAFETY_MODEL.md) · [docs/privacy.md](docs/privacy.md) | What this tool will and will not do to a target |
 | [docs/mcp-drift.md](docs/mcp-drift.md) · [docs/mcp-poisoning.md](docs/mcp-poisoning.md) · [docs/mcp-lock.md](docs/mcp-lock.md) · [docs/mcp-inventory.md](docs/mcp-inventory.md) · [docs/mcp-exposure.md](docs/mcp-exposure.md) | Governing MCP servers: drift against a live one, a tool description read as executable text, a reviewed baseline, and exposing this one to agents |
-| [docs/compliance-mapping.md](docs/compliance-mapping.md) | Findings mapped onto the OWASP MCP, Agentic and API Top 10s, including what this tool cannot assess |
+| [docs/compliance-mapping.md](docs/compliance-mapping.md) · [docs/evidence.md](docs/evidence.md) | Findings mapped onto the OWASP MCP, Agentic and API Top 10s, and packaged as dated evidence for SOC 2, ISO 42001, DORA and the EU AI Act -- including what neither can assess |
 | [AGENTS.md](AGENTS.md) | Constraints that are correctness rather than style, for anyone changing the code |
 
 ## Contributing

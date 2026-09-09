@@ -123,6 +123,12 @@ def cmd_breaking(args: argparse.Namespace) -> int:
         {
             "tool": "apiverity",
             "command": "breaking",
+            # Which two documents, not just which two versions. `contract_hash`
+            # covers the last one loaded, so an artifact from a comparison
+            # could not say what it was compared against -- and a reader of an
+            # evidence bundle six months later has no other way to find out.
+            "old_spec": args.old,
+            "new_spec": args.new,
             "old_version": old.version,
             "new_version": new.version,
             # `diff` emits `changes` as the array of changes; this emitted the

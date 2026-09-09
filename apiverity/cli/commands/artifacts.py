@@ -198,3 +198,41 @@ def cmd_serve(args: argparse.Namespace) -> int:
     finally:
         httpd.server_close()
     return EXIT_OK
+
+
+def cmd_evidence(args: argparse.Namespace) -> int:
+    """Assemble result artifacts into a dated, checksummed evidence pack."""
+    import datetime as _dt
+
+    from apiverity.core.artifact import tool_version
+    from apiverity.reports.evidence import write_pack
+
+    out = Path(args.output)
+    sources = list(args.artifacts)
+    missing = [s for s in sources if not Path(s).exists()]
+    if missing:
+        print(f"error: not found: {', '.join(missing)}", file=sys.stderr)
+        return EXIT_USAGE
+
+    generated_at = getattr(args, "as_of", None) or _dt.datetime.now(_dt.UTC).strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
+    try:
+        packed = write_pack(sources, out, generated_at=generated_at, tool_version=tool_version())
+    except (OSError, ValueError) as exc:
+        print(f"error: could not build the pack: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    _emit(
+        {
+            "tool": "apiverity",
+            "command": "evidence",
+            "output": str(out),
+            "generated_at": generated_at,
+            "records": len(packed),
+            "errors_across_records": sum(item.errors for item in packed),
+            "verify_with": f"apiverity verify {out}",
+        },
+        getattr(args, "json", False),
+    )
+    return EXIT_OK

@@ -15,7 +15,13 @@ import sys
 from typing import Any
 
 from apiverity import __version__
-from apiverity.cli.commands.artifacts import cmd_export, cmd_report, cmd_serve, cmd_verify
+from apiverity.cli.commands.artifacts import (
+    cmd_evidence,
+    cmd_export,
+    cmd_report,
+    cmd_serve,
+    cmd_verify,
+)
 from apiverity.cli.commands.common import EXIT_INTERNAL, EXIT_OK
 from apiverity.cli.commands.governance import (
     cmd_breaking,
@@ -56,6 +62,7 @@ __all__ = [
     "cmd_coverage",
     "cmd_diff",
     "cmd_drift",
+    "cmd_evidence",
     "cmd_explain",
     "cmd_export",
     "cmd_init",
@@ -438,6 +445,23 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--perf")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_export)
+    p = sub.add_parser(
+        "evidence",
+        help="assemble result artifacts into a dated, checksummed evidence pack",
+    )
+    p.add_argument("artifacts", nargs="+", help="result JSON files or exported bundle directories")
+    p.add_argument("-o", "--output", required=True, help="directory to write the pack into")
+    p.add_argument(
+        "--as-of",
+        help=(
+            "timestamp to record instead of now. The pack is deliberately not reproducible "
+            "byte-for-byte -- an evidence record with no date is not evidence -- and this "
+            "rebuilds a historical one"
+        ),
+    )
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_evidence)
+
     p = sub.add_parser(
         "verify",
         help="check a bundle against its own SHA256SUMS",

@@ -67,6 +67,28 @@ def main() -> None:
             if code != expected:
                 failures.append(f"mcp-lock {label} -> {code} (expected {expected})")
 
+    # 1d. An evidence pack must verify against its own SHA256SUMS with the
+    #     command that already exists for bundles. A pack whose checksums are
+    #     decorative is the defect `apiverity verify` was written to fix.
+    with tempfile.TemporaryDirectory(prefix="apiverity-e2e-") as scratch:
+        record = Path(scratch) / "record.json"
+        pack = Path(scratch) / "pack"
+        import contextlib
+        import io
+
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            cli_main(["validate", str(FIX / "apis/versioned/v1.yaml"), "--json"])
+        record.write_text(buffer.getvalue(), encoding="utf-8")
+
+        for label, argv, expected in (
+            ("evidence", ["evidence", str(record), "-o", str(pack)], EXIT_OK),
+            ("verify", ["verify", str(pack)], EXIT_OK),
+        ):
+            code = run(argv)
+            if code != expected:
+                failures.append(f"{label} -> {code} (expected {expected})")
+
     # 2. diff + breaking + semver
     code = run(["diff", str(FIX / "apis/versioned/v1.yaml"), str(FIX / "apis/versioned/v2.yaml")])
     if code != 0:
