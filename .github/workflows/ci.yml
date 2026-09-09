@@ -45,6 +45,17 @@ jobs:
         # from the docs was silently ignored. Generated now; this catches drift.
         run: python scripts/generate_rule_catalog.py --check
 
+      - name: Competitive landscape matches the fetched data
+        # README.md and docs/index.md both told the reader this table was
+        # "rendered from committed API data" by "a checked-in script". There was
+        # no such script and no such step: the table was typed by hand, which is
+        # how it came to publish "Optic -- repo gone (404)" about a project that
+        # is archived and public. Rendered now, and this is the step that makes
+        # the claim true. It checks the doc against the committed evidence, not
+        # against GitHub -- fetching needs `gh` auth, so freshness is carried by
+        # the date the data records, never by this step.
+        run: python scripts/generate_competitive_table.py --check
+
       - name: README examples match a real run
         # The README showed hand-written CLI output where every identifier was
         # wrong: `CHG-OPERATION-REMOVED-1` against a code path that can only

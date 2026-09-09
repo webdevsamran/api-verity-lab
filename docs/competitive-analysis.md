@@ -1,13 +1,18 @@
 # Competitive Analysis — API Verity Lab
 
-Generated: 2026-08-23 · Evidence: live GitHub API metadata (see `data/competitor-meta.json`) + documented product models. Full machine-readable matrix: `data/competitive-capabilities.json`.
+<!-- generated:provenance -->
+Generated: 2026-09-09 · Evidence: live GitHub API metadata (see `data/competitor-meta.json`) + documented product models. Full machine-readable matrix: `data/competitive-capabilities.json`.
+<!-- /generated:provenance -->
 
 ## Method
 
-- Repo license, stars, last push, archived status and latest release fetched **live on 2026-08-23** via the authenticated GitHub API for every competitor.
+<!-- generated:method -->
+- Repo license, stars, last push, archived status and latest release fetched **live on 2026-09-09** via the authenticated GitHub API for every competitor.
+<!-- /generated:method -->
 - Qualitative capability claims are labeled VERIFIED (fetched metadata / official docs quotes) or KNOWLEDGE-BASED (documented product understanding).
 - No competitor is claimed to *lack* a feature without verification; unverified areas are `unknown`.
 
+<!-- generated:landscape -->
 ## Landscape snapshot (verified 2026-09-09)
 
 | Tool | License | Stars | Last push | Latest release | Status |
@@ -26,6 +31,7 @@ Generated: 2026-08-23 · Evidence: live GitHub API metadata (see `data/competito
 | Newman | Apache-2.0 | 7,251 | 2026-08-05 | — | active |
 | GraphQL Inspector | MIT | 1,767 | 2026-08-20 | release-1787234790800 (2026-08-20) | active |
 | Buf | Apache-2.0 | 11,424 | 2026-09-09 | v1.72.0 (2026-07-17) | active |
+<!-- /generated:landscape -->
 
 ## What each one owns
 

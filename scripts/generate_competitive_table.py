@@ -1,0 +1,236 @@
+"""Render the competitive landscape blocks of docs/competitive-analysis.md.
+
+Three places in this repository told the reader this table was generated:
+
+    README.md          "The table is generated from that file, so it cannot
+                        drift from the data it cites."
+    docs/index.md:35   "the competitive table is rendered from committed API
+                        data. CI fails when a generated file and its source
+                        disagree."
+    docs/index.md:41   "rendered from data fetched by a checked-in script"
+
+No such script existed. The table was typed by hand -- as the docstring of
+`tests/unit/test_competitive_table_matches_data.py` said outright -- and no CI
+step checked it. In a repository whose stated rule is "documented output is
+captured, never written", the document making that claim was the one document
+not honouring it.
+
+That mattered beyond tidiness, because the hand-typed table had already
+published a falsehood once: Optic's row read "repo gone (404)" when the project
+is archived and public, after the fetcher asked for a repository name that
+never existed and the null was transcribed as a fact about a competitor.
+
+So this script exists to make those three claims true. Every rendered value
+comes from `data/competitor-meta.json`, and `--check` fails the build when the
+committed document disagrees with the committed data.
+
+    python scripts/generate_competitive_table.py            # write
+    python scripts/generate_competitive_table.py --check    # verify (CI)
+
+It deliberately does not fetch. `scripts/fetch_competitor_meta.py` needs `gh`
+auth and network, so CI cannot run it; what CI can prove is that the prose
+matches the committed evidence, which is the half that rots silently. Freshness
+is carried by the date this script prints out of the data, never by an
+unqualified claim that the numbers are current.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+DOC = ROOT / "docs" / "competitive-analysis.md"
+DATA = ROOT / "data" / "competitor-meta.json"
+
+#: Repository -> the heading the table uses for it.
+#:
+#: Editorial, so it lives here rather than in the fetched artifact: a file whose
+#: provenance line reads "gh api (authenticated)" should carry what the run
+#: established and nothing a human chose. The join is explicit because the
+#: obvious implicit one is wrong -- keying on the repository basename collapses
+#: `MCPJam/inspector` and `modelcontextprotocol/inspector` onto "inspector" and
+#: silently drops whichever is written second.
+LABELS: dict[str, str] = {
+    "oasdiff/oasdiff": "oasdiff",
+    "schemathesis/schemathesis": "Schemathesis",
+    "stoplightio/spectral": "Spectral",
+    "pact-foundation/pact-js": "Pact (pact-js)",
+    "opticdev/optic": "Optic",
+    "apiaryio/dredd": "Dredd",
+    "stoplightio/prism": "Prism",
+    "wiremock/wiremock": "WireMock",
+    "SpectoLabs/hoverfly": "Hoverfly",
+    "karatelabs/karate": "Karate",
+    "grafana/k6": "k6",
+    "postmanlabs/newman": "Newman",
+    "graphql-hive/graphql-inspector": "GraphQL Inspector",
+    "bufbuild/buf": "Buf",
+}
+
+MARK_OPEN = "<!-- generated:{name} -->"
+MARK_CLOSE = "<!-- /generated:{name} -->"
+
+#: A project with no published release renders as an em dash, as the committed
+#: table already does for Newman.
+NO_RELEASE = "—"
+
+
+class RenderError(RuntimeError):
+    """The data cannot be rendered without inventing something."""
+
+
+def load_meta() -> dict[str, Any]:
+    return json.loads(DATA.read_text(encoding="utf-8"))
+
+
+def fetch_date(meta: dict[str, Any]) -> str:
+    """The date the evidence was gathered, as ``YYYY-MM-DD``."""
+    stamp = meta.get("fetched_utc")
+    if not isinstance(stamp, str) or len(stamp) < 10:
+        raise RenderError("competitor-meta.json has no usable `fetched_utc`")
+    return stamp[:10]
+
+
+def _release_cell(entry: dict[str, Any]) -> str:
+    release = entry.get("latest_release")
+    if not isinstance(release, dict):
+        return NO_RELEASE
+    tag = release.get("tag")
+    published = release.get("published_at")
+    if not tag:
+        return NO_RELEASE
+    if isinstance(published, str) and len(published) >= 10:
+        return f"{tag} ({published[:10]})"
+    return str(tag)
+
+
+def _row(repo: str, entry: dict[str, Any]) -> str:
+    label = LABELS.get(repo)
+    if label is None:
+        raise RenderError(
+            f"{repo} is in data/competitor-meta.json with no entry in LABELS. Add its "
+            "table heading to scripts/generate_competitive_table.py -- a fetched "
+            "competitor the table cannot name is one the table silently omits."
+        )
+    stars = entry.get("stars")
+    if not isinstance(stars, int):
+        raise RenderError(f"{repo}: no star count in the artifact; the fetch established none")
+    pushed = entry.get("pushed_at")
+    if not isinstance(pushed, str) or len(pushed) < 10:
+        raise RenderError(f"{repo}: no `pushed_at` in the artifact")
+    licence = entry.get("license_spdx") or "unverified"
+    status = "**archived**" if entry.get("archived") else "active"
+    return (
+        f"| {label} | {licence} | {stars:,} | {pushed[:10]} | {_release_cell(entry)} | {status} |"
+    )
+
+
+def render_provenance(meta: dict[str, Any]) -> str:
+    return (
+        f"Generated: {fetch_date(meta)} · Evidence: live GitHub API metadata "
+        "(see `data/competitor-meta.json`) + documented product models. "
+        "Full machine-readable matrix: `data/competitive-capabilities.json`."
+    )
+
+
+def render_method(meta: dict[str, Any]) -> str:
+    return (
+        "- Repo license, stars, last push, archived status and latest release fetched "
+        f"**live on {fetch_date(meta)}** via the authenticated GitHub API for every competitor."
+    )
+
+
+def render_landscape(meta: dict[str, Any]) -> str:
+    repos = meta.get("repos")
+    if not isinstance(repos, dict) or not repos:
+        raise RenderError("competitor-meta.json has no `repos`")
+    lines = [
+        f"## Landscape snapshot (verified {fetch_date(meta)})",
+        "",
+        "| Tool | License | Stars | Last push | Latest release | Status |",
+        "|---|---|---|---|---|---|",
+    ]
+    lines.extend(_row(repo, entry) for repo, entry in repos.items())
+    return "\n".join(lines)
+
+
+#: Marker name -> renderer. Order is irrelevant; each block is spliced by name.
+BLOCKS: dict[str, Callable[[dict[str, Any]], str]] = {
+    "provenance": render_provenance,
+    "method": render_method,
+    "landscape": render_landscape,
+}
+
+
+def splice(text: str, meta: dict[str, Any]) -> str:
+    """Replace each marked block with its rendered body.
+
+    Sliced by index rather than `re.sub`, because the rendered body is data. A
+    competitor description containing a backslash -- or anything shaped like a
+    replacement template -- would otherwise be reinterpreted by `sub` and
+    silently corrupt the output.
+    """
+    for name, renderer in BLOCKS.items():
+        open_mark = MARK_OPEN.format(name=name)
+        close_mark = MARK_CLOSE.format(name=name)
+        start = text.find(open_mark)
+        end = text.find(close_mark)
+        if start == -1 or end == -1 or end < start:
+            raise SystemExit(
+                f"docs/competitive-analysis.md is missing the {open_mark} / {close_mark} "
+                "markers, or carries them out of order. Add them around the block "
+                "before running this script."
+            )
+        head = text[: start + len(open_mark)]
+        text = f"{head}\n{renderer(meta)}\n{text[end:]}"
+    return text
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Render the competitive landscape blocks.")
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="verify the committed document matches the committed data; exit 1 if not",
+    )
+    args = parser.parse_args()
+
+    meta = load_meta()
+    current = DOC.read_text(encoding="utf-8")
+    updated = splice(current, meta)
+    count = len(meta["repos"])
+
+    if args.check:
+        if current == updated:
+            print(f"ok     competitive-analysis.md matches competitor-meta.json ({count} projects)")
+            return 0
+        print(
+            "docs/competitive-analysis.md no longer matches data/competitor-meta.json.\n"
+            "Run: python scripts/generate_competitive_table.py",
+            file=sys.stderr,
+        )
+        import difflib
+
+        diff = difflib.unified_diff(
+            current.splitlines(),
+            updated.splitlines(),
+            fromfile="competitive-analysis.md (committed)",
+            tofile="competitive-analysis.md (from data)",
+            lineterm="",
+        )
+        for line in list(diff)[:60]:
+            print(line, file=sys.stderr)
+        return 1
+
+    DOC.write_text(updated, encoding="utf-8", newline="\n")
+    print(f"wrote  competitive-analysis.md ({count} projects from competitor-meta.json)")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

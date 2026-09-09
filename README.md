@@ -329,8 +329,11 @@ Security issues go through [SECURITY.md](SECURITY.md), not a public issue.
 The API tooling landscape is crowded and largely healthy. 14 projects are tracked in
 [`docs/competitive-analysis.md`](docs/competitive-analysis.md), with license, star count,
 last push and latest release fetched from the GitHub API on 2026-09-09 and committed to
-[`data/competitor-meta.json`](data/competitor-meta.json). The table is generated from that
-file, so it cannot drift from the data it cites.
+[`data/competitor-meta.json`](data/competitor-meta.json). The table is rendered from that
+file by [`scripts/generate_competitive_table.py`](scripts/generate_competitive_table.py) and
+CI fails if the two disagree, so it cannot drift from the data it cites. What that does not
+claim is freshness: the date above is when the evidence was gathered, and only a refresh run
+moves it.
 
 The short version: **oasdiff** is the healthy incumbent for spec diffing and is worth using
 if diffing is all you need. **Schemathesis** is the reference for property-based API testing.

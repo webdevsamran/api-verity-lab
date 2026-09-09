@@ -6,6 +6,42 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ### Fixed
 
+- **The competitive table was not generated, in three places that said it was.**
+  `README.md` claimed "the table is generated from that file, so it cannot
+  drift"; `docs/index.md` claimed twice that it is "rendered from committed API
+  data" by "a checked-in script". No such script existed, no CI step checked it,
+  and the table was typed by hand -- which the test guarding it admitted in its
+  own docstring. In a repository whose rule is "documented output is captured,
+  never written", the document making that claim was the one not honouring it.
+
+  `scripts/generate_competitive_table.py` now renders the provenance line, the
+  method date and the landscape table from `data/competitor-meta.json`, with a
+  `--check` step in CI. Its first run changed only two values, both stale dates:
+  the document had been headed "Generated: 2026-08-23" directly above a table
+  headed "verified 2026-09-09", describing the same artifact seventeen days
+  apart. Every one of the fourteen rows was already correct, and is now rendered
+  rather than retyped.
+
+- **Two of the fourteen rows were never actually checked.**
+  `test_competitive_table_matches_data.py` mapped a row to its data entry by
+  repository basename and skipped any row it could not map, deferring to "the
+  count test" -- which did not exist in that module. "Pact (pact-js)" and
+  "GraphQL Inspector" both missed, so their licence, stars and last-push cells
+  were unverified. The licence assertion had a third hole: guarded by
+  `if want_lic`, a null licence let the table print anything. The comparison is
+  now whole-document against the generator, which cannot skip a row.
+
+- **Optic's entry still carried the fabrication it was supposed to have fixed.**
+  `data/competitive-capabilities.json` recorded Optic's repository as
+  `useoptic/optic`, all its metrics as `null`, a weakness reading "Project no
+  longer published under useoptic org (repo 404 verified 2026-08-23)", and an
+  evidence item asserting that 404 as `VERIFIED`. The project is `opticdev/optic`
+  -- archived and public, MIT, 1,534 stars -- and `useoptic/optic` 404s because
+  it never existed: the repository's own fetcher was asking for the wrong name.
+  A tool failure wearing a `VERIFIED` label, in the file that defines what
+  `VERIFIED` means. Corrected from the fetched artifact, and a new test binds
+  every curated `github_repo` to a repository the fetch actually covered.
+
 - **`result-v1` rejected artifacts from a protocol it shipped.** The published
   `protocol` enum listed `openapi | graphql | grpc` while
   `apiverity.core.model.Protocol` had six members and the AsyncAPI adapter had

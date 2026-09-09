@@ -3,8 +3,8 @@
     "generated_utc": "2026-08-23T16:40:00Z",
     "access_date": "2026-08-23",
     "method_notes": [
-      "Repo metadata (license, stars, last push, archived) and latest releases were fetched live on 2026-08-23 via authenticated gh api (repos/{owner}/{repo} and /releases/latest); raw results preserved in data/competitor-meta.json.",
-      "useoptic/optic returned HTTP 404 on 2026-08-23; the Optic OSS project is no longer published under that org (verified live).",
+      "Repo metadata (license, stars, last push, archived) and latest releases are fetched via authenticated gh api (repos/{owner}/{repo} and /releases/latest) by scripts/fetch_competitor_meta.py. The authoritative copy, and the date it was gathered, live in data/competitor-meta.json under fetched_utc -- restating the date here is how this file and that one came to disagree.",
+      "opticdev/optic is archived and public with 1,534 stars (verified live; see data/competitor-meta.json). An earlier revision of this file recorded 'useoptic/optic returned HTTP 404 ... the Optic OSS project is no longer published under that org (verified live)'. That inference was false and the (verified live) label made it worse: useoptic/optic 404s because it never existed, and this repository's own fetcher was asking for it. The 404 was a bug in the tool, not a fact about the competitor.",
       "apiaryio/dredd is archived (verified live); last release dredd@14.1.0 (2021-11-16).",
       "postmanlabs/newman returned no latest release object on 2026-08-23 (verified live).",
       "Qualitative capability claims are labeled KNOWLEDGE-BASED unless they come from fetched metadata or official documentation quotes.",
@@ -106,13 +106,13 @@
     },
     {
       "name": "Optic",
-      "github_repo": "useoptic/optic",
-      "license_spdx": null,
+      "github_repo": "opticdev/optic",
+      "license_spdx": "MIT",
       "open_source": true,
-      "stars": null,
-      "last_push": null,
-      "latest_release_tag": null,
-      "latest_release_date": null,
+      "stars": 1534,
+      "last_push": "2026-01-08",
+      "latest_release_tag": "v1.0.9",
+      "latest_release_date": "2025-08-10",
       "target_audience": "(historical) API change management in CI",
       "deployment_model": "(historical) CLI + GitHub App",
       "protocol_coverage": ["OpenAPI"],
@@ -121,9 +121,9 @@
       "collaboration_model": "PR comments",
       "enterprise_boundary": "Optic CI was the commercial offering (KNOWLEDGE-BASED)",
       "strengths": ["Pioneered PR-based spec review UX"],
-      "weaknesses_or_tradeoffs": ["Project no longer published under useoptic org (repo 404 verified 2026-08-23); treat as inactive"],
+      "weaknesses_or_tradeoffs": ["Archived 2026-01 with 1,534 stars; no longer maintained, so treat as instructive history rather than a live competitor"],
       "evidence": [
-        {"claim": "useoptic/optic returns 404 on 2026-08-23", "url": "https://api.github.com/repos/useoptic/optic", "access_date": "2026-08-23", "method": "VERIFIED"}
+        {"claim": "opticdev/optic is archived and public with 1,534 stars; last push 2026-01-08, latest release v1.0.9 (2025-08-10)", "url": "https://api.github.com/repos/opticdev/optic", "access_date": "2026-09-09", "method": "VERIFIED"}
       ]
     },
     {
