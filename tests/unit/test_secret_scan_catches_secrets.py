@@ -121,9 +121,9 @@ def test_the_synthetic_filter_needs_a_dominant_run_not_merely_a_run() -> None:
     """
     module = _scanner()
     fixture = '"sk-abcdefghijklmnop1234"'  # secret-scan: allow
-    real_token = '"npm_aB3dEfGhIjKlMnOpQrStUvWxYz0123456789"'  # secret-scan: allow
+    real_shaped_value = '"npm_aB3dEfGhIjKlMnOpQrStUvWxYz0123456789"'  # secret-scan: allow
     assert module.looks_synthetic(fixture)
-    assert not module.looks_synthetic(real_token)
+    assert not module.looks_synthetic(real_shaped_value)
 
 
 def test_every_pattern_is_exercised_by_this_file() -> None:
