@@ -34,6 +34,7 @@ from apiverity.cli.commands.project import cmd_config, cmd_init
 from apiverity.cli.commands.runtime import (
     cmd_baseline,
     cmd_drift,
+    cmd_mcp_inventory,
     cmd_mcp_lock,
     cmd_regression,
     cmd_replay,
@@ -58,6 +59,7 @@ __all__ = [
     "cmd_explain",
     "cmd_export",
     "cmd_init",
+    "cmd_mcp_inventory",
     "cmd_mcp_lock",
     "cmd_mock",
     "cmd_plugins",
@@ -306,6 +308,33 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--timeout", type=float, default=10.0)
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_drift)
+    p = sub.add_parser(
+        "mcp-inventory",
+        help="list the MCP servers this machine is configured to reach, and flag unapproved ones",
+    )
+    p.add_argument("root", nargs="?", default=".", help="project root to read configs under")
+    p.add_argument(
+        "--config",
+        action="append",
+        metavar="PATH",
+        help="an additional client config to read. Repeatable",
+    )
+    p.add_argument(
+        "--inventory",
+        metavar="FILE",
+        help="an approved-server list; anything configured and absent from it is reported",
+    )
+    p.add_argument(
+        "--include-home",
+        action="store_true",
+        help=(
+            "also read the known client configs in the home directory. Off by default: a "
+            "project checkout is what a CI run is entitled to look at"
+        ),
+    )
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_mcp_inventory)
+
     p = sub.add_parser(
         "mcp-lock",
         help="write or check mcp.lock, a reviewed baseline for an MCP tool surface",

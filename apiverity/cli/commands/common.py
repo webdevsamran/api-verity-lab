@@ -150,5 +150,15 @@ def _render_row(d: dict[str, Any]) -> str:
     label = d.get("severity") or d.get("status") or d.get("direction") or ""
     identifier = d.get("rule_id") or d.get("case_id") or d.get("step") or d.get("id") or ""
     text = d.get("message") or d.get("description") or ""
+    if not identifier and not text:
+        # A model with none of these keys. Rendering it as an empty line is
+        # how `apiverity mcp-inventory` printed three blank rows where three
+        # configured servers should have been: the data was in the artifact
+        # and the text output said nothing at all. Falling back to the fields
+        # themselves is uglier and is never silent.
+        fields = ", ".join(
+            f"{key}={value}" for key, value in d.items() if value not in (None, "", [], {})
+        )
+        return f"[{label}] {fields}".strip() if label else fields
     prefix = f"[{label}] " if label else ""
     return f"{prefix}{identifier}  {text}".strip()

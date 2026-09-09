@@ -549,3 +549,35 @@ def cmd_mcp_lock(args: argparse.Namespace) -> int:
     if delta.changed or delta.signature_state == "invalid":
         return EXIT_FINDINGS
     return _gate(delta.findings)
+
+
+def cmd_mcp_inventory(args: argparse.Namespace) -> int:
+    """Which MCP servers this machine is configured to talk to."""
+    from apiverity.runtime.mcp_inventory import coverage_note, take_inventory
+
+    report = take_inventory(
+        getattr(args, "root", "."),
+        extra_configs=list(getattr(args, "config", None) or []),
+        approved_path=getattr(args, "inventory", None),
+        include_home=bool(getattr(args, "include_home", False)),
+    )
+    _emit(
+        {
+            "tool": "apiverity",
+            "command": "mcp-inventory",
+            "root": report.root,
+            "coverage": coverage_note(report),
+            "paths_examined": report.paths_examined,
+            "servers": report.servers,
+            "approved": report.approved,
+            "findings": report.findings,
+        },
+        getattr(args, "json", False),
+    )
+    if not getattr(args, "json", False):
+        # Printed after the payload, because a count of zero is the number a
+        # reader is most likely to misread, and the sentence that qualifies it
+        # has to be the last thing on screen.
+        print()
+        print(coverage_note(report))
+    return _gate(report.findings)

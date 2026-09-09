@@ -31,6 +31,7 @@
         "explain",
         "export",
         "init",
+        "mcp-inventory",
         "mcp-lock",
         "mock",
         "plugins",

@@ -40,6 +40,7 @@ nav:
       - MCP drift: mcp-drift.md
       - MCP tool poisoning: mcp-poisoning.md
       - MCP lockfile: mcp-lock.md
+      - MCP inventory: mcp-inventory.md
       - Compliance mapping: compliance-mapping.md
       - MCP exposure: mcp-exposure.md
   - Guides:
