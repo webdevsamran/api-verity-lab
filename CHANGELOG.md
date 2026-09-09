@@ -4,6 +4,44 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — OpenAPI 3.2
+
+- **OpenAPI 3.2.0 (released 2025-09-19) loads and is governed.** The version
+  gate accepted 3.0 and 3.1 only, so the current release reported as an
+  unsupported version and every construct it added was invisible.
+
+  * the `query` method — a payload-carrying read, formalised because APIs were
+    already tunnelling large filters through POST;
+  * `additionalOperations`, for verbs the specification does not name (WebDAV's
+    `PROPFIND`, a bespoke `PURGE`). They have real request and response shapes,
+    so removing one is breaking like any other operation;
+  * the `querystring` parameter location — the whole query string as one Schema
+    Object, distinct from `query` because a change to it changes every filter
+    at once;
+  * hierarchical tags (`summary`/`parent`/`kind`), which move navigation from
+    the `x-tagGroups` vendor extension into the contract. A `parent` naming no
+    declared tag is reported rather than repaired: guessing which tag was meant
+    would invent structure the document does not have;
+  * the OAuth `deviceAuthorization` flow and `oauth2MetadataUrl`.
+
+  The tests assert *governance*, not parsing: a removed `query` operation fires
+  `BRK-OP-REMOVED`, a tightened `query` body fires
+  `BRK-REQ-FIELD-BECAME-REQUIRED`, a removed `querystring` parameter fires
+  `BRK-PARAM-REMOVED`. A construct that loads and then cannot be reported on is
+  worse than one that never loaded, because it looks covered.
+
+  A 3.3 document is still refused. Parsing an unpublished format on the
+  assumption it resembles 3.2 produces a contract that looks parsed and is wrong.
+
+### Fixed
+
+- **`SecurityScheme.scopes` was declared by the model and never populated.**
+  The parser read `flows` for nothing, so OAuth scope coverage had no data to
+  work from — for any contract, in any version, since the field existed. Flows
+  are now captured per-flow *and* unioned into `scopes`, because dropping a
+  whole flow is breaking in a way that dropping one scope from one flow is not.
+  An OAuth flow no OpenAPI version defines is reported.
+
 ### Added — bundle integrity and scriptable output
 
 - **`apiverity verify <bundle>`.** `export` has always written `SHA256SUMS`

@@ -1,4 +1,4 @@
-"""OpenAPI 3.0/3.1 → normalized contract model.
+"""OpenAPI 3.0/3.1/3.2 → normalized contract model.
 
 Handles JSON/YAML files and URLs, ``$ref`` resolution (with cycle
 detection), source-location preservation (line numbers for YAML,
@@ -35,7 +35,23 @@ from apiverity.core.model import (
 )
 from apiverity.specs import parse_document, read_source
 
-HTTP_METHODS = {"get", "put", "post", "delete", "options", "head", "patch", "trace"}
+#: Versions this adapter understands. A 3.3 document is refused rather than
+#: parsed on the assumption it resembles 3.2: guessing at a format nobody has
+#: published produces a contract that looks parsed and is wrong.
+SUPPORTED_OPENAPI_VERSIONS = ("3.0", "3.1", "3.2")
+
+#: OAuth2 flows any supported OpenAPI version defines. `deviceAuthorization`
+#: is new in 3.2, for inputs a browser cannot reach -- TVs, kiosks, CLIs on
+#: headless machines.
+_KNOWN_OAUTH_FLOWS = frozenset(
+    {"implicit", "password", "clientCredentials", "authorizationCode", "deviceAuthorization"}
+)
+
+#: OpenAPI 3.2 adds `query` as a first-class method -- a payload-carrying read,
+#: formalised because APIs were already tunnelling large filters through POST.
+#: It sits in this set rather than in `additionalOperations` because the
+#: specification names it directly.
+HTTP_METHODS = {"get", "put", "post", "delete", "options", "head", "patch", "trace", "query"}
 
 _VALID_PARAM_LOCATIONS = {loc.value for loc in ParameterLocation}
 
@@ -498,13 +514,13 @@ class OpenApiParser:
                 doc = parse_document(raw)
 
         openapi_version = str(doc.get("openapi", ""))
-        if not openapi_version.startswith(("3.0", "3.1")):
+        if not openapi_version.startswith(SUPPORTED_OPENAPI_VERSIONS):
             self.findings.append(
                 Finding(
                     rule_id="SPEC-VERSION-UNSUPPORTED",
                     severity=Severity.ERROR,
                     message=f"unsupported OpenAPI version '{openapi_version or '(missing)'}'; "
-                    "expected 3.0.x or 3.1.x",
+                    f"expected one of {', '.join(v + '.x' for v in SUPPORTED_OPENAPI_VERSIONS)}",
                     location=self._loc(""),
                 )
             )
@@ -518,6 +534,25 @@ class OpenApiParser:
             source_file=self.file_label,
             source_location=self._loc("/info"),
         )
+
+        # OpenAPI 3.2 tag objects. Before 3.2 structured navigation could only
+        # be expressed through the `x-tagGroups` vendor extension, so a contract
+        # that declares `parent` or `kind` is stating something a diff should be
+        # able to see. Only the fields the specification defines are captured;
+        # unknown keys are left in the document rather than invented into the
+        # model.
+        raw_tags = doc.get("tags")
+        if isinstance(raw_tags, list):
+            for tag in raw_tags:
+                if not isinstance(tag, dict) or not tag.get("name"):
+                    continue
+                captured = {
+                    key: tag[key]
+                    for key in ("name", "summary", "description", "parent", "kind")
+                    if key in tag
+                }
+                service.tags.append(captured)
+            _report_orphan_tag_parents(service, self)
 
         servers = doc.get("servers")
         if isinstance(servers, list):
@@ -535,6 +570,38 @@ class OpenApiParser:
                 if not isinstance(sch, dict):
                     continue
                 loc_raw = sch.get("in")
+                # Flows were never read, so `SecurityScheme.scopes` -- a field
+                # the model has always declared -- was empty for every contract.
+                # Scope coverage reporting cannot work without it.
+                flows: dict[str, dict[str, str]] = {}
+                raw_flows = sch.get("flows")
+                if isinstance(raw_flows, dict):
+                    for flow_name, flow in raw_flows.items():
+                        if not isinstance(flow, dict):
+                            continue
+                        declared = flow.get("scopes")
+                        flows[str(flow_name)] = (
+                            {str(k): str(v) for k, v in declared.items()}
+                            if isinstance(declared, dict)
+                            else {}
+                        )
+                        if str(flow_name) not in _KNOWN_OAUTH_FLOWS:
+                            self.findings.append(
+                                Finding(
+                                    rule_id="SPEC-OAUTH-FLOW-UNKNOWN",
+                                    severity=Severity.WARN,
+                                    message=(
+                                        f"security scheme '{name}' declares OAuth flow "
+                                        f"'{flow_name}', which no OpenAPI version defines"
+                                    ),
+                                    location=self._loc(
+                                        f"/components/securitySchemes/{name}/flows/{flow_name}"
+                                    ),
+                                )
+                            )
+                union: dict[str, str] = {}
+                for granted in flows.values():
+                    union.update(granted)
                 service.security_schemes[str(name)] = SecurityScheme(
                     name=str(name),
                     type=str(sch.get("type", "")),
@@ -543,6 +610,13 @@ class OpenApiParser:
                     else None,
                     scheme=sch.get("scheme"),
                     bearer_format=sch.get("bearerFormat"),
+                    scopes=union,
+                    oauth_flows=flows,
+                    metadata_url=(
+                        str(sch["oauth2MetadataUrl"])
+                        if isinstance(sch.get("oauth2MetadataUrl"), str)
+                        else None
+                    ),
                     deprecated=bool(sch.get("deprecated", False)),
                     source_location=self._loc(f"/components/securitySchemes/{name}", sch),
                 )
@@ -567,11 +641,30 @@ class OpenApiParser:
             # path-level parameters apply to all operations on this path
             path_params_raw = path_item.get("parameters") or []
 
-            for method in HTTP_METHODS:
-                op_node = path_item.get(method)
+            # OpenAPI 3.2 `additionalOperations` carries verbs the specification
+            # does not name -- WebDAV's PROPFIND, a bespoke PURGE. They are real
+            # operations with real request and response shapes, so removing one
+            # has to be a breaking change like any other; the only difference is
+            # where the document keeps them.
+            extra_ops = path_item.get("additionalOperations")
+            operation_nodes: list[tuple[str, Any, str]] = [
+                (method, path_item.get(method), f"{path_pointer}/{method}")
+                for method in sorted(HTTP_METHODS)
+                if path_item.get(method) is not None
+            ]
+            if isinstance(extra_ops, dict):
+                operation_nodes.extend(
+                    (
+                        str(verb).lower(),
+                        node,
+                        f"{path_pointer}/additionalOperations/{self._escape_pointer(str(verb))}",
+                    )
+                    for verb, node in sorted(extra_ops.items())
+                )
+
+            for method, op_node, op_pointer in operation_nodes:
                 if op_node is None:
                     continue
-                op_pointer = f"{path_pointer}/{method}"
                 op_node = self.deref(doc, op_node, op_pointer)
                 if not isinstance(op_node, dict):
                     continue
@@ -666,6 +759,31 @@ class OpenApiParser:
 
         service.operations.sort(key=lambda o: o.key)
         return service, self.findings
+
+
+def _report_orphan_tag_parents(service: Service, parser: OpenApiParser) -> None:
+    """A tag whose `parent` names no declared tag.
+
+    3.2 makes the hierarchy part of the contract, so a dangling parent is a
+    navigation tree that cannot be built -- a rendering tool would drop the
+    branch silently. Reported rather than repaired: guessing which tag was
+    meant would be inventing structure the document does not have.
+    """
+    declared = {str(tag["name"]) for tag in service.tags}
+    for tag in service.tags:
+        parent = tag.get("parent")
+        if parent is not None and str(parent) not in declared:
+            parser.findings.append(
+                Finding(
+                    rule_id="SPEC-TAG-PARENT-UNKNOWN",
+                    severity=Severity.WARN,
+                    message=(
+                        f"tag '{tag['name']}' declares parent '{parent}', which is not a "
+                        "declared tag; the navigation branch cannot be built"
+                    ),
+                    location=parser._loc("/tags"),
+                )
+            )
 
 
 def load_openapi(source: str) -> tuple[Service, list[Finding]]:

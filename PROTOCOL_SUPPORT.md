@@ -6,7 +6,7 @@ Status legend, verified against this repository's code and tests:
 - **PARTIAL** — real foundation exists; named limitations apply.
 - **BLOCKED** — needs hardware/credentials/services we do not have; interface + local mocks only.
 
-| Capability | OpenAPI 3.0/3.1 | Swagger 2.0 | GraphQL SDL | gRPC/protobuf | AsyncAPI | SSE / WebSocket | MCP |
+| Capability | OpenAPI 3.0/3.1/3.2 | Swagger 2.0 | GraphQL SDL | gRPC/protobuf | AsyncAPI | SSE / WebSocket | MCP |
 |---|---|---|---|---|---|---|---|
 | Load + normalize | VERIFIED | VERIFIED | VERIFIED | VERIFIED | PARTIAL | PARTIAL | VERIFIED |
 | Source locations | VERIFIED | VERIFIED | VERIFIED | VERIFIED | PARTIAL | n/a | PARTIAL (JSON pointer, no line numbers) |

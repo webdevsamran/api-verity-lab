@@ -1,0 +1,112 @@
+openapi: 3.2.0
+info:
+  title: Catalog API
+  version: "2.1.0"
+  description: Exercises the constructs OpenAPI 3.2 introduced.
+
+# 3.2: tags gain summary, parent and kind, so navigation is part of the
+# contract instead of an x-tagGroups vendor extension.
+tags:
+  - name: catalog
+    summary: Catalog
+    kind: nav
+  - name: search
+    summary: Search
+    parent: catalog
+    kind: nav
+  - name: admin
+    summary: Administration
+    kind: audience
+
+paths:
+  /products:
+    get:
+      operationId: listProducts
+      tags: [catalog]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100 }
+      responses:
+        "200":
+          description: A page of products.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array }
+    # 3.2: `query` is a first-class method -- a payload-carrying read,
+    # formalised because APIs were already tunnelling large filters through POST.
+    query:
+      operationId: searchProducts
+      tags: [search]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filter]
+              properties:
+                filter: { type: object }
+                sort: { type: string, enum: [price, name, rating] }
+      responses:
+        "200":
+          description: Matching products.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array }
+    # 3.2: verbs the specification does not name still have real shapes.
+    additionalOperations:
+      PURGE:
+        operationId: purgeProductCache
+        tags: [admin]
+        responses:
+          "202": { description: Purge accepted. }
+
+  /reports:
+    get:
+      operationId: getReports
+      tags: [catalog]
+      parameters:
+        # 3.2: the whole query string as one Schema Object, for APIs whose
+        # filters are a structured document rather than a list of pairs.
+        - name: filters
+          in: querystring
+          schema:
+            type: object
+            properties:
+              since: { type: string, format: date }
+              region: { type: string }
+      responses:
+        "200":
+          description: A report.
+          content:
+            application/json:
+              schema: { type: object }
+
+components:
+  securitySchemes:
+    oauth:
+      type: oauth2
+      # 3.2: where a client discovers the provider's configuration.
+      oauth2MetadataUrl: https://auth.example.com/.well-known/oauth-authorization-server
+      flows:
+        authorizationCode:
+          authorizationUrl: https://auth.example.com/authorize
+          tokenUrl: https://auth.example.com/token
+          scopes:
+            catalog:read: Read the catalog
+            catalog:write: Modify the catalog
+        # 3.2: for inputs a browser cannot reach.
+        deviceAuthorization:
+          deviceAuthorizationUrl: https://auth.example.com/device
+          tokenUrl: https://auth.example.com/token
+          scopes:
+            catalog:read: Read the catalog

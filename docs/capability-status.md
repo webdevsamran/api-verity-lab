@@ -11,6 +11,14 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
 - Swagger 2.0 import with loss warnings; bundles + catalog index; ownership mapping — EXISTING
 - AsyncAPI 2.x and 3.x adapter, registered under `apiverity.specs` — EXISTING (`specs/asyncapi.py`); direction normalized to the application's point of view so a 2.x document and its 3.x migration compare as equivalent
 - OpenAPI 3.0/3.1 deepening (callbacks/webhooks/discriminators/security inheritance) — PARTIAL (parser-level support; compat coverage for callbacks is partial)
+- OpenAPI 3.2.0 (released 2025-09-19): the `query` method, `additionalOperations`
+  for verbs the specification does not name, the `querystring` parameter
+  location, hierarchical tags (`summary`/`parent`/`kind`) with a dangling-parent
+  finding, the OAuth `deviceAuthorization` flow and `oauth2MetadataUrl` — all
+  loaded into the shared model, so the existing direction-aware rules govern
+  them. Fixed alongside: `SecurityScheme.scopes` was declared by the model and
+  never populated, so scope coverage had no data for any contract in any
+  version — EXISTING (`specs/openapi/parser.py`)
 - JSON Schema 2020-12-aware comparisons — PARTIAL (shared SchemaNode semantics; `$dynamicRef` not modeled)
 - GraphQL: SDL import with provenance (**fixed in an earlier pass**: a kind-casing bug that silently loaded zero operations), schema-driven query generation, persisted operation documents (`test --operations`), `{data, errors}` envelope assertions, and introspection-based drift (`drift --base-url`) — EXISTING (`specs/graphql/operations.py`, `specs/graphql/runner.py`)
 - gRPC: `.proto` sources and compiled `FileDescriptorSet` input (`.desc`/`.pb`/`.protoset`) — EXISTING (`specs/grpc/descriptor.py`, no protobuf runtime dependency); streaming cardinality, explicit presence, oneof membership and reserved ranges in the diff; wire-compat metadata (`diff/protocol_compat.py`)

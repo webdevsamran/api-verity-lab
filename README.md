@@ -276,7 +276,9 @@ apiverity.specs · apiverity.rules · apiverity.checks
 apiverity.generators · apiverity.exporters · apiverity.transports
 ```
 
-Spec support matrix: OpenAPI 3.0/3.1 ✅ full · AsyncAPI 2.x/3.x ✅ channels,
+Spec support matrix: OpenAPI 3.0/3.1/**3.2** ✅ full, including 3.2's `query`
+method, `additionalOperations`, `querystring` parameters, hierarchical tags and
+the OAuth device flow · AsyncAPI 2.x/3.x ✅ channels,
 messages and direction-aware diffing · GraphQL SDL ✅ operation testing,
 persisted operations and introspection drift ·
 gRPC proto + compiled descriptor sets ✅ streaming, presence, reserved ranges ·

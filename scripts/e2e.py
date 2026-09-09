@@ -28,6 +28,8 @@ def main() -> None:
         "versioned/v1.yaml",
         "versioned/v2.yaml",
         "drift/openapi.yaml",
+        # 3.2 constructs go through the same commands as everything else.
+        "openapi32/catalog.yaml",
     ]:
         code = run(["validate", str(FIX / "apis" / spec)])
         if code not in (0,):

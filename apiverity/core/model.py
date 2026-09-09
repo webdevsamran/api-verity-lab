@@ -125,6 +125,11 @@ class ParameterLocation(StrEnum):
     QUERY = "query"
     HEADER = "header"
     COOKIE = "cookie"
+    #: OpenAPI 3.2: the entire query string as one Schema Object, for APIs
+    #: whose filters are a structured document rather than a list of pairs.
+    #: Distinct from QUERY -- a change to it is a change to every filter at
+    #: once, not to one parameter.
+    QUERYSTRING = "querystring"
 
 
 class Parameter(BaseModel):
@@ -186,7 +191,17 @@ class SecurityScheme(BaseModel):
     location: ParameterLocation | None = None  # for apiKey
     scheme: str | None = None  # bearer, basic, digest for http
     bearer_format: str | None = None
-    scopes: dict[str, str] = Field(default_factory=dict)  # OAuth flow scopes
+    scopes: dict[str, str] = Field(default_factory=dict)  # union of all flow scopes
+    #: Declared OAuth2 flow names -> the scopes each grants. Kept per-flow as
+    #: well as unioned into `scopes`, because dropping a *flow* is breaking in a
+    #: way that dropping one scope from one flow is not.
+    #:
+    #: OpenAPI 3.2 adds `deviceAuthorization`, for inputs a browser cannot
+    #: reach -- TVs, kiosks, CLIs on headless machines.
+    oauth_flows: dict[str, dict[str, str]] = Field(default_factory=dict)
+    #: 3.2 `oauth2MetadataUrl`: where a client discovers the provider's
+    #: configuration.
+    metadata_url: str | None = None
     deprecated: bool = False
     source_location: SourceLocation | None = None
 
@@ -331,6 +346,11 @@ class Service(BaseModel):
     operations: list[Operation] = Field(default_factory=list)
     security_schemes: dict[str, SecurityScheme] = Field(default_factory=dict)
     global_security: list[SecurityRequirement] = Field(default_factory=list)
+    #: OpenAPI 3.2 tag objects: `name`, and optionally `summary`, `parent` and
+    #: `kind`. Structured navigation was previously only expressible through
+    #: the `x-tagGroups` vendor extension, so a contract that declares it is
+    #: saying something a diff should be able to see.
+    tags: list[dict[str, Any]] = Field(default_factory=list)
     # Ownership / governance metadata (CODEOWNERS-style mapping target)
     owner: str | None = None
     team: str | None = None
