@@ -710,3 +710,73 @@ def cmd_budget(args: argparse.Namespace) -> int:
         getattr(args, "json", False),
     )
     return _gate(findings)
+
+
+def cmd_ghosts(args: argparse.Namespace) -> int:
+    """Routes the contract no longer declares that the server still answers."""
+    from apiverity.runtime.ghosts import (
+        Candidate,
+        audit,
+        removed_operations,
+        unmatched_paths,
+    )
+
+    service, _, _ = _load(args.spec)
+    set_last_target(args.base_url)
+
+    candidates: list[Candidate] = []
+    previous: Service | None = None
+    if getattr(args, "was", None):
+        previous, _, _ = _load(args.was)
+        candidates.extend(removed_operations(previous, service))
+
+    if getattr(args, "corpus", None):
+        from apiverity.runtime.corpus_drift import analyze_corpus
+        from apiverity.traffic.redact import RedactionConfig, import_har
+
+        try:
+            entries = import_har(args.corpus, RedactionConfig())
+        except (OSError, ValueError) as exc:
+            print(f"error: could not read corpus '{args.corpus}': {exc}", file=sys.stderr)
+            return EXIT_USAGE
+        quality = analyze_corpus(service, entries, source=args.corpus).quality
+        candidates.extend(unmatched_paths(quality.unmatched_paths, args.corpus))
+
+    if not candidates:
+        # Not a pass. Nothing was asked, so nothing was established, and a
+        # green run here would be the most misleading output in the tool.
+        print(
+            "error: no candidate routes. Pass --was <previous spec> for the operations it "
+            "declared and this one does not, or --corpus <har> for paths real traffic used "
+            "that this contract does not match",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+
+    # Deduplicated, keeping the first reason each route came up.
+    seen: dict[str, Candidate] = {}
+    for candidate in candidates:
+        seen.setdefault(candidate.key, candidate)
+
+    try:
+        report = audit(
+            list(seen.values()),
+            args.base_url,
+            old=previous,
+            timeout=args.timeout,
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        print(f"error: target unreachable: {exc}", file=sys.stderr)
+        return EXIT_UNREACHABLE
+
+    _emit(
+        {
+            "tool": "apiverity",
+            "command": "ghosts",
+            "target": args.base_url,
+            "report": report,
+            "findings": unify_all(report.findings),
+        },
+        getattr(args, "json", False),
+    )
+    return _gate(report.findings)

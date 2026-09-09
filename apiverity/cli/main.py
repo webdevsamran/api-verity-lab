@@ -42,6 +42,7 @@ from apiverity.cli.commands.runtime import (
     cmd_baseline,
     cmd_budget,
     cmd_drift,
+    cmd_ghosts,
     cmd_mcp_inventory,
     cmd_mcp_lock,
     cmd_regression,
@@ -68,6 +69,7 @@ __all__ = [
     "cmd_evidence",
     "cmd_explain",
     "cmd_export",
+    "cmd_ghosts",
     "cmd_init",
     "cmd_mcp_inventory",
     "cmd_mcp_lock",
@@ -419,6 +421,26 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--timeout", type=float, default=10.0)
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_mcp_lock)
+    p = sub.add_parser(
+        "ghosts",
+        help="find routes the contract no longer declares that the server still answers",
+    )
+    p.add_argument("spec", help="the current contract")
+    p.add_argument("--base-url", required=True, help="the deployment to ask")
+    p.add_argument(
+        "--was",
+        metavar="SPEC",
+        help="a previous contract; its operations that this one dropped become candidates",
+    )
+    p.add_argument(
+        "--corpus",
+        metavar="HAR",
+        help="a recorded corpus; paths it used that this contract does not match become candidates",
+    )
+    p.add_argument("--timeout", type=float, default=10.0)
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_ghosts)
+
     p = sub.add_parser("replay")
     p.add_argument("har")
     p.add_argument("--base-url", required=True)

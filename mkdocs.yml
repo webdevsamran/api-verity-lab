@@ -43,6 +43,7 @@ nav:
       - MCP inventory: mcp-inventory.md
       - Call budgets: call-budgets.md
       - Blast radius: blast-radius.md
+      - Ghost routes: ghost-routes.md
       - Compliance mapping: compliance-mapping.md
       - Evidence packs: evidence.md
       - MCP exposure: mcp-exposure.md

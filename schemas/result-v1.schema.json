@@ -32,6 +32,7 @@
         "evidence",
         "explain",
         "export",
+        "ghosts",
         "init",
         "mcp-inventory",
         "mcp-lock",
@@ -208,6 +209,20 @@
               "object",
               "null"
             ]
+          },
+          "status": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "HTTP status a probe observed, on findings that came from one."
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Where a candidate route came from: a previous contract, or a recorded corpus."
           }
         },
         "description": "One finding, in the shape every command emits. `apiverity drift` has four detection modes and each returned a differently-shaped report nested under `report`, outside this contract entirely; every mode now also writes this array. The optional fields below are contributed by the modes that can establish them -- absent means the mode cannot, which is not the same as zero."
