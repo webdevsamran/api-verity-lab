@@ -25,6 +25,7 @@ import contextlib
 import io
 import json
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -35,6 +36,11 @@ sys.path.insert(0, str(ROOT))
 
 #: (label, argv). Each is a command a user runs and whose output a CI gate or
 #: the frontend consumes, so each must satisfy the published schema.
+#: Commands that write files need somewhere to write them. A scratch
+#: directory, not the repository: this script runs in CI on a clean tree and
+#: must leave one.
+_SCRATCH = Path(tempfile.mkdtemp(prefix="apiverity-artifacts-"))
+
 COMMANDS: list[tuple[str, list[str]]] = [
     (
         "diff",
@@ -102,6 +108,32 @@ COMMANDS: list[tuple[str, list[str]]] = [
         ],
     ),
     ("plugins", ["plugins", "--json"]),
+    # `mcp-lock` writes a file, so these two run in order against a scratch
+    # path: write the baseline, then check the same manifest against it. Both
+    # emit artifacts and both name a `command` the enum has to allow.
+    (
+        "mcp-lock write",
+        [
+            "mcp-lock",
+            "write",
+            str(FIXTURES / "mcp/tools_v1.json"),
+            "--lock",
+            str(_SCRATCH / "mcp.lock"),
+            "--force",
+            "--json",
+        ],
+    ),
+    (
+        "mcp-lock check",
+        [
+            "mcp-lock",
+            "check",
+            str(FIXTURES / "mcp/tools_v1.json"),
+            "--lock",
+            str(_SCRATCH / "mcp.lock"),
+            "--json",
+        ],
+    ),
 ]
 
 

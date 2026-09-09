@@ -29,19 +29,23 @@
         "diff",
         "drift",
         "explain",
+        "export",
         "init",
+        "mcp-lock",
+        "mock",
         "plugins",
         "regression",
         "replay",
         "rules",
         "self-test",
-        "mock",
         "serve",
+        "server-db",
         "test",
         "validate",
         "verify",
         "workflow"
-      ]
+      ],
+      "description": "Every command that writes a result artifact, in alphabetical order. `export` and `server-db` were absent while emitting artifacts that named them, so those artifacts violated this schema; tests/unit/test_result_schema_matches_commands.py binds the enum to what the code actually emits and to what the CLI actually defines."
     },
     "contract_hash": {
       "type": "string",

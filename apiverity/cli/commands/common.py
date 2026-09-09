@@ -40,6 +40,20 @@ def set_last_seed(seed: int | None) -> None:
     _LAST_SEED = seed
 
 
+def set_last_contract(path: str | None, protocol: str | None) -> None:
+    """Record a contract read without going through `_load`.
+
+    `mcp-lock` reads a tools/list manifest directly -- from a file or off a
+    live server -- so it never touches `_load`, and its artifacts were stamped
+    with the "no contract" sentinel hash and `protocol_version: unknown` while
+    describing a specific MCP tool surface. Provenance that does not name the
+    thing it came from is worse than absent.
+    """
+    global _LAST_SPEC, _LAST_PROTOCOL
+    _LAST_SPEC = path
+    _LAST_PROTOCOL = protocol
+
+
 def _load(path: str) -> tuple[Service, list[Finding], SpecPlugin]:
     from apiverity.specs import UnrecognizedSpecError
     from apiverity.specs.loader import detect_and_load

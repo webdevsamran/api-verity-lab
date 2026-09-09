@@ -34,6 +34,7 @@ from apiverity.cli.commands.project import cmd_config, cmd_init
 from apiverity.cli.commands.runtime import (
     cmd_baseline,
     cmd_drift,
+    cmd_mcp_lock,
     cmd_regression,
     cmd_replay,
 )
@@ -43,6 +44,7 @@ from apiverity.cli.commands.testing import (
     cmd_test,
     cmd_workflow,
 )
+from apiverity.runtime.mcp_lock import DEFAULT_KEY_ENV, DEFAULT_LOCK_NAME
 
 __all__ = [
     "build_parser",
@@ -56,6 +58,7 @@ __all__ = [
     "cmd_explain",
     "cmd_export",
     "cmd_init",
+    "cmd_mcp_lock",
     "cmd_mock",
     "cmd_plugins",
     "cmd_regression",
@@ -303,6 +306,46 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--timeout", type=float, default=10.0)
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_drift)
+    p = sub.add_parser(
+        "mcp-lock",
+        help="write or check mcp.lock, a reviewed baseline for an MCP tool surface",
+    )
+    p.add_argument("action", choices=["write", "check"])
+    p.add_argument(
+        "source",
+        nargs="?",
+        help="a saved tools/list manifest. Omit and pass --base-url to capture a live one",
+    )
+    p.add_argument("--base-url", help="capture the surface from a live server (read-only)")
+    p.add_argument(
+        "--lock",
+        help=f"lockfile path (default: {DEFAULT_LOCK_NAME})",
+    )
+    p.add_argument("--force", action="store_true", help="overwrite an existing lockfile")
+    p.add_argument(
+        "--surface-version",
+        help=(
+            "the version this surface is being released as. An MCP tool carries no version "
+            "field and SEP-1575 is dormant, so the version lives in the file you own"
+        ),
+    )
+    p.add_argument(
+        "--sign",
+        action="store_true",
+        help=(
+            "add an HMAC over the lock, keyed from --key-env. It detects an edit made by "
+            "something that did not hold the key; it is not provenance"
+        ),
+    )
+    p.add_argument(
+        "--key-env", help=f"environment variable holding the key (default: {DEFAULT_KEY_ENV})"
+    )
+    p.add_argument("--require-minor-for-warnings", action="store_true")
+    p.add_argument("--header", action="append", metavar="NAME=VALUE")
+    p.add_argument("--max-list-pages", type=int, default=50)
+    p.add_argument("--timeout", type=float, default=10.0)
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_mcp_lock)
     p = sub.add_parser("replay")
     p.add_argument("har")
     p.add_argument("--base-url", required=True)

@@ -16,6 +16,7 @@ from apiverity.cli.commands.common import (
     NL,
     _emit,
     _load,
+    set_last_contract,
     set_last_seed,
     set_last_target,
 )
@@ -394,3 +395,157 @@ def _drift_graphql(args: argparse.Namespace) -> int:
         args.json,
     )
     return _gate(findings)
+
+
+def _capture_tools(args: argparse.Namespace) -> tuple[list[dict[str, Any]], str] | int:
+    """The tool surface to lock, from a saved manifest or a live server."""
+    from apiverity.runtime.mcp_lock import tools_from_document
+    from apiverity.specs import parse_document, read_source
+    from apiverity.specs.mcp.manifest import ManifestShapeError
+
+    base_url = getattr(args, "base_url", None)
+    source = getattr(args, "source", None)
+    if bool(base_url) == bool(source):
+        print(
+            "error: mcp-lock needs exactly one of a manifest path or --base-url",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+
+    if base_url:
+        from apiverity.specs.mcp.runner import McpClient, McpTransportError, Observation, list_tools
+
+        headers: dict[str, str] = {}
+        for item in getattr(args, "header", None) or []:
+            name, sep, value = item.partition("=")
+            if not sep:
+                print(f"error: --header expects NAME=VALUE, got {item!r}", file=sys.stderr)
+                return EXIT_USAGE
+            headers[name.strip()] = value.strip()
+        set_last_target(base_url)
+        try:
+            with McpClient(base_url, timeout=args.timeout, headers=headers or None) as client:
+                observation = Observation(endpoint=base_url)
+                tools, _ = list_tools(client, observation, max_pages=args.max_list_pages)
+        except McpTransportError as exc:
+            print(f"error: target unreachable: {exc}", file=sys.stderr)
+            return EXIT_UNREACHABLE
+        if not observation.pagination_exhausted:
+            # A baseline built from part of a tool list would report every tool
+            # on a later page as removed, forever.
+            print(
+                f"error: stopped after {observation.pages_read} pages of tools/list with a "
+                "cursor still set; raise --max-list-pages. A partial capture is not a baseline",
+                file=sys.stderr,
+            )
+            return EXIT_USAGE
+        set_last_contract(None, "mcp")
+        return tools, base_url
+
+    resolved, raw = read_source(str(source))
+    try:
+        tools = tools_from_document(parse_document(raw))
+    except ManifestShapeError as exc:
+        print(f"error: {source} is not an MCP tool manifest: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    set_last_contract(resolved, "mcp")
+    # Posix, because the lockfile is committed and reviewed on every platform
+    # the team uses, and a backslash path in it is noise in every diff opened
+    # somewhere else.
+    return tools, Path(resolved).as_posix()
+
+
+def cmd_mcp_lock(args: argparse.Namespace) -> int:
+    """Write or check `mcp.lock`, a reviewed baseline for a tool surface."""
+    from apiverity import __version__
+    from apiverity.runtime.mcp_lock import (
+        DEFAULT_KEY_ENV,
+        LockError,
+        build_lock,
+        compare,
+        dumps_lock,
+        load_lock,
+    )
+
+    captured = _capture_tools(args)
+    if isinstance(captured, int):
+        return captured
+    tools, source = captured
+
+    lock_path = Path(getattr(args, "lock", None) or "mcp.lock")
+    action = getattr(args, "action", "check")
+
+    if action == "write":
+        if lock_path.exists() and not getattr(args, "force", False):
+            print(
+                f"error: {lock_path} already exists; pass --force to overwrite. Rewriting a "
+                "baseline is the thing this file exists to make visible",
+                file=sys.stderr,
+            )
+            return EXIT_USAGE
+        try:
+            body = build_lock(
+                tools,
+                source=source,
+                tool_version=__version__,
+                surface_version=getattr(args, "surface_version", None) or "1.0.0",
+                key_env=(getattr(args, "key_env", None) or DEFAULT_KEY_ENV)
+                if getattr(args, "sign", False)
+                else None,
+            )
+        except LockError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return EXIT_USAGE
+        lock_path.write_text(dumps_lock(body), encoding="utf-8")
+        _emit(
+            {
+                "tool": "apiverity",
+                "command": "mcp-lock",
+                "action": "write",
+                "lock": str(lock_path),
+                "source": source,
+                "tools_locked": len(tools),
+                "surface_version": body["surface_version"],
+                "surface_hash": body["surface_hash"],
+                "signed": "signature" in body,
+            },
+            getattr(args, "json", False),
+        )
+        return EXIT_OK
+
+    try:
+        body = load_lock(lock_path)
+    except LockError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    delta = compare(
+        body,
+        tools,
+        require_minor_for_warnings=bool(getattr(args, "require_minor_for_warnings", False)),
+    )
+    _emit(
+        {
+            "tool": "apiverity",
+            "command": "mcp-lock",
+            "action": "check",
+            "lock": str(lock_path),
+            "source": source,
+            "changed": delta.changed,
+            "added": delta.added,
+            "removed": delta.removed,
+            "modified": delta.modified,
+            "surface_version": delta.surface_version,
+            "signature": delta.signature_state,
+            "advice": delta.advice,
+            "findings": delta.findings,
+        },
+        getattr(args, "json", False),
+    )
+
+    # Any change fails, not just a breaking one. The subject of this command is
+    # "did the surface move without review", and an added tool -- additive by
+    # every rule in the catalogue -- is exactly the case worth stopping on.
+    if delta.changed or delta.signature_state == "invalid":
+        return EXIT_FINDINGS
+    return _gate(delta.findings)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+import tempfile
 from pathlib import Path
 
 from apiverity.cli.commands.common import EXIT_FINDINGS, EXIT_OK
@@ -48,6 +49,23 @@ def main() -> None:
     code = run(["breaking", str(FIX / "mcp/tools_v1.json"), str(FIX / "mcp/tools_v2.json")])
     if code != EXIT_FINDINGS:
         failures.append(f"breaking mcp -> {code} (expected {EXIT_FINDINGS})")
+
+    # 1c. A baseline written from one manifest must match itself and refuse
+    #     the next version. Exit 1 here is the gate working, not a failure.
+    with tempfile.TemporaryDirectory(prefix="apiverity-e2e-") as scratch:
+        lock = str(Path(scratch) / "mcp.lock")
+        for label, argv, expected in (
+            ("write", ["mcp-lock", "write", str(FIX / "mcp/tools_v1.json"), "--lock", lock], 0),
+            ("check", ["mcp-lock", "check", str(FIX / "mcp/tools_v1.json"), "--lock", lock], 0),
+            (
+                "check (moved)",
+                ["mcp-lock", "check", str(FIX / "mcp/tools_v2.json"), "--lock", lock],
+                EXIT_FINDINGS,
+            ),
+        ):
+            code = run(argv)
+            if code != expected:
+                failures.append(f"mcp-lock {label} -> {code} (expected {expected})")
 
     # 2. diff + breaking + semver
     code = run(["diff", str(FIX / "apis/versioned/v1.yaml"), str(FIX / "apis/versioned/v2.yaml")])
