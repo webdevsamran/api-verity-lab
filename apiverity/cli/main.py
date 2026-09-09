@@ -14,6 +14,7 @@ import argparse
 import sys
 from typing import Any
 
+from apiverity import __version__
 from apiverity.cli.commands.artifacts import cmd_export, cmd_report, cmd_serve
 from apiverity.cli.commands.common import EXIT_INTERNAL, EXIT_OK
 from apiverity.cli.commands.governance import (
@@ -68,6 +69,7 @@ __all__ = [
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="apiverity", description=__doc__)
+    parser.add_argument("--version", action="version", version=f"apiverity {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p = sub.add_parser("validate")

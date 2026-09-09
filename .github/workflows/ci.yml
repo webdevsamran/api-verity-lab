@@ -24,9 +24,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
       - name: Ruff lint
-        run: ruff check apiverity tests scripts
+        run: ruff check apiverity tests scripts .github/scripts
       - name: Ruff format check
-        run: ruff format --check apiverity tests scripts
+        run: ruff format --check apiverity tests scripts .github/scripts
       - name: Type check
         run: mypy apiverity
       - name: Tests with coverage
