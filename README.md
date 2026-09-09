@@ -290,6 +290,55 @@ See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md),
 [ROADMAP.md](ROADMAP.md) and [docs/](docs/).
 
 <!-- related-projects -->
+## Documentation
+
+| Document | What it covers |
+|---|---|
+| [ARCHITECTURE.md](ARCHITECTURE.md) | The normalized contract model every engine reads, and how change ids are built |
+| [docs/rule-catalog.md](docs/rule-catalog.md) | Every breaking-change rule, generated from the code by `scripts/generate_rule_catalog.py` |
+| [docs/spec-support.md](docs/spec-support.md) | What is supported per format: OpenAPI, AsyncAPI, GraphQL, gRPC |
+| [PROTOCOL_SUPPORT.md](PROTOCOL_SUPPORT.md) | Per-protocol status, graded EXISTING / PARTIAL / BLOCKED |
+| [docs/capability-status.md](docs/capability-status.md) | Honest per-capability status, same grading |
+| [docs/workflow-authoring.md](docs/workflow-authoring.md) | Writing stateful workflow manifests |
+| [docs/sdk.md](docs/sdk.md) · [docs/self-hosting.md](docs/self-hosting.md) | Using the library directly; running the server |
+| [docs/ci.md](docs/ci.md) | Wiring the contract gate into a pipeline |
+| [SAFETY_MODEL.md](SAFETY_MODEL.md) · [docs/privacy.md](docs/privacy.md) | What this tool will and will not do to a target |
+| [AGENTS.md](AGENTS.md) | Constraints that are correctness rather than style, for anyone changing the code |
+
+## Contributing
+
+Issues and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the
+development setup and [AGENTS.md](AGENTS.md) for the rules that are not style preferences.
+
+Two are worth stating here, because they are what most changes trip over:
+
+- **Never assert what the run did not establish.** If a field cannot be derived it is
+  `unknown`, with a reason. Fabricated provenance in a tool whose output gates other
+  people's builds is the worst defect this project can ship.
+- **Documented output is captured, never written.** README examples come from
+  `scripts/capture_readme_examples.py`, the rule catalogue from
+  `scripts/generate_rule_catalog.py`, and the competitive table from committed API data.
+  Edit the generator, not the output; CI fails when they disagree.
+
+Security issues go through [SECURITY.md](SECURITY.md), not a public issue.
+
+## How this compares
+
+The API tooling landscape is crowded and largely healthy. 14 projects are tracked in
+[`docs/competitive-analysis.md`](docs/competitive-analysis.md), with license, star count,
+last push and latest release fetched from the GitHub API on 2026-09-09 and committed to
+[`data/competitor-meta.json`](data/competitor-meta.json). The table is generated from that
+file, so it cannot drift from the data it cites.
+
+The short version: **oasdiff** is the healthy incumbent for spec diffing and is worth using
+if diffing is all you need. **Schemathesis** is the reference for property-based API testing.
+**Spectral** owns rule-catalog linting. What none of them do is put diffing, schema-driven
+testing, runtime drift and performance budgets behind *one* contract model and *one* result
+format — which is the only thing this project claims.
+
+Worth knowing: **Optic**, whose domain overlapped this one most directly, was archived in
+January 2026 with 1,534 stars.
+
 ## Related projects
 
 Also by [@webdevsamran](https://github.com/webdevsamran):
