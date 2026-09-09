@@ -29,6 +29,7 @@ from apiverity.cli.commands.governance import (
     cmd_changelog,
     cmd_diff,
     cmd_infer,
+    cmd_sweep,
     cmd_validate,
 )
 from apiverity.cli.commands.platform import (
@@ -84,6 +85,7 @@ __all__ = [
     "cmd_self_test",
     "cmd_serve",
     "cmd_server_db",
+    "cmd_sweep",
     "cmd_test",
     "cmd_validate",
     "cmd_verify",
@@ -112,6 +114,23 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--path", help="config file (default: nearest .apiverity.yaml)")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_config)
+
+    p = sub.add_parser(
+        "sweep",
+        help="every contract in a tree, with an owner and a verdict for each",
+    )
+    p.add_argument("root", nargs="?", default=".", help="directory to walk")
+    p.add_argument(
+        "--base",
+        metavar="DIR",
+        help=(
+            "a checkout to compare against, path for path -- a base branch in a worktree, "
+            "so a monorepo gets one breaking-change verdict instead of one per service"
+        ),
+    )
+    p.add_argument("--limit", type=int, default=500, help="stop after this many contracts")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_sweep)
 
     p = sub.add_parser(
         "infer",

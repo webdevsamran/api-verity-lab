@@ -31,7 +31,7 @@ fuzzing, drift detection, mocking and performance budgets. Each has its own
 result format, its own CI wiring and its own mental model — so findings never
 compose: you can't ask "which endpoints are both under-tested *and* drifting?"
 
-api-verity-lab answers twenty-eight questions from one place:
+api-verity-lab answers twenty-nine questions from one place:
 
 | Question | Command |
 |---|---|
@@ -39,6 +39,7 @@ api-verity-lab answers twenty-eight questions from one place:
 | What changed between API versions? | `apiverity diff old.yaml new.yaml` |
 | Is it breaking, risky or safe? | `apiverity breaking` |
 | Whose build does it break? | `apiverity breaking --consumers consumers.yaml` |
+| Which of a monorepo's forty contracts are failing, and whose are they? | `apiverity sweep . --base ../main` |
 | Was semantic versioning respected? | `apiverity breaking --check-semver` |
 | What version *should* this be? | `apiverity breaking --suggest-version` |
 | Can I paste this into a PR description? | `apiverity breaking --summary` |
@@ -344,7 +345,7 @@ Browsable at **<https://webdevsamran.github.io/api-verity-lab/>**, or as files h
 | [docs/sdk.md](docs/sdk.md) · [docs/self-hosting.md](docs/self-hosting.md) | Using the library directly; running the server |
 | [docs/ci.md](docs/ci.md) | Wiring the contract gate into a pipeline |
 | [SAFETY_MODEL.md](SAFETY_MODEL.md) · [docs/privacy.md](docs/privacy.md) | What this tool will and will not do to a target |
-| [docs/mcp-drift.md](docs/mcp-drift.md) · [docs/mcp-poisoning.md](docs/mcp-poisoning.md) · [docs/mcp-lock.md](docs/mcp-lock.md) · [docs/mcp-inventory.md](docs/mcp-inventory.md) · [docs/call-budgets.md](docs/call-budgets.md) · [docs/blast-radius.md](docs/blast-radius.md) · [docs/ghost-routes.md](docs/ghost-routes.md) · [docs/inferred-contracts.md](docs/inferred-contracts.md) · [docs/mcp-exposure.md](docs/mcp-exposure.md) | Governing MCP servers: drift against a live one, a tool description read as executable text, a reviewed baseline, and exposing this one to agents |
+| [docs/mcp-drift.md](docs/mcp-drift.md) · [docs/mcp-poisoning.md](docs/mcp-poisoning.md) · [docs/mcp-lock.md](docs/mcp-lock.md) · [docs/mcp-inventory.md](docs/mcp-inventory.md) · [docs/call-budgets.md](docs/call-budgets.md) · [docs/blast-radius.md](docs/blast-radius.md) · [docs/ghost-routes.md](docs/ghost-routes.md) · [docs/inferred-contracts.md](docs/inferred-contracts.md) · [docs/monorepo-sweep.md](docs/monorepo-sweep.md) · [docs/mcp-exposure.md](docs/mcp-exposure.md) | Governing MCP servers: drift against a live one, a tool description read as executable text, a reviewed baseline, and exposing this one to agents |
 | [docs/compliance-mapping.md](docs/compliance-mapping.md) · [docs/evidence.md](docs/evidence.md) | Findings mapped onto the OWASP MCP, Agentic and API Top 10s, and packaged as dated evidence for SOC 2, ISO 42001, DORA and the EU AI Act -- including what neither can assess |
 | [AGENTS.md](AGENTS.md) | Constraints that are correctness rather than style, for anyone changing the code |
 

@@ -45,6 +45,7 @@ nav:
       - Blast radius: blast-radius.md
       - Ghost routes: ghost-routes.md
       - Inferred contracts: inferred-contracts.md
+      - Monorepo sweep: monorepo-sweep.md
       - Compliance mapping: compliance-mapping.md
       - Evidence packs: evidence.md
       - MCP exposure: mcp-exposure.md

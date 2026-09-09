@@ -77,8 +77,16 @@ def _looks_like_contract(path: Path) -> bool:
     return _VERSION_DECLARATION.search(head) is not None
 
 
-def discover_contracts(root: Path, *, limit: int = 200) -> list[str]:
-    """Contract-looking files under `root`, as repo-relative posix paths."""
+def discover_contracts(root: Path, *, limit: int = 200, first_match_only: bool = True) -> list[str]:
+    """Contract-looking files under `root`, as repo-relative posix paths.
+
+    `first_match_only` is the difference between the two callers. `init` wants
+    the project's convention: the first directory that yields anything names
+    it, and walking the rest would list files nobody groups together. `sweep`
+    wants everything, because a monorepo keeps contracts in more than one
+    place and a sweep that stopped at the first would report a clean tree it
+    never finished reading.
+    """
     found: list[str] = []
     for directory in _CANDIDATE_DIRS:
         base = root / directory
@@ -93,11 +101,33 @@ def discover_contracts(root: Path, *, limit: int = 200) -> list[str]:
                 continue
             if _looks_like_contract(path):
                 found.append(path.relative_to(root).as_posix())
-        if found:
-            # The first directory that yielded anything is the project's
-            # convention; walking the rest would add files nobody groups
-            # together.
+        if found and first_match_only:
             break
+    return found
+
+
+def discover_contracts_deep(root: Path, *, limit: int = 500) -> list[str]:
+    """Every contract-looking file under `root`, wherever it lives.
+
+    `discover_contracts` looks in the conventional directories at the top of a
+    project, which is right for `init` and wrong for a monorepo: contracts
+    there live at `services/<name>/api/openapi.yaml`, and none of those
+    conventional names appear at the root. A sweep that stopped at the top
+    would report a clean tree it never finished reading.
+
+    The skip list does the work that makes this affordable -- no `node_modules`,
+    no `.git`, no virtualenv -- and `limit` is the backstop.
+    """
+    found: list[str] = []
+    for path in sorted(root.rglob("*")):
+        if len(found) >= limit:
+            break
+        if not path.is_file() or path.suffix.lower() not in _SPEC_SUFFIXES:
+            continue
+        if _SKIP_DIRS & set(path.parts):
+            continue
+        if _looks_like_contract(path):
+            found.append(path.relative_to(root).as_posix())
     return found
 
 
@@ -211,4 +241,4 @@ def cmd_config(args: argparse.Namespace) -> int:
     return EXIT_FINDINGS if errors else EXIT_OK
 
 
-__all__ = ["cmd_config", "cmd_init", "discover_contracts"]
+__all__ = ["cmd_config", "cmd_init", "discover_contracts", "discover_contracts_deep"]

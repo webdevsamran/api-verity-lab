@@ -45,6 +45,7 @@
         "self-test",
         "serve",
         "server-db",
+        "sweep",
         "test",
         "validate",
         "verify",

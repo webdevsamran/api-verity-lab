@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+from typing import Any
 
 from apiverity.cli.commands.common import (
     EXIT_FINDINGS,
@@ -292,3 +293,133 @@ def cmd_infer(args: argparse.Namespace) -> int:
             "not what the API supports -- read it before publishing it."
         )
     return EXIT_OK
+
+
+def cmd_sweep(args: argparse.Namespace) -> int:
+    """Every contract in a tree, with an owner and a verdict for each.
+
+    A monorepo has one contract gate per service and no view across them. This
+    walks the tree once and answers the two questions a platform team actually
+    has: which contracts are failing, and whose they are.
+    """
+    from apiverity.cli.commands.project import discover_contracts_deep
+    from apiverity.core.ownership import load_ownership
+    from apiverity.specs.loader import detect_and_load
+
+    root = Path(getattr(args, "root", ".")).resolve()
+    if not root.is_dir():
+        print(f"error: not a directory: {root}", file=sys.stderr)
+        return EXIT_USAGE
+
+    relative_paths = discover_contracts_deep(root, limit=int(getattr(args, "limit", 500)))
+    if not relative_paths:
+        # Not a pass. Zero contracts found and zero contracts broken look
+        # identical in a summary line, and only one of them is good news.
+        print(
+            f"error: no contracts found under {root}; nothing was swept, which is not the "
+            "same as nothing being wrong",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+
+    ownership = load_ownership(root)
+    base = Path(args.base).resolve() if getattr(args, "base", None) else None
+
+    contracts: list[dict[str, Any]] = []
+    for relative in relative_paths:
+        record: dict[str, Any] = {
+            "path": relative,
+            "owners": list(ownership.owners_of(relative)),
+            "errors": 0,
+            "warnings": 0,
+            "status": "ok",
+        }
+        try:
+            service, load_findings, plugin = detect_and_load(str(root / relative))
+        except Exception as exc:
+            # A contract that will not load is the loudest possible finding
+            # about that contract, and skipping it would make the sweep read
+            # cleaner than the repository is.
+            #
+            # Deliberately every exception, not a curated list. A malformed
+            # YAML file raises `yaml.YAMLError`, which is not a `ValueError`,
+            # so a narrower clause let one bad file in a hundred-service
+            # monorepo end the whole run with "internal error" -- the least
+            # useful thing a sweep can say.
+            record.update(status="unreadable", errors=1, detail=str(exc)[:200])
+            contracts.append(record)
+            continue
+
+        from apiverity.security import run_security_checks
+
+        findings = list(load_findings) + list(run_security_checks(service))
+        record["protocol"] = plugin.protocol().value
+        record["title"] = service.title
+        record["version"] = service.version
+        record["operations"] = len(service.operations)
+
+        if base is not None:
+            previous = base / relative
+            if previous.is_file():
+                from apiverity.diff.engine import diff_services
+                from apiverity.rules.breaking import evaluate_breaking
+
+                try:
+                    old_service, _, _ = detect_and_load(str(previous))
+                except Exception as exc:
+                    record["compared"] = f"base copy unreadable: {str(exc)[:120]}"
+                else:
+                    changes = diff_services(old_service, service)
+                    findings.extend(evaluate_breaking(changes))
+                    record["compared"] = str(previous)
+                    record["changes"] = len(changes)
+            else:
+                # Named rather than silently skipped: "no findings" for a
+                # contract that was never compared is not the same claim.
+                record["compared"] = None
+                record["detail"] = "new in this tree; nothing to compare against"
+
+        record["errors"] = sum(1 for f in findings if f.severity.value == "ERROR")
+        record["warnings"] = sum(1 for f in findings if f.severity.value == "WARN")
+        record["status"] = "failing" if record["errors"] else "ok"
+        record["findings"] = [
+            f.model_dump(mode="json") for f in findings if f.severity.value in ("ERROR", "WARN")
+        ]
+        contracts.append(record)
+
+    by_owner: dict[str, dict[str, Any]] = {}
+    for record in contracts:
+        for owner in record["owners"] or ["(unowned)"]:
+            bucket = by_owner.setdefault(owner, {"contracts": [], "errors": 0, "warnings": 0})
+            bucket["contracts"].append(record["path"])
+            bucket["errors"] += record["errors"]
+            bucket["warnings"] += record["warnings"]
+
+    failing = [r for r in contracts if r["status"] != "ok"]
+    _emit(
+        {
+            "tool": "apiverity",
+            "command": "sweep",
+            "root": str(root),
+            "codeowners": ownership.source,
+            "base": str(base) if base else None,
+            "contracts_found": len(contracts),
+            "contracts_failing": len(failing),
+            "unowned": sorted(r["path"] for r in contracts if not r["owners"]),
+            "contracts": contracts,
+            "by_owner": {k: by_owner[k] for k in sorted(by_owner)},
+        },
+        getattr(args, "json", False),
+    )
+    if not getattr(args, "json", False):
+        print()
+        if ownership.source is None:
+            print("No CODEOWNERS found, so nothing here has an owner.")
+        print(f"{len(failing)} of {len(contracts)} contract(s) failing.")
+        for owner, bucket in sorted(by_owner.items()):
+            if bucket["errors"] or bucket["warnings"]:
+                print(
+                    f"  {owner}: {bucket['errors']} error(s), {bucket['warnings']} warning(s) "
+                    f"across {len(bucket['contracts'])} contract(s)"
+                )
+    return EXIT_FINDINGS if failing else EXIT_OK
