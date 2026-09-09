@@ -314,6 +314,20 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     p.add_argument(
+        "--baseline",
+        metavar="FILE",
+        help=(
+            "a recorded baseline; findings in it are reported as `known` and only new ones "
+            "fail the run. A gate that goes red on its first run against an API with history "
+            "gets made advisory and never comes back"
+        ),
+    )
+    p.add_argument(
+        "--save-baseline",
+        metavar="FILE",
+        help="write this run's findings as a baseline for later comparison",
+    )
+    p.add_argument(
         "--include-response-bodies",
         action="store_true",
         help=(

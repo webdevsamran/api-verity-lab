@@ -86,16 +86,18 @@ def cmd_drift(args: argparse.Namespace) -> int:
     # each returned a differently-shaped report and none of them was covered
     # by the published contract, which constrains a *top-level* `findings`
     # array. Additive: a consumer reading `report.findings` keeps working.
+    findings, trend, code = _with_baseline(args, report.findings, args.base_url)
     _emit(
         {
             "tool": "apiverity",
             "command": "drift",
             "report": report,
-            "findings": unify_all(report.findings),
+            "findings": findings,
+            **({"trend": trend} if trend else {}),
         },
         args.json,
     )
-    return _gate(report.findings)
+    return code
 
 
 def _drift_mcp(args: argparse.Namespace, service: Service) -> int:
@@ -149,6 +151,9 @@ def _drift_mcp(args: argparse.Namespace, service: Service) -> int:
         "report": report,
         "findings": unify_all(report.findings),
     }
+    payload["findings"], trend, mcp_code = _with_baseline(args, report.findings, args.base_url)
+    if trend:
+        payload["trend"] = trend
 
     if invoke:
         from apiverity.runtime.mcp_invoke import InvokeRefused, invoke_tools
@@ -173,7 +178,9 @@ def _drift_mcp(args: argparse.Namespace, service: Service) -> int:
             return EXIT_UNREACHABLE
         payload["invocation"] = invocation
         report.findings.extend(invocation.findings)
-        payload["findings"] = unify_all(report.findings)
+        payload["findings"], trend, mcp_code = _with_baseline(args, report.findings, args.base_url)
+        if trend:
+            payload["trend"] = trend
         if not execute:
             print(
                 f"dry run: {len(invocation.plan)} tool call(s) planned, none sent. "
@@ -182,7 +189,7 @@ def _drift_mcp(args: argparse.Namespace, service: Service) -> int:
             )
 
     _emit(payload, args.json)
-    return _gate(report.findings)
+    return mcp_code
 
 
 def _drift_corpus(
@@ -211,17 +218,24 @@ def _drift_corpus(
         source=corpus,
         forbid_undeclared_fields=forbid_undeclared_fields,
     )
+    # Computed once, before either rendering. The text branch used to fall
+    # through to its own `_gate(report.findings)`, so `--baseline` silenced
+    # nothing unless `--json` was also passed -- a flag that worked in one
+    # output mode and quietly did not in the other.
+    findings, trend, code = _with_baseline(args, report.findings, corpus)
+
     if args.json:
         _emit(
             {
                 "tool": "apiverity",
                 "command": "drift",
                 "report": report,
-                "findings": unify_all(report.findings),
+                "findings": findings,
+                **({"trend": trend} if trend else {}),
             },
             True,
         )
-        return _gate(report.findings)
+        return code
 
     quality = report.quality
     print(f"corpus: {corpus}")
@@ -248,15 +262,24 @@ def _drift_corpus(
         # A frequency with no window behind it is a ratio, not a trend.
         print("  no entry carried a timestamp, so no window can be reported")
 
+    if trend.get("baseline"):
+        print(
+            f"  against baseline {trend['baseline']}: {trend['new']} new, "
+            f"{trend['known']} known, {len(trend['resolved'])} resolved"
+        )
+    if trend.get("saved"):
+        print(f"  baseline written to {trend['saved']}")
+
     if not report.findings:
         print("no drift found")
         return EXIT_OK
 
     print(f"{NL}findings ({len(report.findings)} distinct):")
-    for finding in report.findings:
+    for finding, unified in zip(report.findings, findings, strict=True):
         kind = "systematic" if finding.systematic else ("one-off" if finding.one_off else "")
         share = f"{finding.occurrences}/{finding.observations}"
         suffix = f" [{kind}]" if kind else ""
+        state = f" [{unified['state']}]" if "state" in unified else ""
         span = (
             f", {finding.first_seen} to {finding.last_seen}"
             if finding.first_seen and finding.last_seen != finding.first_seen
@@ -264,9 +287,9 @@ def _drift_corpus(
         )
         print(
             f"  [{finding.severity}] {finding.rule_id} {finding.operation_key}: "
-            f"{finding.message} ({share}, {finding.frequency * 100:.0f}%{span}){suffix}"
+            f"{finding.message} ({share}, {finding.frequency * 100:.0f}%{span}){suffix}{state}"
         )
-    return _gate(report.findings)
+    return code
 
 
 def cmd_replay(args: argparse.Namespace) -> int:
@@ -710,6 +733,54 @@ def cmd_budget(args: argparse.Namespace) -> int:
         getattr(args, "json", False),
     )
     return _gate(findings)
+
+
+def _with_baseline(
+    args: argparse.Namespace, findings: list[Any], target: str
+) -> tuple[list[dict[str, Any]], dict[str, Any], int]:
+    """Unified findings, the baseline block, and the exit code to use.
+
+    Point `drift` at a service that has run for three years and it reports
+    forty true findings, none of which are today's problem. The gate goes red
+    on the first run, somebody makes it advisory, and it never comes back. With
+    a baseline, the gate fails on what is *newly* wrong -- the only thing a
+    pull request can be held responsible for.
+    """
+    from apiverity.runtime.drift_trend import classify, export, read_baseline
+
+    unified = unify_all(findings)
+    block: dict[str, Any] = {}
+
+    save = getattr(args, "save_baseline", None)
+    if save:
+        Path(save).write_text(
+            json.dumps(export(unified, target=target), indent=2) + NL, encoding="utf-8"
+        )
+        block["saved"] = str(save)
+
+    path = getattr(args, "baseline", None)
+    if not path:
+        return unified, block, _gate(findings)
+
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError) as exc:
+        print(f"error: could not read baseline '{path}': {exc}", file=sys.stderr)
+        return unified, block, EXIT_USAGE
+
+    marked, resolved = classify(unified, read_baseline(data))
+    new = [f for f in marked if f["state"] == "new"]
+    block.update(
+        {
+            "baseline": str(path),
+            "known": len(marked) - len(new),
+            "new": len(new),
+            "resolved": resolved,
+        }
+    )
+    # Only the new ones can fail the run. Everything else is history, and it
+    # is still in the artifact under `state: known`.
+    return marked, block, _gate([f for f in marked if f["state"] == "new"])
 
 
 def cmd_ghosts(args: argparse.Namespace) -> int:

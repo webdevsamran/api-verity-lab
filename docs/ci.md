@@ -319,3 +319,29 @@ side has no interval, the tolerance check stands alone.
 Upload the JSON even when the step fails — the intervals and sample counts in
 it are what tell you whether a red gate found a regression or simply ran out
 of samples.
+
+## Adopting a drift gate on an API that already drifts
+
+Point `drift` at a service that has been running for three years and it reports
+forty findings. All true, none of them today's problem. The gate goes red on
+the first run, somebody sets it to advisory, and it never comes back.
+
+Record what is already wrong, once:
+
+```bash
+apiverity drift openapi.yaml --corpus traffic.har --save-baseline drift-baseline.json
+git add drift-baseline.json
+```
+
+Then fail only on what is newly wrong:
+
+```bash
+apiverity drift openapi.yaml --corpus traffic.har --baseline drift-baseline.json
+```
+
+Known findings stay in the artifact with `state: known` -- silenced for the
+gate, not deleted from the report -- and the run names anything in the baseline
+that has since been fixed, because that half is what makes the other half
+credible. Works with any of the four detection modes: a baseline from a live
+probe and one from a recorded corpus are the same kind of file.
+

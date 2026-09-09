@@ -225,6 +225,14 @@
               "null"
             ],
             "description": "Where a candidate route came from: a previous contract, or a recorded corpus."
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "new",
+              "known"
+            ],
+            "description": "Set when a drift run was given a baseline: `known` was already there, `new` is what this run added. Only new findings fail the run; known ones stay in the artifact."
           }
         },
         "description": "One finding, in the shape every command emits. `apiverity drift` has four detection modes and each returned a differently-shaped report nested under `report`, outside this contract entirely; every mode now also writes this array. The optional fields below are contributed by the modes that can establish them -- absent means the mode cannot, which is not the same as zero."

@@ -4,13 +4,29 @@ Compares a current drift report against a stored baseline so newly introduced
 undocumented behavior is distinguishable from legacy drift. Also computes
 observed field frequencies over sanitized traffic corpora to highlight
 optional/undocumented fields.
+
+Why a baseline is the difference between a gate and a wish
+-----------------------------------------------------------
+Point `drift` at a service that has been running for three years and it
+reports forty findings, all of them true and none of them today's problem. The
+gate goes red on the first run, somebody sets it to advisory, and it never
+comes back. A baseline records what was already wrong, so the gate can fail on
+what is *newly* wrong -- which is the only thing a pull request can be held
+responsible for.
+
+Fingerprints are over the unified finding shape rather than over one mode's
+model, so a baseline taken from a live probe and one taken from a recorded
+corpus are the same kind of file. That is only possible because every drift
+mode now writes the same shape.
 """
 
 from __future__ import annotations
 
 import json
 from collections import Counter
+from collections.abc import Mapping
 from dataclasses import dataclass, field
+from typing import Any
 
 from apiverity.runtime.drift import DriftFinding, DriftReport
 
@@ -19,6 +35,59 @@ from apiverity.runtime.drift import DriftFinding, DriftReport
 class TrendEntry:
     fingerprint: str  # operation_key + rule_id + message hash
     state: str  # new | known | resolved | legacy
+
+
+def fingerprint(finding: Mapping[str, Any]) -> str:
+    """A stable id for one finding, over the shape every mode writes.
+
+    Operation, rule and message. Not severity: a finding whose grade was
+    overridden is the same finding, and a baseline that forgot it because
+    somebody changed a threshold would re-report it as new.
+    """
+    basis = "|".join(
+        (
+            str(finding.get("operation_key") or finding.get("tool") or ""),
+            str(finding.get("rule_id") or ""),
+            str(finding.get("message") or ""),
+        )
+    )
+    import hashlib
+
+    return hashlib.sha256(basis.encode("utf-8")).hexdigest()[:16]
+
+
+def classify(
+    findings: list[dict[str, Any]], baseline: set[str]
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Mark each finding new or known, and name what the baseline lost.
+
+    A finding in the baseline and absent now is drift that was fixed, and
+    saying so is the half of the report that makes the other half credible.
+    """
+    marked: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for finding in findings:
+        digest = fingerprint(finding)
+        seen.add(digest)
+        marked.append({**finding, "state": "known" if digest in baseline else "new"})
+    return marked, sorted(baseline - seen)
+
+
+def export(findings: list[dict[str, Any]], *, target: str) -> dict[str, Any]:
+    """A baseline file for the findings a run produced."""
+    return {
+        "baseline_version": 1,
+        "target": target,
+        "fingerprints": sorted({fingerprint(f) for f in findings}),
+        "finding_count": len(findings),
+    }
+
+
+def read_baseline(data: Mapping[str, Any]) -> set[str]:
+    raw = data.get("fingerprints", [])
+    if not isinstance(raw, (list, tuple, set)):
+        return set()
+    return {str(item) for item in raw}
 
 
 def _fingerprint(f: DriftFinding) -> str:
