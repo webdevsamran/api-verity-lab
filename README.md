@@ -292,6 +292,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md),
 <!-- related-projects -->
 ## Documentation
 
+Browsable at **<https://webdevsamran.github.io/api-verity-lab/>**, or as files here:
+
 | Document | What it covers |
 |---|---|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | The normalized contract model every engine reads, and how change ids are built |

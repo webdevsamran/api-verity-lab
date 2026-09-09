@@ -1,0 +1,77 @@
+site_name: api-verity-lab
+site_description: >
+  Unified API contract governance, breaking-change analysis, schema-driven
+  testing, runtime drift detection, traffic replay and performance regression
+  for OpenAPI, AsyncAPI, GraphQL and gRPC.
+site_url: https://webdevsamran.github.io/api-verity-lab/
+repo_url: https://github.com/webdevsamran/api-verity-lab
+repo_name: webdevsamran/api-verity-lab
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+  features:
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+    - search.highlight
+  icon:
+    logo: material/check-decagram
+
+nav:
+  - Home: index.md
+  - Architecture: architecture.md
+  - Roadmap: roadmap.md
+  - Reference:
+      - Rule catalog: rule-catalog.md
+      - Spec support: spec-support.md
+      - Protocol support: protocol-support.md
+      - Exit codes: exit-codes.md
+  - Guides:
+      - CI contract gate: ci.md
+      - SDK: sdk.md
+      - Self-hosting: self-hosting.md
+      - Workflow authoring: workflow-authoring.md
+  - Status:
+      - Capability status: capability-status.md
+      - Product gaps: product-gaps.md
+      - Competitive analysis: competitive-analysis.md
+  - Project:
+      - Contributing: contributing.md
+      - Security policy: security.md
+      - Safety model: safety-model.md
+      - Privacy: privacy.md
+      - Changelog: changelog.md
+      - Code of conduct: code-of-conduct.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.superfences
+  - pymdownx.snippets:
+      # Repo root, so an include can reach ARCHITECTURE.md etc. A `../`
+      # path escapes base_path and pymdownx refuses it -- which is exactly
+      # how devrepro-doctor published empty pages for months.
+      base_path: .
+      check_paths: true
+  - tables
+  - toc:
+      permalink: true
+
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  links:
+    # Root documents included by snippet carry links relative to the repository
+    # root, which is correct where they are mostly read. check_paths above is
+    # the check that matters, and it fails the build.
+    not_found: info
