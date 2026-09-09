@@ -230,3 +230,65 @@ def cmd_changelog(args: argparse.Namespace) -> int:
     elif not args.output:
         print(text)
     return EXIT_OK
+
+
+def cmd_infer(args: argparse.Namespace) -> int:
+    """Draft a contract from recorded traffic, labelled as a draft."""
+    import json
+
+    import yaml
+
+    from apiverity.specs.infer import infer
+    from apiverity.traffic.redact import RedactionConfig, import_har
+
+    try:
+        entries = import_har(args.corpus, RedactionConfig(), include_response_bodies=True)
+    except (OSError, ValueError) as exc:
+        print(f"error: could not read corpus '{args.corpus}': {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    if not entries:
+        # Nothing observed is not an empty API. An inferred document with no
+        # paths would be read as "this service has none".
+        print(
+            f"error: {args.corpus} contains no usable entries; there is nothing to infer from",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+
+    document, provenance = infer(
+        entries,
+        title=getattr(args, "title", None) or "Inferred API",
+        infer_enums=bool(getattr(args, "infer_enums", False)),
+    )
+
+    output = getattr(args, "output", None)
+    if output:
+        text = (
+            json.dumps(document, indent=2) + "\n"
+            if str(output).endswith(".json")
+            else yaml.safe_dump(document, sort_keys=False, allow_unicode=True)
+        )
+        Path(output).write_text(text, encoding="utf-8")
+
+    _emit(
+        {
+            "tool": "apiverity",
+            "command": "infer",
+            "corpus": args.corpus,
+            "output": str(output) if output else None,
+            "provenance": provenance,
+            # Emitted whether or not it was written, so a run with no -o is
+            # still useful in a pipeline.
+            "document": document if not output else None,
+        },
+        getattr(args, "json", False),
+    )
+    if not getattr(args, "json", False):
+        print()
+        print(
+            f"Drafted {provenance['operations']} operation(s) from "
+            f"{provenance['requests_usable']} request(s). This describes what was observed, "
+            "not what the API supports -- read it before publishing it."
+        )
+    return EXIT_OK

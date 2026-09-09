@@ -44,6 +44,7 @@ nav:
       - Call budgets: call-budgets.md
       - Blast radius: blast-radius.md
       - Ghost routes: ghost-routes.md
+      - Inferred contracts: inferred-contracts.md
       - Compliance mapping: compliance-mapping.md
       - Evidence packs: evidence.md
       - MCP exposure: mcp-exposure.md

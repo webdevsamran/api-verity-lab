@@ -33,6 +33,7 @@
         "explain",
         "export",
         "ghosts",
+        "infer",
         "init",
         "mcp-inventory",
         "mcp-lock",

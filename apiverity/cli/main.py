@@ -28,6 +28,7 @@ from apiverity.cli.commands.governance import (
     cmd_breaking,
     cmd_changelog,
     cmd_diff,
+    cmd_infer,
     cmd_validate,
 )
 from apiverity.cli.commands.platform import (
@@ -70,6 +71,7 @@ __all__ = [
     "cmd_explain",
     "cmd_export",
     "cmd_ghosts",
+    "cmd_infer",
     "cmd_init",
     "cmd_mcp_inventory",
     "cmd_mcp_lock",
@@ -110,6 +112,25 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--path", help="config file (default: nearest .apiverity.yaml)")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_config)
+
+    p = sub.add_parser(
+        "infer",
+        help="draft a contract from recorded traffic, labelled as a draft",
+    )
+    p.add_argument("corpus", help="a HAR of recorded requests and responses")
+    p.add_argument("-o", "--output", help="write the document here (.yaml or .json)")
+    p.add_argument("--title", help="what to call the API in the drafted document")
+    p.add_argument(
+        "--infer-enums",
+        action="store_true",
+        help=(
+            "guess an enum from repeated string values. Off by default: a fabricated "
+            "constraint is worse than an absent one, because it turns a valid request into "
+            "a reported violation"
+        ),
+    )
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_infer)
 
     p = sub.add_parser("validate")
     p.add_argument("spec")
