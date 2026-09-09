@@ -38,6 +38,7 @@ from apiverity.core.model import (
     Service,
     Severity,
 )
+from apiverity.security.mcp_poisoning import scan_mcp_manifest
 
 _MUTATING = {"POST", "PUT", "PATCH", "DELETE"}
 _SENSITIVE_RESPONSE_HEADERS = {
@@ -216,6 +217,12 @@ def run_security_checks(
                 )
 
     findings.extend(_authentication_findings(service))
+
+    if service.protocol is Protocol.MCP:
+        # A tool description is the agent's routing input, so it gets read
+        # by software rather than only by people. Nothing else in this
+        # module has a subject like that.
+        findings.extend(scan_mcp_manifest(service))
 
     for op in service.operations:
         for resp in op.responses:

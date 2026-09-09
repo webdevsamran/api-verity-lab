@@ -31,7 +31,7 @@ fuzzing, drift detection, mocking and performance budgets. Each has its own
 result format, its own CI wiring and its own mental model — so findings never
 compose: you can't ask "which endpoints are both under-tested *and* drifting?"
 
-api-verity-lab answers nineteen questions from one place:
+api-verity-lab answers twenty questions from one place:
 
 | Question | Command |
 |---|---|
@@ -44,6 +44,7 @@ api-verity-lab answers nineteen questions from one place:
 | Does the running API match its contract? | `apiverity drift --base-url` |
 | How often did real traffic disagree with it? | `apiverity drift --corpus traffic.har` |
 | Does an MCP server still serve the tools it declared? | `apiverity drift tools.json --base-url` |
+| Is a tool description instructing my agent rather than describing itself? | `apiverity validate tools.mcp.json` |
 | Can an agent ask *this* whether its change is breaking? | `apiverity-mcp --root .` |
 | Can schema-derived edge cases break it? | `apiverity test` |
 | Do multi-step workflows fail? | `apiverity workflow run` |
@@ -335,7 +336,7 @@ Browsable at **<https://webdevsamran.github.io/api-verity-lab/>**, or as files h
 | [docs/sdk.md](docs/sdk.md) · [docs/self-hosting.md](docs/self-hosting.md) | Using the library directly; running the server |
 | [docs/ci.md](docs/ci.md) | Wiring the contract gate into a pipeline |
 | [SAFETY_MODEL.md](SAFETY_MODEL.md) · [docs/privacy.md](docs/privacy.md) | What this tool will and will not do to a target |
-| [docs/mcp-drift.md](docs/mcp-drift.md) · [docs/mcp-exposure.md](docs/mcp-exposure.md) | Governing MCP servers, and exposing this one to agents |
+| [docs/mcp-drift.md](docs/mcp-drift.md) · [docs/mcp-poisoning.md](docs/mcp-poisoning.md) · [docs/mcp-exposure.md](docs/mcp-exposure.md) | Governing MCP servers, reading a tool description as executable text, and exposing this one to agents |
 | [AGENTS.md](AGENTS.md) | Constraints that are correctness rather than style, for anyone changing the code |
 
 ## Contributing
