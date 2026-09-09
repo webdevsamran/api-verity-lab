@@ -86,6 +86,20 @@ def tags_at(action: str, sha: str) -> list[str]:
     return tags
 
 
+def scanned_files() -> list[Path]:
+    """Every file in this repository that can pin a third-party action.
+
+    Workflows were the whole list until `action.yml` existed. A composite
+    action pins actions in exactly the same `uses:` syntax and ships to every
+    consumer who writes `uses: webdevsamran/api-verity-lab@v1`, so leaving it
+    unscanned would put the least-reviewed pin in the most widely executed
+    file -- the supply-chain control skipping the supply chain.
+    """
+    files = sorted(WORKFLOWS.glob("*.yml")) + sorted(WORKFLOWS.glob("*.yaml"))
+    files += [p for p in (ROOT / "action.yml", ROOT / "action.yaml") if p.is_file()]
+    return files
+
+
 def main() -> int:
     if not WORKFLOWS.is_dir():
         print("no .github/workflows directory", file=sys.stderr)
@@ -96,7 +110,7 @@ def main() -> int:
     unresolved: list[str] = []
     checked = 0
 
-    for workflow in sorted(WORKFLOWS.glob("*.yml")) + sorted(WORKFLOWS.glob("*.yaml")):
+    for workflow in scanned_files():
         for lineno, line in enumerate(workflow.read_text(encoding="utf-8").splitlines(), 1):
             if LOCAL.match(line):
                 continue

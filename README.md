@@ -45,7 +45,7 @@ api-verity-lab answers thirteen questions from one place:
 | Can sanitized traffic be replayed safely? | `apiverity replay` |
 | Did latency/error rate regress? | `apiverity regression` |
 | Which endpoints lack coverage? | `apiverity coverage` |
-| Can CI block breaking changes before release? | GitHub Action (included) |
+| Can CI block breaking changes before release? | [GitHub Action](action.yml) (included) |
 | Is a provider version safe to deploy? | `apiverity` server `/v1/can-i-deploy` |
 | Who executes jobs inside our private network? | Workers pull via `POST /v1/jobs/claim` |
 

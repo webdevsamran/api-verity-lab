@@ -32,8 +32,10 @@ Status legend: ✅ shipped · 🚧 in progress · 📋 planned
   Runtime Drift, Performance, Coverage, Result Detail, Docs,
   Contributors, About) on real generated fixture data
 - ✅ `apiverity serve` local bundle server
-- ✅ Reusable GitHub Action / PR summary experience (single non-spammy
-  comment, updated on push; validate/diff/breaking/semver gate)
+- ✅ Composite GitHub Action (`action.yml`) and a reusable workflow. Both
+  exist because they are consumed differently: the action is a step in a job
+  you own, the workflow is a whole job that brings the single non-spammy PR
+  comment. validate/diff/breaking/semver gate either way
 - ✅ Deterministic fixture APIs + integration tests
 
 ## v0.2 — Deepening (second transformation pass, 2026-08-26)

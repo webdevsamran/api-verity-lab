@@ -1,0 +1,239 @@
+name: API Verity contract gate
+description: >-
+  Validate API contracts changed in a pull request, diff them against the base
+  branch, and fail on breaking changes. Works on OpenAPI, AsyncAPI, GraphQL and
+  gRPC contracts through one engine and one result format.
+author: "@webdevsamran"
+
+branding:
+  icon: git-pull-request
+  color: blue
+
+# Why this exists alongside .github/workflows/api-verity.yml
+# ----------------------------------------------------------
+# That file is a reusable *workflow* (`workflow_call`). This is an *action*.
+# They are not interchangeable, and the difference is what a consumer can do:
+#
+#   uses: webdevsamran/api-verity-lab/.github/workflows/api-verity.yml@v1
+#       -> must be a whole job. You get its runner, its Python, its checkout,
+#          and you cannot put your own steps around it.
+#
+#   uses: webdevsamran/api-verity-lab@v1
+#       -> a step inside a job you own. Your matrix, your checkout, your
+#          caching, your steps before and after.
+#
+# The README advertised "GitHub Action (included)" while only the first
+# existed, so anyone who followed that line with the syntax it implies got
+# "Can't find 'action.yml'". Both now exist and the README says which is which.
+
+inputs:
+  spec-paths:
+    description: >-
+      Newline- or space-separated contract paths to check. Leave empty to
+      auto-detect contracts changed in this pull request under `spec-dirs`.
+    required: false
+    default: ""
+  spec-dirs:
+    description: >-
+      Extended regular expression matching directories that hold contracts,
+      used only when `spec-paths` is empty. An allowlist by design: a denylist
+      leaks, and once handed `.pre-commit-config.yaml` to an OpenAPI loader it
+      blocked every merge in this repository.
+    required: false
+    default: '^(fixtures/apis|openapi|specs|contracts)/'
+  base-ref:
+    description: >-
+      Git ref to diff against. Defaults to the pull request's base branch.
+    required: false
+    default: ""
+  fail-on:
+    description: >-
+      Lowest severity that fails the step: `error`, `warn`, or `never`.
+      `never` reports without failing, for adopting the gate on an existing API.
+    required: false
+    default: error
+  check-semver:
+    description: >-
+      Also check that the version bump matches the change (`true`/`false`).
+    required: false
+    default: "true"
+  python-version:
+    description: Python used to run apiverity. 3.11 is the floor.
+    required: false
+    default: "3.12"
+  install-from:
+    description: >-
+      Where to install apiverity from. `action` (default) installs the exact
+      revision the caller pinned with `uses:`, so the tool and this action can
+      never disagree about what a flag means. `pypi` installs the published
+      distribution -- use it once you want to pin the tool independently of the
+      action.
+    required: false
+    default: action
+  version:
+    description: >-
+      Version specifier when `install-from: pypi`, e.g. `==0.2.0`. Empty
+      installs the latest.
+    required: false
+    default: ""
+  working-directory:
+    description: Directory to run in, for monorepos.
+    required: false
+    default: "."
+
+outputs:
+  result:
+    description: '`pass`, `findings`, or `error`.'
+    value: ${{ steps.gate.outputs.result }}
+  specs-checked:
+    description: Number of contracts the gate actually examined.
+    value: ${{ steps.gate.outputs.specs_checked }}
+  findings-count:
+    description: Findings at or above `fail-on`.
+    value: ${{ steps.gate.outputs.findings_count }}
+  artifacts-dir:
+    description: >-
+      Directory of per-contract `result-v1` JSON artifacts. Upload it, or read
+      it in a later step -- the schema is published at
+      schemas/result-v1.schema.json and versioned.
+    value: ${{ steps.gate.outputs.artifacts_dir }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install apiverity
+      shell: bash
+      env:
+        INSTALL_FROM: ${{ inputs.install-from }}
+        VERSION: ${{ inputs.version }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+        case "$INSTALL_FROM" in
+          action)
+            # Installs the revision the caller pinned with `uses:`. No PyPI
+            # round trip, and the action and the tool cannot drift apart.
+            python -m pip install --quiet "$ACTION_PATH"
+            ;;
+          pypi)
+            python -m pip install --quiet "api-verity-lab${VERSION}"
+            ;;
+          *)
+            echo "::error::install-from must be 'action' or 'pypi', got '$INSTALL_FROM'"
+            exit 1
+            ;;
+        esac
+        apiverity --version
+
+    - name: Run the contract gate
+      id: gate
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        SPEC_PATHS: ${{ inputs.spec-paths }}
+        SPEC_DIRS: ${{ inputs.spec-dirs }}
+        BASE_REF: ${{ inputs.base-ref }}
+        FAIL_ON: ${{ inputs.fail-on }}
+        CHECK_SEMVER: ${{ inputs.check-semver }}
+        GITHUB_BASE_REF_FALLBACK: ${{ github.base_ref }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        set -uo pipefail
+
+        ARTIFACTS=".apiverity-artifacts"
+        mkdir -p "$ARTIFACTS"
+        echo "artifacts_dir=$ARTIFACTS" >> "$GITHUB_OUTPUT"
+
+        BASE="${BASE_REF:-$GITHUB_BASE_REF_FALLBACK}"
+
+        if [ -n "${SPEC_PATHS// /}" ]; then
+          SPECS=$(echo "$SPEC_PATHS" | tr ' ' '\n' | grep -v '^$' || true)
+        elif [ -n "$BASE" ]; then
+          git fetch origin "$BASE" --depth=1 >/dev/null 2>&1 || true
+          SPECS=$(git diff --name-only "origin/${BASE}...HEAD" \
+            | grep -E '[.](yaml|yml|json)$' \
+            | grep -E "$SPEC_DIRS" || true)
+        else
+          echo "::error::no spec-paths given and no base ref to diff against"
+          echo "result=error" >> "$GITHUB_OUTPUT"
+          exit 1
+        fi
+
+        # Distinguish "nothing to check" from "everything passed". A gate that
+        # reports success when it examined zero contracts is how a misconfigured
+        # spec-dirs goes unnoticed for months.
+        COUNT=$(echo "$SPECS" | grep -c . || true)
+        echo "specs_checked=$COUNT" >> "$GITHUB_OUTPUT"
+        if [ "$COUNT" -eq 0 ]; then
+          echo "::notice::No contracts changed under $SPEC_DIRS -- nothing to check."
+          echo "result=pass" >> "$GITHUB_OUTPUT"
+          echo "findings_count=0" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        case "$FAIL_ON" in
+          error|warn|never) ;;
+          *) echo "::error::fail-on must be 'error', 'warn' or 'never', got '$FAIL_ON'"
+             echo "result=error" >> "$GITHUB_OUTPUT"; exit 1 ;;
+        esac
+
+        SEMVER_FLAG=""
+        [ "$CHECK_SEMVER" = "true" ] && SEMVER_FLAG="--check-semver"
+
+        TOOL_FAILED=0
+        for spec in $SPECS; do
+          [ -f "$spec" ] || continue
+          SAFE=$(echo "$spec" | tr '/' '_')
+
+          echo "::group::validate $spec"
+          apiverity validate "$spec" || TOOL_FAILED=1
+          echo "::endgroup::"
+
+          if [ -n "$BASE" ] && git show "origin/${BASE}:$spec" > "$ARTIFACTS/.base-spec" 2>/dev/null; then
+            echo "::group::breaking $spec"
+            apiverity breaking "$ARTIFACTS/.base-spec" "$spec" $SEMVER_FLAG --json \
+              > "$ARTIFACTS/${SAFE}.json"
+            CODE=$?
+            # Exit 1 means ERROR-severity findings, which is the gate working.
+            # Anything else is the tool failing, and conflating the two turns a
+            # crash into a clean bill of health.
+            if [ "$CODE" -gt 1 ]; then
+              echo "::error::apiverity breaking exited $CODE on $spec"
+              TOOL_FAILED=1
+            fi
+            echo "::endgroup::"
+          else
+            echo "::notice::$spec is new on this branch -- validated, not diffed."
+          fi
+        done
+        rm -f "$ARTIFACTS/.base-spec"
+
+        # Counted from the artifacts rather than from exit codes. `apiverity
+        # breaking` exits 1 on ERROR only, so an exit-code tally cannot express
+        # `fail-on: warn` and cannot report how many findings there were -- only
+        # how many contracts had any. The artifacts carry per-finding severity
+        # and conform to schemas/result-v1.schema.json, so read those.
+        COUNTS=$(python "$ACTION_PATH/scripts/count_findings.py" "$ARTIFACTS" "$FAIL_ON") || {
+          echo "::error::could not read the emitted result artifacts"
+          echo "result=error" >> "$GITHUB_OUTPUT"
+          exit 1
+        }
+        read -r AT_OR_ABOVE ERRORS WARNS <<< "$COUNTS"
+
+        echo "findings_count=$AT_OR_ABOVE" >> "$GITHUB_OUTPUT"
+        echo "::notice::$ERRORS error(s), $WARNS warning(s) across $COUNT contract(s); failing on '$FAIL_ON'."
+
+        if [ "$TOOL_FAILED" -ne 0 ]; then
+          echo "result=error" >> "$GITHUB_OUTPUT"
+          exit 1
+        fi
+        if [ "$AT_OR_ABOVE" -gt 0 ]; then
+          echo "result=findings" >> "$GITHUB_OUTPUT"
+          exit 1
+        fi
+        echo "result=pass" >> "$GITHUB_OUTPUT"

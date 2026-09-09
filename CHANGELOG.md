@@ -4,6 +4,37 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added
+
+- **A real GitHub Action** (`action.yml`). The README advertised "GitHub Action
+  (included)" when what existed was `.github/workflows/api-verity.yml`, a
+  reusable *workflow*. The two are not interchangeable -- a workflow is consumed
+  as a whole job and brings its own runner, checkout and Python; an action is a
+  step inside a job the caller owns -- so anyone who followed that line with the
+  syntax it implies got "Can't find 'action.yml'". Both exist now, and
+  `docs/ci.md` says which to reach for.
+
+  It installs the exact revision the caller pinned with `uses:` rather than
+  reaching for PyPI, so the action and the tool cannot disagree about what a
+  flag means -- and it works today, which a PyPI default would not, since the
+  distribution is not published yet.
+
+  `fail-on` accepts `error`, `warn` and `never`, and all three do something.
+  `apiverity breaking` exits 1 on ERROR findings only, so a gate built on exit
+  codes could not express `warn` at all; `scripts/count_findings.py` reads
+  severities out of the emitted `result-v1` artifacts instead. `never` reports
+  without failing, which is how you adopt the gate on an API that already has
+  history. A malformed artifact fails the step rather than counting zero.
+
+  The gate also reports `specs-checked`, so a run that examined nothing says so
+  instead of reporting a pass -- which is how a mistyped `spec-dirs` would
+  otherwise go unnoticed.
+
+- `scripts/check_action_pins.py` now scans `action.yml` as well as the
+  workflows. A composite action pins third-party actions in the same `uses:`
+  syntax and ships to every consumer, so leaving it unscanned put the
+  least-reviewed pin in the most widely executed file.
+
 ### Fixed
 
 - **The competitive table was not generated, in three places that said it was.**

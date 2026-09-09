@@ -1,6 +1,93 @@
 # CI Integration
 
-## Blocking breaking changes on PRs
+There are three ways to wire this up, in increasing order of how much you want
+to control. Pick the first one that fits.
+
+## 1. The action (a step in a job you own)
+
+```yaml
+name: api-verity
+on: pull_request
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with: { fetch-depth: 0 }          # the diff needs the base branch
+      - uses: webdevsamran/api-verity-lab@v1
+```
+
+That auto-detects contracts changed in the pull request, validates each one,
+diffs it against the base branch, checks the version bump, and fails on
+ERROR-severity findings.
+
+`fetch-depth: 0` is not optional — with a shallow clone there is no base
+revision to diff against, and the gate degrades to validation only.
+
+Everything is an input:
+
+| Input | Default | What it does |
+|---|---|---|
+| `spec-paths` | *(auto-detect)* | Explicit contracts to check, instead of detecting changes |
+| `spec-dirs` | `^(fixtures/apis\|openapi\|specs\|contracts)/` | Where contracts live. An allowlist by design — see below |
+| `base-ref` | the PR base | What to diff against |
+| `fail-on` | `error` | `error`, `warn`, or `never` to report without failing |
+| `check-semver` | `true` | Also check the version bump matches the change |
+| `python-version` | `3.12` | 3.11 is the floor |
+| `install-from` | `action` | `action` installs the revision you pinned with `uses:`; `pypi` installs the published distribution |
+| `version` | *(latest)* | Version specifier when `install-from: pypi` |
+| `working-directory` | `.` | For monorepos |
+
+and it sets four outputs — `result` (`pass`/`findings`/`error`),
+`specs-checked`, `findings-count`, and `artifacts-dir`, a directory of
+per-contract [`result-v1`](../schemas/result-v1.schema.json) JSON:
+
+```yaml
+      - uses: webdevsamran/api-verity-lab@v1
+        id: gate
+        with: { fail-on: warn }
+      - if: always()
+        run: echo "${{ steps.gate.outputs.findings-count }} findings"
+      - if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: contract-findings
+          path: ${{ steps.gate.outputs.artifacts-dir }}
+```
+
+**`spec-dirs` is an allowlist, deliberately.** A denylist leaks: every new
+root-level YAML a tool adds would be handed to the OpenAPI loader. This
+repository learned that when `.pre-commit-config.yaml` reached the loader and
+blocked every merge.
+
+**Adopting on an existing API?** Start with `fail-on: never`. You get the full
+report and the artifacts on every pull request without blocking anyone, which
+is how you find out what your contract history actually contains before you
+turn the gate on.
+
+## 2. The reusable workflow (a whole job)
+
+If you want the PR-comment experience — one concise summary comment, updated
+on push rather than re-posted:
+
+```yaml
+jobs:
+  contract:
+    uses: webdevsamran/api-verity-lab/.github/workflows/api-verity.yml@v1
+    permissions:
+      contents: read
+      pull-requests: write
+```
+
+This is a *workflow*, not the action above, and the two are not
+interchangeable: a reusable workflow is the whole job and brings its own
+runner, checkout and Python, so you cannot put your own steps around it. The
+action is a step inside a job you control. Use the workflow when you want the
+comment, the action when you want the control.
+
+## 3. Wiring the CLI yourself
 
 ```yaml
 name: api-verity
