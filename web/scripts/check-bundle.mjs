@@ -13,10 +13,18 @@ import { readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
 const ASSETS = join(process.cwd(), 'dist', 'assets')
-const GROUPS = ['overview', 'contract', 'testing', 'runtime', 'team']
-/* Headroom over the measured 197.7 kB entry: enough that ordinary feature
- * work does not trip it, tight enough that an un-split build (225 kB+) does. */
-const ENTRY_BUDGET_BYTES = 210_000
+const GROUPS = ['overview', 'contract', 'testing', 'runtime', 'agents', 'team']
+/* Headroom over the measured entry chunk: enough that ordinary feature work
+ * does not trip it, tight enough that an un-split build does.
+ *
+ * Raised once, from 210,000, when the agent-governance page group took the
+ * entry to 205.7 kB and left 4 kB of room -- less than one feature. The plan
+ * that called for this raise proposed 260,000, and that number would have
+ * been a mistake: an un-split build of this app is around 240 kB, so a
+ * 260,000 budget would pass the exact failure the check exists to catch. The
+ * assertion below now derives that ceiling from the build itself rather than
+ * trusting either number. */
+const ENTRY_BUDGET_BYTES = 220_000
 
 let files
 try {
@@ -47,6 +55,19 @@ for (const group of GROUPS) {
         `so it now ships to every visitor`,
     )
   }
+}
+
+/* The budget has to stay under what an un-split build would weigh, or it
+ * stops being able to detect one. Checked against this build rather than
+ * against a remembered figure, because the remembered figure is what goes
+ * stale. */
+const unsplit = entry ? size(entry) + files.filter((f) => f !== entry).reduce((n, f) => n + size(f), 0) : 0
+if (unsplit && ENTRY_BUDGET_BYTES >= unsplit) {
+  problems.push(
+    `the budget (${ENTRY_BUDGET_BYTES.toLocaleString()} B) is at or above what an ` +
+      `un-split build would weigh (${unsplit.toLocaleString()} B), so it can no longer ` +
+      `detect the failure it exists for. Lower it.`,
+  )
 }
 
 const report = files

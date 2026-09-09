@@ -27,9 +27,9 @@ Status legend: ✅ shipped · 🚧 in progress · 📋 planned
 - ✅ Typed SDK surface
 - ✅ Plugin system (6 entry-point groups)
 - ✅ Reporters: terminal/JSON/YAML/Markdown/JUnit/SARIF/HTML
-- ✅ React+TS frontend with 30 routes across five page groups (Overview,
-  Contract, Testing, Runtime, Team) on real generated fixture data. The count
-  is derived from `web/src/pages/index.tsx` and pinned by
+- ✅ React+TS frontend with 33 routes across six page groups (Overview,
+  Contract, Testing, Runtime, Agents, Team) on real generated fixture data.
+  Both counts are derived from `web/src/pages/index.tsx` and pinned by
   `tests/unit/test_frontend_page_count.py`
 - ✅ `apiverity serve` local bundle server
 - ✅ Composite GitHub Action (`action.yml`) and a reusable workflow. Both

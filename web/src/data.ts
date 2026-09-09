@@ -31,6 +31,23 @@ export interface AuditEvent { id: number; ts: string; actor: string; action: str
 export interface Webhook { id: number; url: string; secret_ref: string; events: string[]; active: number }
 export interface CatalogService { title: string; protocol: string; lifecycle: string; owner: string; product: string; versions: string[]; environments: string[] }
 
+export interface AgentFinding {
+  rule_id: string; severity: 'ERROR' | 'WARN' | 'INFO'; message: string
+  tool?: string | null; operation_key?: string | null
+}
+export interface FleetServer {
+  name: string; endpoint: string; tools_declared: number; tools_served: number
+  protocol_revision: string | null; era: string | null
+  auth: { anonymous_access?: string; anonymous_tool_count?: number | null; target_classification?: string }
+  findings: AgentFinding[]; duration_ms: number
+}
+export interface BudgetLimit { operation_key: string; max_calls: number; window: string }
+export interface AgentsSection {
+  fleet: FleetServer[]
+  poisoning: { manifest: string; tools: number; findings: AgentFinding[] }
+  budget: { window: string; limits: BudgetLimit[]; calls_observed: number; findings: AgentFinding[] }
+}
+
 export interface DemoData {
   meta: { tool: string; generated_from: string; label: string }
   diff: { old_version: string; new_version: string; changes: Change[] }
@@ -59,6 +76,10 @@ export interface DemoData {
     chain_valid: boolean
   }
   catalog?: { services: CatalogService[] }
+  /* Present only in an artifact generated after the agent lane shipped. The
+   * pages say so rather than sitting on a loading state, which is what six
+   * of them did for months against a stale demo file. */
+  agents?: AgentsSection
 }
 
 const cache = new Map<string, Promise<DemoData>>()

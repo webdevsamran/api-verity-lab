@@ -410,6 +410,7 @@ pre.detail {
 
 /* --------------------------------------------------------------- tables */
 
+/* The explicit form: wrap a wide table so *it* scrolls, not the page. */
 .table-wrap { overflow-x: auto; margin-top: var(--s3); border-radius: var(--r-lg); }
 
 table { width: 100%; border-collapse: collapse; margin-top: var(--s3); font-size: var(--text-base); }
@@ -746,6 +747,25 @@ kbd {
   .split { grid-template-columns: 1fr; }
   th { position: static; }
   main { padding: var(--s4) 0; }
+
+  /* A six-column table in a 375px viewport made the whole document 576px
+     wide, so the *page* scrolled sideways -- the header, the nav, everything.
+     `.table-wrap` has existed since the first stylesheet and no page ever
+     used it, which is the more useful half of this fix: the mechanism was
+     there and unused, so the failure was invisible until someone opened the
+     app on a phone.
+
+     `display: block` on a narrow viewport is a trade, not a free win: the
+     table stops sharing column widths across its rows, and browsers size
+     each cell to its own content. On a screen this narrow the columns were
+     never going to line up anyway, and a table that scrolls beats a document
+     that does. Wrap a table in `.table-wrap` to get the same behaviour at
+     every width without the trade. */
+  main table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+  }
 }
 
 @media (max-width: 560px) {

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from apiverity.cli.main import main as cli_main
@@ -119,14 +120,24 @@ def main() -> None:
 
     corpus_path = OUT.parent / "demo-corpus.json"
     export_corpus(cases, str(corpus_path))
+    # `url_path`, not `path`. `TestCase` renamed the field and this line kept
+    # the old name, so the generator has raised AttributeError on every run
+    # since -- and because nothing runs it in CI, the committed
+    # web/public/demo-data.json simply stopped being updated. Six pages that
+    # read sections written after that point have shown "Loading..." forever.
     replay_entries = [
-        ReplayEntry(method=c.method, path=c.path, query=c.query, headers=dict(c.headers), body=None)
+        ReplayEntry(
+            method=c.method, path=c.url_path, query=c.query, headers=dict(c.headers), body=None
+        )
         for c in cases
         if c.method == "GET"
     ]
+    # A target nothing listens on, with an allowlist that contains only it.
+    # The run is dry: the point is the plan, and a plan that reached a live
+    # server would not be one.
     replay_report = replay_corpus(
         replay_entries,
-        mock.base_url if False else "http://127.0.0.1:9/",
+        "http://127.0.0.1:9/",
         allowed_hosts=["http://127.0.0.1:9"],
         dry_run=True,
     )
@@ -223,6 +234,112 @@ def main() -> None:
     del cid1, cid2
 
     # --- API catalog index -----------------------------------------------------
+    # ---------------------------------------------------------------- agents
+    #
+    # A fleet, not a screenshot. Three mock MCP servers with deliberately
+    # different postures are started here and really probed, so the fleet view
+    # renders findings this run produced rather than a hand-written sample:
+    # one that matches its manifest, one that has drifted, and one serving a
+    # tool nobody declared. Every number on that page came off a socket.
+    from apiverity.mock.mcp_server import McpMockServer
+    from apiverity.rules.budget import Budget, Limit
+    from apiverity.rules.budget import evaluate as evaluate_budget
+    from apiverity.runtime.mcp_drift import detect_mcp_drift
+    from apiverity.security.mcp_poisoning import scan_mcp_manifest
+    from apiverity.specs.mcp.manifest import load_manifest
+
+    declared_payload = json.loads((FIX / "mcp/tools_v1.json").read_text(encoding="utf-8"))
+    declared_tools = declared_payload["tools"]
+    declared_service, _ = load_manifest(declared_payload, label="orders-mcp")
+
+    served_v2 = json.loads((FIX / "mcp/tools_v2.json").read_text(encoding="utf-8"))["tools"]
+    with_extra = [
+        *declared_tools,
+        {
+            "name": "export_all_orders",
+            "description": "Exports every order for the tenant.",
+            "inputSchema": {"type": "object", "properties": {}},
+        },
+    ]
+
+    fleet = []
+    for name, served in (
+        ("orders-mcp", declared_tools),
+        ("orders-mcp-canary", served_v2),
+        ("partner-mcp", with_extra),
+    ):
+        with McpMockServer(served) as server:
+            report = detect_mcp_drift(declared_service, server.endpoint)
+        fleet.append(
+            {
+                "name": name,
+                "endpoint": report.target,
+                "tools_declared": report.tools_declared,
+                "tools_served": report.tools_served,
+                "protocol_revision": report.observation.get("protocol_revision"),
+                "era": report.observation.get("era"),
+                "auth": report.auth_posture,
+                "findings": [f.model_dump() for f in report.findings],
+                "duration_ms": report.duration_ms,
+            }
+        )
+
+    poisoned_payload = json.loads((FIX / "mcp/tools_poisoned.json").read_text(encoding="utf-8"))
+    poisoned_service, _ = load_manifest(poisoned_payload, label="tools_poisoned")
+    poisoning_findings = [f.model_dump() for f in scan_mcp_manifest(poisoned_service)]
+
+    budget = Budget(
+        version=1,
+        window="1m",
+        limits=[
+            Limit(operation_key="tool cancel_order", max_calls=0, window="1m"),
+            Limit(operation_key="tool search_orders", max_calls=3, window="1m"),
+            Limit(operation_key="tool list_regions", max_calls=50, window="1m"),
+        ],
+        source="demo budget (in-memory)",
+    )
+    # A burst that straddles a clock minute: two and three in tumbling
+    # buckets, five in the sliding window the checker actually uses.
+    burst_start = datetime(2026, 3, 1, 12, 0, 50, tzinfo=UTC)
+    budget_calls = [
+        {
+            "operation_key": "tool search_orders",
+            "at": (burst_start + timedelta(seconds=10 * n)).isoformat(),
+        }
+        for n in range(5)
+    ] + [
+        {"operation_key": "tool cancel_order", "at": burst_start.isoformat()},
+        {"operation_key": "tool undeclared_helper", "at": burst_start.isoformat()},
+    ]
+    budget_findings = [
+        f.model_dump()
+        for f in evaluate_budget(
+            budget, budget_calls, declared_operations={op.key for op in declared_service.operations}
+        )
+    ]
+
+    agents_section = {
+        "fleet": fleet,
+        "poisoning": {
+            "manifest": "fixtures/mcp/tools_poisoned.json",
+            "tools": len(poisoned_service.operations),
+            "findings": poisoning_findings,
+        },
+        "budget": {
+            "window": budget.window,
+            "limits": [
+                {
+                    "operation_key": lim.operation_key,
+                    "max_calls": lim.max_calls,
+                    "window": lim.window,
+                }
+                for lim in budget.limits
+            ],
+            "calls_observed": len(budget_calls),
+            "findings": budget_findings,
+        },
+    }
+
     catalog_section = {
         "services": [
             {
@@ -291,6 +408,7 @@ def main() -> None:
         "replay": replay_section,
         "org": org_section,
         "catalog": catalog_section,
+        "agents": agents_section,
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(payload, indent=2), encoding="utf-8")

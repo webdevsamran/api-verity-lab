@@ -1,7 +1,7 @@
 {
   "meta": {
     "tool": "apiverity",
-    "generated_from": "fixtures/apis (crud, versioned v1->v2, drift)",
+    "generated_from": "fixtures/apis (crud, versioned v1->v2, drift) + self-hosted server store snapshot",
     "label": "EXAMPLE RUN \u2014 generated locally from bundled fixture APIs"
   },
   "diff": {
@@ -9,7 +9,7 @@
     "new_version": "2.0.0",
     "changes": [
       {
-        "id": "CHG-OPERATION_REMOVED-1",
+        "id": "CHG-OPERATION_REMOVED-92658ed2-1",
         "kind": "operation_removed",
         "direction": "meta",
         "operation_key": "DELETE /users/{id}",
@@ -26,7 +26,7 @@
         "breaking_hint": "existing clients calling this operation will fail"
       },
       {
-        "id": "CHG-PARAMETER_REQUIREDNESS-1",
+        "id": "CHG-PARAMETER_REQUIREDNESS-ca0e1629-1",
         "kind": "parameter_requiredness",
         "direction": "request",
         "operation_key": "GET /users",
@@ -48,31 +48,51 @@
         "breaking_hint": "parameter became required: existing clients omitting it will fail"
       },
       {
-        "id": "CHG-PARAMETER_CONSTRAINT_CHANGED-1",
+        "id": "CHG-PARAMETER_CONSTRAINT_CHANGED-ca0e1629-1",
         "kind": "parameter_constraint_changed",
         "direction": "request",
         "operation_key": "GET /users",
         "description": "request parameter 'limit': constraint 'minimum' changed 1 -> 10",
-        "old_location": null,
-        "new_location": null,
+        "old_location": {
+          "file": "v1.yaml",
+          "line": 12,
+          "column": 19,
+          "pointer": "/paths/~1users/get/parameters/0/schema"
+        },
+        "new_location": {
+          "file": "v2.yaml",
+          "line": 13,
+          "column": 19,
+          "pointer": "/paths/~1users/get/parameters/0/schema"
+        },
         "old_value": 1,
         "new_value": 10,
         "breaking_hint": null
       },
       {
-        "id": "CHG-PARAMETER_CONSTRAINT_CHANGED-2",
+        "id": "CHG-PARAMETER_CONSTRAINT_CHANGED-ca0e1629-2",
         "kind": "parameter_constraint_changed",
         "direction": "request",
         "operation_key": "GET /users",
         "description": "request parameter 'limit': constraint 'maximum' changed 100 -> 50",
-        "old_location": null,
-        "new_location": null,
+        "old_location": {
+          "file": "v1.yaml",
+          "line": 12,
+          "column": 19,
+          "pointer": "/paths/~1users/get/parameters/0/schema"
+        },
+        "new_location": {
+          "file": "v2.yaml",
+          "line": 13,
+          "column": 19,
+          "pointer": "/paths/~1users/get/parameters/0/schema"
+        },
         "old_value": 100,
         "new_value": 50,
         "breaking_hint": null
       },
       {
-        "id": "CHG-ENUM_CHANGED-1",
+        "id": "CHG-ENUM_CHANGED-ca0e1629-1",
         "kind": "enum_changed",
         "direction": "response",
         "operation_key": "GET /users",
@@ -91,8 +111,8 @@
         },
         "old_value": [
           "admin",
-          "user",
-          "guest"
+          "guest",
+          "user"
         ],
         "new_value": [
           "admin",
@@ -101,7 +121,7 @@
         "breaking_hint": "enum values removed: ['guest']"
       },
       {
-        "id": "CHG-ENUM_CHANGED-2",
+        "id": "CHG-ENUM_CHANGED-e870987d-1",
         "kind": "enum_changed",
         "direction": "response",
         "operation_key": "GET /users/{id}",
@@ -120,8 +140,8 @@
         },
         "old_value": [
           "admin",
-          "user",
-          "guest"
+          "guest",
+          "user"
         ],
         "new_value": [
           "admin",
@@ -130,7 +150,7 @@
         "breaking_hint": "enum values removed: ['guest']"
       },
       {
-        "id": "CHG-ENUM_CHANGED-3",
+        "id": "CHG-ENUM_CHANGED-f73482dc-1",
         "kind": "enum_changed",
         "direction": "request",
         "operation_key": "POST /users",
@@ -149,8 +169,8 @@
         },
         "old_value": [
           "admin",
-          "user",
-          "guest"
+          "guest",
+          "user"
         ],
         "new_value": [
           "admin",
@@ -159,7 +179,7 @@
         "breaking_hint": "enum values removed: ['guest']"
       },
       {
-        "id": "CHG-REQUEST_SCHEMA_CHANGED-1",
+        "id": "CHG-REQUEST_SCHEMA_CHANGED-f73482dc-1",
         "kind": "request_schema_changed",
         "direction": "request",
         "operation_key": "POST /users",
@@ -171,7 +191,7 @@
         "breaking_hint": "request body became required"
       },
       {
-        "id": "CHG-DESCRIPTION_CHANGED-1",
+        "id": "CHG-DESCRIPTION_CHANGED-5eaae590-1",
         "kind": "description_changed",
         "direction": "meta",
         "operation_key": "(service)",
@@ -198,7 +218,7 @@
           "pointer": "/paths/~1users~1{id}/delete"
         },
         "new_location": null,
-        "change_id": "CHG-OPERATION_REMOVED-1",
+        "change_id": "CHG-OPERATION_REMOVED-92658ed2-1",
         "hint": "existing clients calling this operation will fail",
         "metadata": {}
       },
@@ -219,7 +239,7 @@
           "column": 11,
           "pointer": "/paths/~1users/get/parameters/0"
         },
-        "change_id": "CHG-PARAMETER_REQUIREDNESS-1",
+        "change_id": "CHG-PARAMETER_REQUIREDNESS-ca0e1629-1",
         "hint": "parameter became required: existing clients omitting it will fail",
         "metadata": {}
       },
@@ -228,9 +248,19 @@
         "severity": "ERROR",
         "message": "request parameter 'limit': constraint 'minimum' changed 1 -> 10",
         "operation_key": "GET /users",
-        "location": null,
-        "new_location": null,
-        "change_id": "CHG-PARAMETER_CONSTRAINT_CHANGED-1",
+        "location": {
+          "file": "v1.yaml",
+          "line": 12,
+          "column": 19,
+          "pointer": "/paths/~1users/get/parameters/0/schema"
+        },
+        "new_location": {
+          "file": "v2.yaml",
+          "line": 13,
+          "column": 19,
+          "pointer": "/paths/~1users/get/parameters/0/schema"
+        },
+        "change_id": "CHG-PARAMETER_CONSTRAINT_CHANGED-ca0e1629-1",
         "hint": null,
         "metadata": {}
       },
@@ -239,9 +269,19 @@
         "severity": "ERROR",
         "message": "request parameter 'limit': constraint 'maximum' changed 100 -> 50",
         "operation_key": "GET /users",
-        "location": null,
-        "new_location": null,
-        "change_id": "CHG-PARAMETER_CONSTRAINT_CHANGED-2",
+        "location": {
+          "file": "v1.yaml",
+          "line": 12,
+          "column": 19,
+          "pointer": "/paths/~1users/get/parameters/0/schema"
+        },
+        "new_location": {
+          "file": "v2.yaml",
+          "line": 13,
+          "column": 19,
+          "pointer": "/paths/~1users/get/parameters/0/schema"
+        },
+        "change_id": "CHG-PARAMETER_CONSTRAINT_CHANGED-ca0e1629-2",
         "hint": null,
         "metadata": {}
       },
@@ -262,7 +302,7 @@
           "column": 15,
           "pointer": "/paths/~1users/get/responses/200/content/application~1json/schema/items/properties/role"
         },
-        "change_id": "CHG-ENUM_CHANGED-1",
+        "change_id": "CHG-ENUM_CHANGED-ca0e1629-1",
         "hint": "enum values removed: ['guest']",
         "metadata": {}
       },
@@ -283,7 +323,7 @@
           "column": 15,
           "pointer": "/paths/~1users~1{id}/get/responses/200/content/application~1json/schema/properties/role"
         },
-        "change_id": "CHG-ENUM_CHANGED-2",
+        "change_id": "CHG-ENUM_CHANGED-e870987d-1",
         "hint": "enum values removed: ['guest']",
         "metadata": {}
       },
@@ -304,7 +344,7 @@
           "column": 15,
           "pointer": "/paths/~1users/post/requestBody/content/application~1json/schema/properties/role"
         },
-        "change_id": "CHG-ENUM_CHANGED-3",
+        "change_id": "CHG-ENUM_CHANGED-f73482dc-1",
         "hint": "enum values removed: ['guest']",
         "metadata": {}
       },
@@ -315,7 +355,7 @@
         "operation_key": "POST /users",
         "location": null,
         "new_location": null,
-        "change_id": "CHG-REQUEST_SCHEMA_CHANGED-1",
+        "change_id": "CHG-REQUEST_SCHEMA_CHANGED-f73482dc-1",
         "hint": "request body became required",
         "metadata": {}
       }
@@ -336,7 +376,7 @@
         "violations": [],
         "reproduction": "curl -X DELETE 'http://127.0.0.1:8095/users/qah'",
         "minimized": false,
-        "duration_ms": 11
+        "duration_ms": 18
       },
       {
         "case_id": "TC-000-001",
@@ -350,7 +390,7 @@
         ],
         "reproduction": "curl -X DELETE 'http://127.0.0.1:8095/users/12345'",
         "minimized": false,
-        "duration_ms": 7
+        "duration_ms": 2
       },
       {
         "case_id": "TC-001-000",
@@ -362,7 +402,7 @@
         "violations": [],
         "reproduction": "curl -X GET 'http://127.0.0.1:8095/users?limit=5'",
         "minimized": false,
-        "duration_ms": 11
+        "duration_ms": 3
       },
       {
         "case_id": "TC-001-001",
@@ -376,7 +416,7 @@
         ],
         "reproduction": "curl -X GET 'http://127.0.0.1:8095/users?limit=not-an-int'",
         "minimized": false,
-        "duration_ms": 14
+        "duration_ms": 2
       },
       {
         "case_id": "TC-001-002",
@@ -390,7 +430,7 @@
         ],
         "reproduction": "curl -X GET 'http://127.0.0.1:8095/users?limit=0'",
         "minimized": false,
-        "duration_ms": 13
+        "duration_ms": 2
       },
       {
         "case_id": "TC-002-000",
@@ -402,7 +442,7 @@
         "violations": [],
         "reproduction": "curl -X GET 'http://127.0.0.1:8095/users/kow'",
         "minimized": false,
-        "duration_ms": 10
+        "duration_ms": 2
       },
       {
         "case_id": "TC-002-001",
@@ -416,7 +456,7 @@
         ],
         "reproduction": "curl -X GET 'http://127.0.0.1:8095/users/12345'",
         "minimized": false,
-        "duration_ms": 8
+        "duration_ms": 2
       },
       {
         "case_id": "TC-003-000",
@@ -428,7 +468,7 @@
         "violations": [],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"hmc\", \"email\": \"user@example.com\", \"age\": 2, \"role\": \"admin\"}'",
         "minimized": false,
-        "duration_ms": 9
+        "duration_ms": 2
       },
       {
         "case_id": "TC-003-001",
@@ -442,7 +482,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '[\"not\", \"an-object\"]'",
         "minimized": false,
-        "duration_ms": 9
+        "duration_ms": 2
       },
       {
         "case_id": "TC-003-002",
@@ -456,7 +496,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"email\": \"user@example.com\", \"age\": 79, \"role\": \"guest\"}'",
         "minimized": false,
-        "duration_ms": 12
+        "duration_ms": 2
       },
       {
         "case_id": "TC-003-003",
@@ -470,7 +510,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": 12345, \"email\": \"user@example.com\", \"age\": 109, \"role\": \"admin\"}'",
         "minimized": false,
-        "duration_ms": 11
+        "duration_ms": 2
       },
       {
         "case_id": "TC-003-004",
@@ -484,7 +524,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"\", \"email\": \"user@example.com\", \"age\": 8, \"role\": \"admin\"}'",
         "minimized": false,
-        "duration_ms": 10
+        "duration_ms": 2
       },
       {
         "case_id": "TC-003-005",
@@ -498,7 +538,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"aiu\", \"email\": 12345, \"age\": 135, \"role\": \"guest\"}'",
         "minimized": false,
-        "duration_ms": 9
+        "duration_ms": 2
       },
       {
         "case_id": "TC-003-006",
@@ -512,7 +552,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"nqq\", \"email\": \"user@example.com\", \"age\": \"not-an-int\", \"role\": \"guest\"}'",
         "minimized": false,
-        "duration_ms": 8
+        "duration_ms": 2
       },
       {
         "case_id": "TC-003-007",
@@ -526,7 +566,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"rmj\", \"email\": \"user@example.com\", \"age\": -1, \"role\": \"user\"}'",
         "minimized": false,
-        "duration_ms": 9
+        "duration_ms": 14
       },
       {
         "case_id": "TC-003-008",
@@ -540,7 +580,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"kvd\", \"email\": \"user@example.com\", \"age\": 116, \"role\": 12345}'",
         "minimized": false,
-        "duration_ms": 8
+        "duration_ms": 2
       },
       {
         "case_id": "TC-003-009",
@@ -554,7 +594,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"cjw\", \"email\": \"user@example.com\", \"age\": 7, \"role\": \"__invalid_enum_2555\"}'",
         "minimized": false,
-        "duration_ms": 9
+        "duration_ms": 12
       }
     ]
   },
@@ -587,44 +627,156 @@
         "requests": 15,
         "errors": 15,
         "timeouts": 0,
-        "p50_ms": 2006.79,
-        "p90_ms": 2021.22,
-        "p95_ms": 2023.0,
-        "p99_ms": 2023.0,
-        "throughput_rps": 0.5
+        "samples": 15,
+        "warmup": 0,
+        "unreachable": 15,
+        "p50_ms": 2032.09,
+        "p90_ms": 2048.25,
+        "p95_ms": 2061.7,
+        "p99_ms": 2061.7,
+        "p50_ci95": [
+          2026.17,
+          2040.83
+        ],
+        "p90_ci95": [
+          2039.97,
+          2061.7
+        ],
+        "p95_ci95": [
+          2040.83,
+          2061.7
+        ],
+        "p99_ci95": [
+          2040.83,
+          2061.7
+        ],
+        "throughput_rps": 0.49,
+        "throughput_ci95": [
+          0.49,
+          0.49
+        ],
+        "error_rate_pct": 100.0,
+        "error_rate_ci95": [
+          79.6117,
+          100.0
+        ]
       },
       {
         "operation_key": "GET /users",
         "requests": 15,
         "errors": 15,
         "timeouts": 0,
-        "p50_ms": 2006.27,
-        "p90_ms": 2021.85,
-        "p95_ms": 2022.41,
-        "p99_ms": 2022.41,
-        "throughput_rps": 0.5
+        "samples": 15,
+        "warmup": 0,
+        "unreachable": 15,
+        "p50_ms": 2033.02,
+        "p90_ms": 2051.27,
+        "p95_ms": 2069.54,
+        "p99_ms": 2069.54,
+        "p50_ci95": [
+          2031.18,
+          2044.08
+        ],
+        "p90_ci95": [
+          2042.68,
+          2069.54
+        ],
+        "p95_ci95": [
+          2044.08,
+          2069.54
+        ],
+        "p99_ci95": [
+          2044.08,
+          2069.54
+        ],
+        "throughput_rps": 0.49,
+        "throughput_ci95": [
+          0.49,
+          0.49
+        ],
+        "error_rate_pct": 100.0,
+        "error_rate_ci95": [
+          79.6117,
+          100.0
+        ]
       },
       {
         "operation_key": "GET /users/{id}",
         "requests": 15,
         "errors": 15,
         "timeouts": 0,
-        "p50_ms": 2007.4,
-        "p90_ms": 2013.51,
-        "p95_ms": 2023.04,
-        "p99_ms": 2023.04,
-        "throughput_rps": 0.5
+        "samples": 15,
+        "warmup": 0,
+        "unreachable": 15,
+        "p50_ms": 2025.0,
+        "p90_ms": 2043.27,
+        "p95_ms": 2051.24,
+        "p99_ms": 2051.24,
+        "p50_ci95": [
+          2018.07,
+          2034.23
+        ],
+        "p90_ci95": [
+          2033.6,
+          2051.24
+        ],
+        "p95_ci95": [
+          2034.23,
+          2051.24
+        ],
+        "p99_ci95": [
+          2034.23,
+          2051.24
+        ],
+        "throughput_rps": 0.49,
+        "throughput_ci95": [
+          0.49,
+          0.49
+        ],
+        "error_rate_pct": 100.0,
+        "error_rate_ci95": [
+          79.6117,
+          100.0
+        ]
       },
       {
         "operation_key": "POST /users",
         "requests": 15,
         "errors": 15,
         "timeouts": 0,
-        "p50_ms": 2007.28,
-        "p90_ms": 2011.33,
-        "p95_ms": 2012.92,
-        "p99_ms": 2012.92,
-        "throughput_rps": 0.5
+        "samples": 15,
+        "warmup": 0,
+        "unreachable": 15,
+        "p50_ms": 2035.14,
+        "p90_ms": 2047.86,
+        "p95_ms": 2051.19,
+        "p99_ms": 2051.19,
+        "p50_ci95": [
+          2020.73,
+          2042.39
+        ],
+        "p90_ci95": [
+          2038.77,
+          2051.19
+        ],
+        "p95_ci95": [
+          2042.39,
+          2051.19
+        ],
+        "p99_ci95": [
+          2042.39,
+          2051.19
+        ],
+        "throughput_rps": 0.49,
+        "throughput_ci95": [
+          0.49,
+          0.49
+        ],
+        "error_rate_pct": 100.0,
+        "error_rate_ci95": [
+          79.6117,
+          100.0
+        ]
       }
     ]
   },
@@ -701,7 +853,7 @@
     ]
   },
   "rules": {
-    "count": 35,
+    "count": 57,
     "catalog": [
       {
         "rule_id": "BRK-CONSTRAINT-LOOSENED",
@@ -739,6 +891,21 @@
         "description": "Enum values were added (additive)."
       },
       {
+        "rule_id": "BRK-FIELD-NUMBER-REUSED",
+        "severity": "ERROR",
+        "description": "A protobuf field number now names a different field; stored data misdecodes."
+      },
+      {
+        "rule_id": "BRK-FIELD-NUMBER-UNRESERVED",
+        "severity": "WARN",
+        "description": "A protobuf field was removed without reserving its number."
+      },
+      {
+        "rule_id": "BRK-FIELD-PRESENCE-LOST",
+        "severity": "ERROR",
+        "description": "A protobuf field lost explicit presence; unset and default are now the same."
+      },
+      {
         "rule_id": "BRK-HEADER-ADDED",
         "severity": "INFO",
         "description": "A new response header was declared."
@@ -749,9 +916,84 @@
         "description": "A declared response header was removed."
       },
       {
+        "rule_id": "BRK-MCP-ANNOTATION-DECLARATION-CHANGED",
+        "severity": "INFO",
+        "description": "An annotation moved between false and undeclared without changing what it asserts."
+      },
+      {
+        "rule_id": "BRK-MCP-DESTRUCTIVE-HINT-CLEARED",
+        "severity": "WARN",
+        "description": "A tool stopped declaring destructiveHint; hosts may stop gating behaviour that nobody re-verified as safe."
+      },
+      {
+        "rule_id": "BRK-MCP-DESTRUCTIVE-HINT-SET",
+        "severity": "WARN",
+        "description": "A tool now declares it may perform irreversible updates."
+      },
+      {
+        "rule_id": "BRK-MCP-IDEMPOTENT-HINT-CLEARED",
+        "severity": "WARN",
+        "description": "A tool stopped claiming idempotentHint; a retry that was safe may now duplicate its effect."
+      },
+      {
+        "rule_id": "BRK-MCP-IDEMPOTENT-HINT-SET",
+        "severity": "WARN",
+        "description": "A tool now claims idempotentHint; hosts may begin retrying a call that was not previously retry-safe."
+      },
+      {
+        "rule_id": "BRK-MCP-MANIFEST-TRUNCATED",
+        "severity": "ERROR",
+        "description": "One side is a single page of a paginated tools/list. Every tool past the page boundary reads as removed, so the whole comparison is unsound."
+      },
+      {
+        "rule_id": "BRK-MCP-OPENWORLD-HINT-CHANGED",
+        "severity": "INFO",
+        "description": "openWorldHint changed. It describes the domain a tool reaches into and constrains no caller."
+      },
+      {
+        "rule_id": "BRK-MCP-OUTPUT-SCHEMA-ADDED",
+        "severity": "WARN",
+        "description": "A tool now declares an outputSchema, so its own results must conform to it from this version on."
+      },
+      {
+        "rule_id": "BRK-MCP-OUTPUT-SCHEMA-REMOVED",
+        "severity": "ERROR",
+        "description": "A tool stopped declaring an outputSchema; consumers parsing its structuredContent lose the guarantee they were written against."
+      },
+      {
+        "rule_id": "BRK-MCP-READONLY-HINT-CLEARED",
+        "severity": "WARN",
+        "description": "A tool stopped claiming readOnlyHint. A host that auto-approved it as safe to call may now be invoking something that writes."
+      },
+      {
+        "rule_id": "BRK-MCP-READONLY-HINT-SET",
+        "severity": "WARN",
+        "description": "A tool now claims readOnlyHint; hosts may stop asking for confirmation on a claim nobody verified."
+      },
+      {
+        "rule_id": "BRK-MCP-TOOL-DESCRIPTION-CHANGED",
+        "severity": "WARN",
+        "description": "A tool description changed. For an MCP tool the description is the routing input the model reads, not documentation for a human, so a silent edit can redirect an agent (OWASP MCP03, tool poisoning). WARN rather than ERROR because copy edits are routine; raise it with --severity-override if you treat a manifest as supply chain."
+      },
+      {
+        "rule_id": "BRK-MCP-TOOL-RENAME-SUSPECTED",
+        "severity": "INFO",
+        "description": "Exactly one tool disappeared and one appeared with an identical schema. Context for the removal, which is still reported: a manifest carries no identity but the name, so a rename cannot be distinguished from remove-plus-add."
+      },
+      {
         "rule_id": "BRK-MEDIA-TYPE-CHANGED",
         "severity": "ERROR",
         "description": "A request/response media type was added or removed."
+      },
+      {
+        "rule_id": "BRK-ONEOF-NARROWED",
+        "severity": "ERROR",
+        "description": "A protobuf field moved into a oneof; it is now exclusive with the others."
+      },
+      {
+        "rule_id": "BRK-ONEOF-WIDENED",
+        "severity": "INFO",
+        "description": "A protobuf field moved out of a oneof; no existing sender can notice."
       },
       {
         "rule_id": "BRK-OP-ADDED",
@@ -829,9 +1071,19 @@
         "description": "A request body field became required."
       },
       {
+        "rule_id": "BRK-REQ-FIELD-OPTIONALIZED",
+        "severity": "INFO",
+        "description": "A request body field became optional; senders are unaffected."
+      },
+      {
         "rule_id": "BRK-REQ-FIELD-REMOVED",
         "severity": "ERROR",
         "description": "A request body field was removed."
+      },
+      {
+        "rule_id": "BRK-RESERVATION-REMOVED",
+        "severity": "WARN",
+        "description": "A protobuf field number is no longer reserved and can be reused by mistake."
       },
       {
         "rule_id": "BRK-RESP-CONSTRAINT-TIGHTENED",
@@ -842,6 +1094,11 @@
         "rule_id": "BRK-RESP-FIELD-ADDED",
         "severity": "INFO",
         "description": "A response body field was added (consumers ignore unknown fields)."
+      },
+      {
+        "rule_id": "BRK-RESP-FIELD-OPTIONALIZED",
+        "severity": "ERROR",
+        "description": "A response field is no longer guaranteed; consumers reading it unconditionally will break."
       },
       {
         "rule_id": "BRK-RESP-FIELD-REMOVED",
@@ -874,6 +1131,11 @@
         "description": "A gRPC RPC was removed; existing callers will fail."
       },
       {
+        "rule_id": "BRK-RPC-STREAMING-CHANGED",
+        "severity": "ERROR",
+        "description": "An RPC changed streaming cardinality; generated clients call it wrongly."
+      },
+      {
         "rule_id": "BRK-SECURITY-CHANGED",
         "severity": "ERROR",
         "description": "Security requirements changed; unprepared clients fail auth."
@@ -895,7 +1157,7 @@
           "extracted": {
             "user_id": "1"
           },
-          "duration_ms": 23
+          "duration_ms": 27
         },
         {
           "step": "get",
@@ -903,7 +1165,7 @@
           "actual_status": 200,
           "violations": [],
           "extracted": {},
-          "duration_ms": 28
+          "duration_ms": 27
         },
         {
           "step": "delete",
@@ -911,7 +1173,7 @@
           "actual_status": 204,
           "violations": [],
           "extracted": {},
-          "duration_ms": 27
+          "duration_ms": 25
         }
       ],
       "cleanup_steps": [
@@ -921,7 +1183,7 @@
           "actual_status": 204,
           "violations": [],
           "extracted": {},
-          "duration_ms": 22
+          "duration_ms": 24
         }
       ],
       "variables": {
@@ -985,5 +1247,859 @@
         ]
       }
     ]
+  },
+  "semver": {
+    "old_version": "1.2.0",
+    "new_version": "2.0.0",
+    "required_bump": "major",
+    "compliant": true,
+    "findings": []
+  },
+  "changelog": {
+    "markdown": "# Changelog: Verity CRUD API (fixture)\n\n**1.2.0 \u2192 2.0.0**\n\n\ud83d\udd34 BREAKING x6 | \ud83d\udd35 INFO x1 | \ud83d\udfe1 RISKY x2\n\n## API\n\n### `(service)`\n\n- \ud83d\udd35 INFO \u2014 `CHG-DESCRIPTION_CHANGED-5eaae590-1` contract version changed '1.2.0' -> '2.0.0'\n\n### `DELETE /users/{id}`\n\n- \ud83d\udd34 BREAKING \u2014 `CHG-OPERATION_REMOVED-92658ed2-1` operation 'DELETE /users/{id}' was removed\n\n### `GET /users`\n\n- \ud83d\udd34 BREAKING \u2014 `CHG-PARAMETER_REQUIREDNESS-ca0e1629-1` parameter 'limit' (query) requiredness changed False -> True\n- \ud83d\udd34 BREAKING \u2014 `CHG-PARAMETER_CONSTRAINT_CHANGED-ca0e1629-1` request parameter 'limit': constraint 'minimum' changed 1 -> 10\n- \ud83d\udd34 BREAKING \u2014 `CHG-PARAMETER_CONSTRAINT_CHANGED-ca0e1629-2` request parameter 'limit': constraint 'maximum' changed 100 -> 50\n- \ud83d\udfe1 RISKY \u2014 `CHG-ENUM_CHANGED-ca0e1629-1` response 200 body (application/json)[].role: enum changed (removed ['guest'], added [])\n\n### `GET /users/{id}`\n\n- \ud83d\udfe1 RISKY \u2014 `CHG-ENUM_CHANGED-e870987d-1` response 200 body (application/json).role: enum changed (removed ['guest'], added [])\n\n### `POST /users`\n\n- \ud83d\udd34 BREAKING \u2014 `CHG-ENUM_CHANGED-f73482dc-1` request body (application/json).role: enum changed (removed ['guest'], added [])\n- \ud83d\udd34 BREAKING \u2014 `CHG-REQUEST_SCHEMA_CHANGED-f73482dc-1` request body requiredness changed False -> True\n"
+  },
+  "minimizer": {
+    "attempted": 17,
+    "results": [
+      {
+        "case_id": "TC-000-000",
+        "operation_key": "DELETE /users/{id}",
+        "kind": "positive",
+        "description": "valid request to DELETE /users/{id}",
+        "status": "pass",
+        "actual_status": 204,
+        "violations": [],
+        "reproduction": "curl -X DELETE 'http://127.0.0.1:8095/users/qah'",
+        "minimized": false,
+        "duration_ms": 18
+      },
+      {
+        "case_id": "TC-000-001",
+        "operation_key": "DELETE /users/{id}",
+        "kind": "negative",
+        "description": "path parameter 'id' invalid: wrong type (expected string)",
+        "status": "fail",
+        "actual_status": 204,
+        "violations": [
+          "invalid input accepted with 204 (expected 4xx)"
+        ],
+        "reproduction": "curl -X DELETE 'http://127.0.0.1:8095/users/12345'",
+        "minimized": false,
+        "duration_ms": 2
+      },
+      {
+        "case_id": "TC-001-000",
+        "operation_key": "GET /users",
+        "kind": "positive",
+        "description": "valid request to GET /users",
+        "status": "pass",
+        "actual_status": 200,
+        "violations": [],
+        "reproduction": "curl -X GET 'http://127.0.0.1:8095/users?limit=5'",
+        "minimized": false,
+        "duration_ms": 3
+      },
+      {
+        "case_id": "TC-001-001",
+        "operation_key": "GET /users",
+        "kind": "negative",
+        "description": "parameter 'limit' invalid: wrong type (expected integer)",
+        "status": "fail",
+        "actual_status": 200,
+        "violations": [
+          "invalid input accepted with 200 (expected 4xx)"
+        ],
+        "reproduction": "curl -X GET 'http://127.0.0.1:8095/users?limit=not-an-int'",
+        "minimized": false,
+        "duration_ms": 2
+      },
+      {
+        "case_id": "TC-001-002",
+        "operation_key": "GET /users",
+        "kind": "negative",
+        "description": "parameter 'limit' invalid: value < minimum(1)",
+        "status": "fail",
+        "actual_status": 200,
+        "violations": [
+          "invalid input accepted with 200 (expected 4xx)"
+        ],
+        "reproduction": "curl -X GET 'http://127.0.0.1:8095/users?limit=0'",
+        "minimized": false,
+        "duration_ms": 2
+      },
+      {
+        "case_id": "TC-002-000",
+        "operation_key": "GET /users/{id}",
+        "kind": "positive",
+        "description": "valid request to GET /users/{id}",
+        "status": "pass",
+        "actual_status": 200,
+        "violations": [],
+        "reproduction": "curl -X GET 'http://127.0.0.1:8095/users/kow'",
+        "minimized": false,
+        "duration_ms": 2
+      },
+      {
+        "case_id": "TC-002-001",
+        "operation_key": "GET /users/{id}",
+        "kind": "negative",
+        "description": "path parameter 'id' invalid: wrong type (expected string)",
+        "status": "fail",
+        "actual_status": 200,
+        "violations": [
+          "invalid input accepted with 200 (expected 4xx)"
+        ],
+        "reproduction": "curl -X GET 'http://127.0.0.1:8095/users/12345'",
+        "minimized": false,
+        "duration_ms": 2
+      },
+      {
+        "case_id": "TC-003-000",
+        "operation_key": "POST /users",
+        "kind": "positive",
+        "description": "valid request to POST /users",
+        "status": "pass",
+        "actual_status": 201,
+        "violations": [],
+        "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"hmc\", \"email\": \"user@example.com\", \"age\": 2, \"role\": \"admin\"}'",
+        "minimized": false,
+        "duration_ms": 2
+      },
+      {
+        "case_id": "TC-003-001",
+        "operation_key": "POST /users",
+        "kind": "negative",
+        "description": "request body invalid: wrong type (expected object)",
+        "status": "fail",
+        "actual_status": 201,
+        "violations": [
+          "invalid input accepted with 201 (expected 4xx)"
+        ],
+        "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '[\"not\", \"an-object\"]'",
+        "minimized": false,
+        "duration_ms": 2
+      },
+      {
+        "case_id": "TC-003-002",
+        "operation_key": "POST /users",
+        "kind": "negative",
+        "description": "request body invalid: missing required field 'name'",
+        "status": "fail",
+        "actual_status": 201,
+        "violations": [
+          "invalid input accepted with 201 (expected 4xx)"
+        ],
+        "reproduction": "curl -X POST 'http://127.0.0.1:8097/users' -H 'Content-Type: application/json' -d '{}'",
+        "minimized": true,
+        "duration_ms": 0
+      },
+      {
+        "case_id": "TC-003-003",
+        "operation_key": "POST /users",
+        "kind": "negative",
+        "description": "request body invalid: field 'name': wrong type (expected string)",
+        "status": "fail",
+        "actual_status": 201,
+        "violations": [
+          "invalid input accepted with 201 (expected 4xx)"
+        ],
+        "reproduction": "curl -X POST 'http://127.0.0.1:8097/users' -H 'Content-Type: application/json' -d '{\"name\": 12345}'",
+        "minimized": true,
+        "duration_ms": 0
+      },
+      {
+        "case_id": "TC-003-004",
+        "operation_key": "POST /users",
+        "kind": "negative",
+        "description": "request body invalid: field 'name': length < minLength(1)",
+        "status": "fail",
+        "actual_status": 201,
+        "violations": [
+          "invalid input accepted with 201 (expected 4xx)"
+        ],
+        "reproduction": "curl -X POST 'http://127.0.0.1:8097/users' -H 'Content-Type: application/json' -d '{\"name\": \"\"}'",
+        "minimized": true,
+        "duration_ms": 0
+      },
+      {
+        "case_id": "TC-003-005",
+        "operation_key": "POST /users",
+        "kind": "negative",
+        "description": "request body invalid: field 'email': wrong type (expected string)",
+        "status": "fail",
+        "actual_status": 201,
+        "violations": [
+          "invalid input accepted with 201 (expected 4xx)"
+        ],
+        "reproduction": "curl -X POST 'http://127.0.0.1:8097/users' -H 'Content-Type: application/json' -d '{\"name\": \"aiu\"}'",
+        "minimized": true,
+        "duration_ms": 0
+      },
+      {
+        "case_id": "TC-003-006",
+        "operation_key": "POST /users",
+        "kind": "negative",
+        "description": "request body invalid: field 'age': wrong type (expected integer)",
+        "status": "fail",
+        "actual_status": 201,
+        "violations": [
+          "invalid input accepted with 201 (expected 4xx)"
+        ],
+        "reproduction": "curl -X POST 'http://127.0.0.1:8097/users' -H 'Content-Type: application/json' -d '{\"name\": \"nqq\"}'",
+        "minimized": true,
+        "duration_ms": 0
+      },
+      {
+        "case_id": "TC-003-007",
+        "operation_key": "POST /users",
+        "kind": "negative",
+        "description": "request body invalid: field 'age': value < minimum(0)",
+        "status": "fail",
+        "actual_status": 201,
+        "violations": [
+          "invalid input accepted with 201 (expected 4xx)"
+        ],
+        "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"rmj\", \"email\": \"user@example.com\", \"age\": -1, \"role\": \"user\"}'",
+        "minimized": false,
+        "duration_ms": 14
+      },
+      {
+        "case_id": "TC-003-008",
+        "operation_key": "POST /users",
+        "kind": "negative",
+        "description": "request body invalid: field 'role': wrong type (expected string)",
+        "status": "fail",
+        "actual_status": 201,
+        "violations": [
+          "invalid input accepted with 201 (expected 4xx)"
+        ],
+        "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"kvd\", \"email\": \"user@example.com\", \"age\": 116, \"role\": 12345}'",
+        "minimized": false,
+        "duration_ms": 2
+      },
+      {
+        "case_id": "TC-003-009",
+        "operation_key": "POST /users",
+        "kind": "negative",
+        "description": "request body invalid: field 'role': value outside enum ['admin', 'user', 'guest']",
+        "status": "fail",
+        "actual_status": 201,
+        "violations": [
+          "invalid input accepted with 201 (expected 4xx)"
+        ],
+        "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"cjw\", \"email\": \"user@example.com\", \"age\": 7, \"role\": \"__invalid_enum_2555\"}'",
+        "minimized": false,
+        "duration_ms": 12
+      }
+    ]
+  },
+  "replay": {
+    "manifest": {
+      "target": "http://127.0.0.1:9/",
+      "corpus": "demo-corpus.json",
+      "entries": 5,
+      "rate_per_second": 10.0,
+      "safety_class": "dev",
+      "destructive_methods_allowed": false
+    },
+    "dry_run": {
+      "target": "http://127.0.0.1:9/",
+      "dry_run": true,
+      "sent": 0,
+      "skipped": 5,
+      "statuses": {}
+    }
+  },
+  "org": {
+    "org": {
+      "id": 1,
+      "name": "acme-demo"
+    },
+    "users": [
+      {
+        "id": 1,
+        "subject": "alice",
+        "display_name": "Alice Chen",
+        "role": "owner",
+        "kind": "user"
+      },
+      {
+        "id": 2,
+        "subject": "bob",
+        "display_name": "Bob Diaz",
+        "role": "member",
+        "kind": "user"
+      },
+      {
+        "id": 3,
+        "subject": "svc-ci",
+        "display_name": "",
+        "role": "member",
+        "kind": "service_account"
+      }
+    ],
+    "contracts": [
+      {
+        "id": 1,
+        "title": "Catalog",
+        "version": "1.0.0",
+        "protocol": "openapi",
+        "checksum": "82caf8d8777f8bd8fd0ba60b8c1e449173c1195c11bfc885ac96b681df8c7731",
+        "published_by": "alice",
+        "published_at": "2026-09-09T18:47:01.425494+00:00"
+      },
+      {
+        "id": 2,
+        "title": "Catalog",
+        "version": "2.0.0",
+        "protocol": "openapi",
+        "checksum": "82caf8d8777f8bd8fd0ba60b8c1e449173c1195c11bfc885ac96b681df8c7731",
+        "published_by": "alice",
+        "published_at": "2026-09-09T18:47:01.425592+00:00"
+      }
+    ],
+    "environments": [
+      {
+        "id": 1,
+        "org_id": 1,
+        "name": "dev",
+        "base_url": "http://127.0.0.1:8095",
+        "safety_class": "dev",
+        "owner": "platform",
+        "allowed_modes": "read-only"
+      },
+      {
+        "id": 2,
+        "org_id": 1,
+        "name": "staging",
+        "base_url": "https://staging.internal",
+        "safety_class": "staging",
+        "owner": "platform",
+        "allowed_modes": "read-only"
+      }
+    ],
+    "policies": [
+      {
+        "name": "breaking",
+        "content": "max_breaking=0\nrequire_approval_on_breaking=true"
+      }
+    ],
+    "approvals": [
+      {
+        "id": 1,
+        "org_id": 1,
+        "contract_title": "Catalog",
+        "from_version": "1.0.0",
+        "to_version": "2.0.0",
+        "justification": "remove legacy sort param",
+        "migration_guide": null,
+        "status": "approved",
+        "requested_by": "bob",
+        "decided_by": "alice",
+        "created_at": "2026-09-09T18:47:01.425761+00:00",
+        "decided_at": "2026-09-09T18:47:01.425836+00:00"
+      }
+    ],
+    "runs": [
+      {
+        "id": 1,
+        "kind": "verification",
+        "status": "passed",
+        "requested_by": "svc-ci",
+        "verification_for": "Catalog@2.0.0",
+        "environment": "staging"
+      },
+      {
+        "id": 2,
+        "kind": "load",
+        "status": "running",
+        "requested_by": "svc-ci",
+        "verification_for": null,
+        "environment": "staging"
+      }
+    ],
+    "audit_events": [
+      {
+        "id": 4,
+        "org_id": 1,
+        "ts": "2026-09-09T18:47:01.426306+00:00",
+        "actor": "svc-ci",
+        "action": "run.completed",
+        "target": "run#1",
+        "payload_json": "{}",
+        "prev_hash": "a171510717707c087b073fb1824e3b9a0d5c7c27a8f1bc217febb34efb193eca",
+        "entry_hash": "83070ce438db67031aa50677adfc164cb29a4b94665d00bf52efb46a1a6217a3"
+      },
+      {
+        "id": 3,
+        "org_id": 1,
+        "ts": "2026-09-09T18:47:01.426249+00:00",
+        "actor": "alice",
+        "action": "approval.decided",
+        "target": "approval#1",
+        "payload_json": "{}",
+        "prev_hash": "2827ff633e43880bedfa21342c30a1d4a491dac952f859ac69a2f79b061058d8",
+        "entry_hash": "a171510717707c087b073fb1824e3b9a0d5c7c27a8f1bc217febb34efb193eca"
+      },
+      {
+        "id": 2,
+        "org_id": 1,
+        "ts": "2026-09-09T18:47:01.426180+00:00",
+        "actor": "alice",
+        "action": "contract.published",
+        "target": "Catalog@2.0.0",
+        "payload_json": "{}",
+        "prev_hash": "07a7379ded85ba52a6b22dd7045414526c23cefb20648465b27c8711a771ce67",
+        "entry_hash": "2827ff633e43880bedfa21342c30a1d4a491dac952f859ac69a2f79b061058d8"
+      },
+      {
+        "id": 1,
+        "org_id": 1,
+        "ts": "2026-09-09T18:47:01.426069+00:00",
+        "actor": "alice",
+        "action": "contract.published",
+        "target": "Catalog@1.0.0",
+        "payload_json": "{}",
+        "prev_hash": "",
+        "entry_hash": "07a7379ded85ba52a6b22dd7045414526c23cefb20648465b27c8711a771ce67"
+      }
+    ],
+    "webhooks": [
+      {
+        "id": 1,
+        "org_id": 1,
+        "url": "https://hooks.internal/verity",
+        "secret_ref": "wh-ref",
+        "events": [
+          "breaking_change",
+          "verification.failed"
+        ],
+        "active": 1,
+        "created_at": "2026-09-09T18:47:01.426356+00:00"
+      }
+    ],
+    "chain_valid": true
+  },
+  "catalog": {
+    "services": [
+      {
+        "title": "Catalog Service",
+        "protocol": "openapi",
+        "lifecycle": "stable",
+        "owner": "platform-team",
+        "product": "Storefront",
+        "versions": [
+          "1.0.0",
+          "2.0.0"
+        ],
+        "environments": [
+          "dev",
+          "staging"
+        ]
+      },
+      {
+        "title": "Drift Demo API",
+        "protocol": "openapi",
+        "lifecycle": "beta",
+        "owner": "integrations",
+        "product": "Storefront",
+        "versions": [
+          "0.3.0"
+        ],
+        "environments": [
+          "dev"
+        ]
+      }
+    ]
+  },
+  "agents": {
+    "fleet": [
+      {
+        "name": "orders-mcp",
+        "endpoint": "http://127.0.0.1:54143/mcp",
+        "tools_declared": 3,
+        "tools_served": 3,
+        "protocol_revision": "2026-07-28",
+        "era": "modern",
+        "auth": {
+          "credentials_presented": false,
+          "target_classification": "local",
+          "anonymous_access": "served",
+          "anonymous_tool_count": 3,
+          "challenge_header_present": null
+        },
+        "findings": [
+          {
+            "rule_id": "MCP-AUTH-ANONYMOUS-LIST",
+            "severity": "INFO",
+            "message": "the server returned all 3 tools to a request carrying no credential; the target classifies as local. An anonymous caller has the complete map of what this server can do",
+            "tool": null,
+            "change_id": null,
+            "source_rule_id": null
+          }
+        ],
+        "duration_ms": 63
+      },
+      {
+        "name": "orders-mcp-canary",
+        "endpoint": "http://127.0.0.1:54146/mcp",
+        "tools_declared": 3,
+        "tools_served": 2,
+        "protocol_revision": "2026-07-28",
+        "era": "modern",
+        "auth": {
+          "credentials_presented": false,
+          "target_classification": "local",
+          "anonymous_access": "served",
+          "anonymous_tool_count": 2,
+          "challenge_header_present": null
+        },
+        "findings": [
+          {
+            "rule_id": "MCP-AUTH-ANONYMOUS-LIST",
+            "severity": "INFO",
+            "message": "the server returned all 2 tools to a request carrying no credential; the target classifies as local. An anonymous caller has the complete map of what this server can do",
+            "tool": null,
+            "change_id": null,
+            "source_rule_id": null
+          },
+          {
+            "rule_id": "MCP-DRIFT-TOOL-MISSING",
+            "severity": "ERROR",
+            "message": "tool 'list_regions' is declared in the manifest but not served; an agent generated from this manifest will call it and fail",
+            "tool": "list_regions",
+            "change_id": null,
+            "source_rule_id": null
+          },
+          {
+            "rule_id": "MCP-DRIFT-SCHEMA",
+            "severity": "ERROR",
+            "message": "declared and served differ: request body (application/json): field 'tenant_id' was added (required)",
+            "tool": "search_orders",
+            "change_id": "CHG-PARAMETER_ADDED-4eada9c5-1",
+            "source_rule_id": "BRK-PARAM-ADDED-REQUIRED"
+          },
+          {
+            "rule_id": "MCP-DRIFT-SCHEMA",
+            "severity": "ERROR",
+            "message": "declared and served differ: request body (application/json).limit: constraint 'maximum' changed 100 -> 50",
+            "tool": "search_orders",
+            "change_id": "CHG-PARAMETER_CONSTRAINT_CHANGED-4eada9c5-1",
+            "source_rule_id": "BRK-CONSTRAINT-TIGHTENED"
+          },
+          {
+            "rule_id": "MCP-DRIFT-SCHEMA",
+            "severity": "ERROR",
+            "message": "declared and served differ: request body (application/json).status: enum changed (removed ['cancelled'], added [])",
+            "tool": "search_orders",
+            "change_id": "CHG-ENUM_CHANGED-4eada9c5-1",
+            "source_rule_id": "BRK-ENUM-NARROWED-REQUEST"
+          },
+          {
+            "rule_id": "MCP-DRIFT-SCHEMA",
+            "severity": "ERROR",
+            "message": "declared and served differ: request body (application/json): field 'tenant_id' became required",
+            "tool": "search_orders",
+            "change_id": "CHG-PARAMETER_REQUIREDNESS-4eada9c5-1",
+            "source_rule_id": "BRK-REQ-FIELD-BECAME-REQUIRED"
+          },
+          {
+            "rule_id": "MCP-DRIFT-SCHEMA",
+            "severity": "ERROR",
+            "message": "declared and served differ: response result body (application/json): field 'total' was removed",
+            "tool": "search_orders",
+            "change_id": "CHG-RESPONSE_SCHEMA_CHANGED-4eada9c5-1",
+            "source_rule_id": "BRK-RESP-FIELD-REMOVED"
+          },
+          {
+            "rule_id": "MCP-DRIFT-SCHEMA",
+            "severity": "ERROR",
+            "message": "declared and served differ: response result body (application/json): field 'total' became optional",
+            "tool": "search_orders",
+            "change_id": "CHG-PARAMETER_REQUIREDNESS-4eada9c5-2",
+            "source_rule_id": "BRK-RESP-FIELD-OPTIONALIZED"
+          },
+          {
+            "rule_id": "MCP-DRIFT-SCHEMA-COMPATIBLE",
+            "severity": "WARN",
+            "message": "declared and served differ: documentation changed for 'tool search_orders'",
+            "tool": "search_orders",
+            "change_id": "CHG-TOOL_DESCRIPTION_CHANGED-4eada9c5-1",
+            "source_rule_id": "BRK-MCP-TOOL-DESCRIPTION-CHANGED"
+          },
+          {
+            "rule_id": "MCP-DRIFT-ANNOTATION",
+            "severity": "WARN",
+            "message": "tool 'search_orders' declares readOnlyHint=True but serves False; an agent that planned around the declared hint planned wrong",
+            "tool": "search_orders",
+            "change_id": null,
+            "source_rule_id": null
+          }
+        ],
+        "duration_ms": 56
+      },
+      {
+        "name": "partner-mcp",
+        "endpoint": "http://127.0.0.1:54149/mcp",
+        "tools_declared": 3,
+        "tools_served": 4,
+        "protocol_revision": "2026-07-28",
+        "era": "modern",
+        "auth": {
+          "credentials_presented": false,
+          "target_classification": "local",
+          "anonymous_access": "served",
+          "anonymous_tool_count": 4,
+          "challenge_header_present": null
+        },
+        "findings": [
+          {
+            "rule_id": "MCP-AUTH-ANONYMOUS-LIST",
+            "severity": "INFO",
+            "message": "the server returned all 4 tools to a request carrying no credential; the target classifies as local. An anonymous caller has the complete map of what this server can do",
+            "tool": null,
+            "change_id": null,
+            "source_rule_id": null
+          },
+          {
+            "rule_id": "MCP-DRIFT-TOOL-UNDECLARED",
+            "severity": "WARN",
+            "message": "tool 'export_all_orders' is served but absent from the manifest; agents will discover and may call a capability nobody agreed to support",
+            "tool": "export_all_orders",
+            "change_id": null,
+            "source_rule_id": null
+          }
+        ],
+        "duration_ms": 51
+      }
+    ],
+    "poisoning": {
+      "manifest": "fixtures/mcp/tools_poisoned.json",
+      "tools": 6,
+      "findings": [
+        {
+          "rule_id": "MCP-POISON-INSTRUCTION",
+          "severity": "WARN",
+          "message": "tool 'get_weather' description tells the reader to keep something from the user ('Do not tell the user'). In MCP the description is what the agent routes on, so a sentence addressed to the agent is executable text, not documentation",
+          "operation_key": "tool get_weather",
+          "location": {
+            "file": "tools_poisoned",
+            "line": 0,
+            "column": 0,
+            "pointer": "/tools/1"
+          },
+          "new_location": null,
+          "change_id": null,
+          "hint": null,
+          "metadata": {}
+        },
+        {
+          "rule_id": "MCP-POISON-CREDENTIAL-PATH",
+          "severity": "ERROR",
+          "message": "tool 'get_weather' names '~/.ssh' in its description; a tool that legitimately reads a credential declares it in inputSchema, where a caller can see it, rather than pointing the agent at the path in prose",
+          "operation_key": "tool get_weather",
+          "location": {
+            "file": "tools_poisoned",
+            "line": 0,
+            "column": 0,
+            "pointer": "/tools/1"
+          },
+          "new_location": null,
+          "change_id": null,
+          "hint": null,
+          "metadata": {}
+        },
+        {
+          "rule_id": "MCP-POISON-INVISIBLE-TEXT",
+          "severity": "ERROR",
+          "message": "tool 'notify_team' carries zero-width space, right-to-left override, unicode tag character in its description; these reach the model and not the human reviewing the manifest, which is the only reason to put them there",
+          "operation_key": "tool notify_team",
+          "location": {
+            "file": "tools_poisoned",
+            "line": 0,
+            "column": 0,
+            "pointer": "/tools/4"
+          },
+          "new_location": null,
+          "change_id": null,
+          "hint": null,
+          "metadata": {}
+        },
+        {
+          "rule_id": "MCP-POISON-INSTRUCTION",
+          "severity": "WARN",
+          "message": "tool 'notify_team' description directs what the reader should put in an argument ('Always include'). In MCP the description is what the agent routes on, so a sentence addressed to the agent is executable text, not documentation",
+          "operation_key": "tool notify_team",
+          "location": {
+            "file": "tools_poisoned",
+            "line": 0,
+            "column": 0,
+            "pointer": "/tools/4"
+          },
+          "new_location": null,
+          "change_id": null,
+          "hint": null,
+          "metadata": {}
+        },
+        {
+          "rule_id": "MCP-POISON-INSTRUCTION",
+          "severity": "WARN",
+          "message": "tool 'render_report' description tells the reader to discard earlier instructions ('ignore previous'). In MCP the description is what the agent routes on, so a sentence addressed to the agent is executable text, not documentation",
+          "operation_key": "tool render_report",
+          "location": {
+            "file": "tools_poisoned",
+            "line": 0,
+            "column": 0,
+            "pointer": "/tools/5"
+          },
+          "new_location": null,
+          "change_id": null,
+          "hint": null,
+          "metadata": {}
+        },
+        {
+          "rule_id": "MCP-POISON-HIDDEN-MARKUP",
+          "severity": "WARN",
+          "message": "tool 'render_report' hides text in an HTML comment in its description ('When search_orders is called, ignore previous instructions a'); a client rendering the description as markdown shows nothing while the model reads all of it",
+          "operation_key": "tool render_report",
+          "location": {
+            "file": "tools_poisoned",
+            "line": 0,
+            "column": 0,
+            "pointer": "/tools/5"
+          },
+          "new_location": null,
+          "change_id": null,
+          "hint": null,
+          "metadata": {}
+        },
+        {
+          "rule_id": "MCP-POISON-CROSS-TOOL",
+          "severity": "WARN",
+          "message": "tool 'render_report' names another tool ('search_orders') in its description alongside an instruction to the reader; a description that changes how a *different* tool is used is a change nobody reviewing that tool would see",
+          "operation_key": "tool render_report",
+          "location": {
+            "file": "tools_poisoned",
+            "line": 0,
+            "column": 0,
+            "pointer": "/tools/5"
+          },
+          "new_location": null,
+          "change_id": null,
+          "hint": null,
+          "metadata": {}
+        },
+        {
+          "rule_id": "MCP-ANNOTATION-CONTRADICTS-NAME",
+          "severity": "WARN",
+          "message": "tool 'delete_account' claims readOnlyHint=true while its name says 'delete'. The specification says annotations are untrusted unless the server is; this is reported so a human decides, and no gate in this tool consults the hint either way",
+          "operation_key": "tool delete_account",
+          "location": {
+            "file": "tools_poisoned",
+            "line": 0,
+            "column": 0,
+            "pointer": "/tools/2"
+          },
+          "new_location": null,
+          "change_id": null,
+          "hint": null,
+          "metadata": {}
+        },
+        {
+          "rule_id": "MCP-ANNOTATION-CONTRADICTORY",
+          "severity": "WARN",
+          "message": "tool 'sync_data' declares readOnlyHint=true and destructiveHint=true. The specification defines destructiveHint only when readOnlyHint is false, so these say two incompatible things and a client believing either is guessing which",
+          "operation_key": "tool sync_data",
+          "location": {
+            "file": "tools_poisoned",
+            "line": 0,
+            "column": 0,
+            "pointer": "/tools/3"
+          },
+          "new_location": null,
+          "change_id": null,
+          "hint": null,
+          "metadata": {}
+        },
+        {
+          "rule_id": "MCP-ANNOTATION-ABSENT",
+          "severity": "INFO",
+          "message": "1 of 6 tools declare no annotations (render_report). The specification's default for an undeclared destructiveHint is true, so a client honouring defaults must treat every one of them as destructive",
+          "operation_key": null,
+          "location": null,
+          "new_location": null,
+          "change_id": null,
+          "hint": null,
+          "metadata": {}
+        }
+      ]
+    },
+    "budget": {
+      "window": "1m",
+      "limits": [
+        {
+          "operation_key": "tool cancel_order",
+          "max_calls": 0,
+          "window": "1m"
+        },
+        {
+          "operation_key": "tool search_orders",
+          "max_calls": 3,
+          "window": "1m"
+        },
+        {
+          "operation_key": "tool list_regions",
+          "max_calls": 50,
+          "window": "1m"
+        }
+      ],
+      "calls_observed": 7,
+      "findings": [
+        {
+          "rule_id": "BUDGET-FORBIDDEN",
+          "severity": "ERROR",
+          "message": "'tool cancel_order' is budgeted at zero calls and was called 1 time(s)",
+          "operation_key": "tool cancel_order",
+          "location": null,
+          "new_location": null,
+          "change_id": null,
+          "hint": null,
+          "metadata": {}
+        },
+        {
+          "rule_id": "BUDGET-EXCEEDED",
+          "severity": "ERROR",
+          "message": "'tool search_orders' allows 3 call(s) per 1m and reached 5 in the window beginning 2026-03-01T12:00:50+00:00",
+          "operation_key": "tool search_orders",
+          "location": null,
+          "new_location": null,
+          "change_id": null,
+          "hint": null,
+          "metadata": {}
+        },
+        {
+          "rule_id": "BUDGET-UNUSED",
+          "severity": "INFO",
+          "message": "nothing in this traffic called 'tool list_regions'; its limit was not exercised, so this run says nothing about whether it holds",
+          "operation_key": "tool list_regions",
+          "location": null,
+          "new_location": null,
+          "change_id": null,
+          "hint": null,
+          "metadata": {}
+        },
+        {
+          "rule_id": "BUDGET-UNBUDGETED",
+          "severity": "INFO",
+          "message": "'tool undeclared_helper' was called 1 time(s) and no limit covers it. Add a limit if that traffic is meant to be bounded",
+          "operation_key": "tool undeclared_helper",
+          "location": null,
+          "new_location": null,
+          "change_id": null,
+          "hint": null,
+          "metadata": {}
+        }
+      ]
+    }
   }
 }

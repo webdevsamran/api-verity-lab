@@ -20,6 +20,7 @@ export const NAV: { group: string; items: [string, string][] }[] = [
   { group: 'Contract', items: [['explorer', 'Explorer'], ['history', 'Version History'], ['diff', 'Diff Review'], ['breaking', 'Breaking Changes'], ['semver', 'SemVer Verdict'], ['changelog', 'Changelog'], ['rules', 'Rules']] },
   { group: 'Testing', items: [['tests', 'Test Runs'], ['fuzz', 'Fuzz Cases'], ['minimizer', 'Minimizer'], ['workflows', 'Workflows'], ['coverage', 'Coverage']] },
   { group: 'Runtime', items: [['drift', 'Drift'], ['replay', 'Replay'], ['perf', 'Performance'], ['mock', 'Mock']] },
+  { group: 'Agents', items: [['fleet', 'MCP Fleet'], ['poisoning', 'Tool Poisoning'], ['budgets', 'Call Budgets']] },
   { group: 'Team', items: [['org', 'Org Dashboard'], ['environments', 'Environments'], ['approvals', 'Approvals'], ['policies', 'Policies'], ['jobs', 'Runs/Jobs'], ['audit', 'Audit Log'], ['webhooks', 'Webhooks'], ['users', 'Users']] },
 ]
 
@@ -31,6 +32,7 @@ export const CHUNKS = {
   contract: () => import('./contract'),
   testing: () => import('./testing'),
   runtime: () => import('./runtime'),
+  agents: () => import('./agents'),
   team: () => import('./team'),
 } as const
 
@@ -68,6 +70,9 @@ export const ROUTE_TABLE: Record<string, readonly [GroupName, string]> = {
   replay: ['runtime', 'ReplayPage'],
   perf: ['runtime', 'PerfPage'],
   mock: ['runtime', 'MockPage'],
+  fleet: ['agents', 'FleetPage'],
+  poisoning: ['agents', 'PoisoningPage'],
+  budgets: ['agents', 'BudgetsPage'],
   org: ['team', 'OrgDashboard'],
   environments: ['team', 'EnvironmentsPage'],
   approvals: ['team', 'ApprovalsPage'],

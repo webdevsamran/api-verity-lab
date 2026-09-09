@@ -33,6 +33,12 @@ def _nav_ids() -> set[str]:
     return set(re.findall(r"\['([a-z]+)', '", nav))
 
 
+def _group_count() -> int:
+    source = _ROUTER.read_text(encoding="utf-8")
+    nav = source[source.index("export const NAV") : source.index("export const CHUNKS")]
+    return len(re.findall(r"\{ group: '", nav))
+
+
 def test_every_nav_entry_has_a_route_and_vice_versa() -> None:
     """A nav link with no route is a dead end; a route with no link is unreachable."""
     only_nav = _nav_ids() - _route_ids()
@@ -53,4 +59,31 @@ def test_documented_page_counts_match_the_router(document: str) -> None:
     assert not wrong, (
         f"{document} claims {wrong} page/route(s); web/src/pages/index.tsx defines {count}. "
         "Update the prose -- the router is the source of truth."
+    )
+
+
+_WORDS = {
+    4: "four",
+    5: "five",
+    6: "six",
+    7: "seven",
+    8: "eight",
+    9: "nine",
+    10: "ten",
+}
+
+
+def test_the_documented_group_count_matches_the_navigation() -> None:
+    """The prose said "five page groups" while a sixth was shipping.
+
+    A group is a code-split boundary, so the number is also a claim about how
+    the app downloads -- and it is one line away from the table that decides
+    it.
+    """
+    groups = _group_count()
+    word = _WORDS[groups]
+    text = (_ROOT / "ROADMAP.md").read_text(encoding="utf-8")
+    wrong = [w for w in re.findall(r"(\w+) page groups", text) if w != word]
+    assert not wrong, (
+        f"ROADMAP.md says {wrong} page groups; web/src/pages/index.tsx defines {groups} ({word})"
     )
