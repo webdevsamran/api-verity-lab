@@ -1,6 +1,6 @@
 """Publication gate: fail if likely secrets appear in tracked files.
 
-Scans the repository (excluding build/, dist/, web/node_modules, .git) for
+Scans the repository (excluding build/, dist/, site/, web/node_modules, .git) for
 high-confidence secret patterns: API keys, bearer tokens, AWS keys,
 private keys, generic credential assignments. Exit 1 on any finding.
 """
@@ -13,7 +13,21 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SKIP_DIRS = {".git", "node_modules", ".venv", "__pycache__", "build", "dist", "htmlcov"}
+THIS_FILE = Path(__file__).resolve()
+SKIP_DIRS = {
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "fixtures_out",
+    "htmlcov",
+    "node_modules",
+    "site",
+}
 SKIP_SUFFIXES = {".lock", ".png", ".jpg", ".ico", ".woff2"}
 
 PATTERNS: list[tuple[str, re.Pattern[str]]] = [
@@ -33,7 +47,13 @@ PATTERNS: list[tuple[str, re.Pattern[str]]] = [
         "credential-assignment",
         re.compile(
             r"""(?i)(api[_-]?key|secret|password|passwd|token)\s*[:=]\s*"""
-            r"""["'][^"']{12,}["']"""
+            # No whitespace in the value: the previous class was `[^"']{12,}`,
+            # which could start at the closing quote of one literal and end at
+            # the opening quote of the next -- `"token: " + TOKEN,
+            # encoding="utf-8"` matched as one "credential". A real secret has
+            # no spaces in it, so excluding whitespace removes that whole class
+            # of false positive without weakening detection.
+            r"""["'][^"'\s]{12,}["']"""
         ),
     ),
 ]
@@ -154,10 +174,16 @@ def looks_synthetic(snippet: str) -> bool:
 #: typed by accident and is trivial to grep for in review.
 ALLOW_MARKER = "secret-scan: allow"
 
+#: Whole-file exemption, for a file whose entire purpose is to hold synthetic
+#: credentials -- a detection corpus. Still opt-in, still greppable, and the
+#: run reports how many files used it.
+ALLOW_FILE_MARKER = "secret-scan: allow-file"
+
 
 def main() -> int:
     findings: list[str] = []
     exempted = 0
+    exempt_files = 0
     for path in ROOT.rglob("*"):
         if not path.is_file():
             continue
@@ -169,6 +195,13 @@ def main() -> int:
         try:
             text = path.read_text(encoding="utf-8")
         except (UnicodeDecodeError, OSError):
+            continue
+        # `path != THIS_FILE` matters: this script defines both marker strings
+        # as constants, so without the guard the scanner exempts *itself* and a
+        # credential pasted into it would be invisible to it. Found by noticing
+        # the run reported two exempt files when only one had been marked.
+        if ALLOW_FILE_MARKER in text and path != THIS_FILE:
+            exempt_files += 1
             continue
         lines = text.splitlines()
         for name, pattern in PATTERNS:
@@ -200,7 +233,12 @@ def main() -> int:
         for f in findings:
             print(f"  {f}", file=sys.stderr)
         return 1
-    suffix = f", {exempted} line(s) exempted by an explicit marker" if exempted else ""
+    parts = []
+    if exempted:
+        parts.append(f"{exempted} line(s) exempted")
+    if exempt_files:
+        parts.append(f"{exempt_files} file(s) exempted")
+    suffix = (", " + ", ".join(parts) + " by an explicit marker") if parts else ""
     print(f"secret scan clean ({len(list(ROOT.rglob('*')))} paths considered{suffix})")
     return 0
 

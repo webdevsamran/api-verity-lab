@@ -73,7 +73,8 @@ def tags_at(action: str, sha: str) -> list[str]:
         request.add_header("Authorization", f"Bearer {token}")
 
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
+        # Fixed https host, built above from a literal.
+        with urllib.request.urlopen(request, timeout=30) as response:  # noqa: S310
             payload = json.load(response)
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
         print(f"warning: could not resolve tags for {action}: {exc}", file=sys.stderr)
