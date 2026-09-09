@@ -28,44 +28,6 @@ from apiverity.mcp.tools import MCP_TOOLS_SCHEMA_VERSION, TOOLS, TOOLS_BY_NAME
 _ROOT = Path(__file__).resolve().parents[2]
 
 
-_ONES = (
-    "zero",
-    "one",
-    "two",
-    "three",
-    "four",
-    "five",
-    "six",
-    "seven",
-    "eight",
-    "nine",
-    "ten",
-    "eleven",
-    "twelve",
-    "thirteen",
-    "fourteen",
-    "fifteen",
-    "sixteen",
-    "seventeen",
-    "eighteen",
-    "nineteen",
-)
-_TENS = ("", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety")
-
-
-def _word(n: int) -> str:
-    """Spell a small number, so a growing CLI does not need this test edited.
-
-    A hardcoded lookup broke twice in one session as commands were added --
-    which is the guard working, but the guard should be about the document
-    being wrong, not about the table being short.
-    """
-    if n < 20:
-        return _ONES[n]
-    tens, ones = divmod(n, 10)
-    return _TENS[tens] + (f"-{_ONES[ones]}" if ones else "")
-
-
 def _call(tool: str, arguments: dict[str, Any], *, root: Path = _ROOT) -> dict[str, Any]:
     reply = handle(
         {
@@ -83,7 +45,7 @@ def _call(tool: str, arguments: dict[str, Any], *, root: Path = _ROOT) -> dict[s
 # ------------------------------------------------------------------ surface
 
 
-def test_the_documented_tool_count_matches_the_code() -> None:
+def test_the_documented_tool_count_matches_the_code(spell_number) -> None:
     """docs/mcp-exposure.md said "Nine of the nineteen" over a table of seven.
 
     It said that for its whole life, in a repository whose stated rule is that
@@ -93,8 +55,8 @@ def test_the_documented_tool_count_matches_the_code() -> None:
     from apiverity.cli.main import build_parser
 
     doc = (_ROOT / "docs" / "mcp-exposure.md").read_text(encoding="utf-8")
-    exposed = _word(len(TOOLS)).capitalize()
-    total = _word(len(build_parser()._subparsers._group_actions[0].choices))
+    exposed = spell_number(len(TOOLS)).capitalize()
+    total = spell_number(len(build_parser()._subparsers._group_actions[0].choices))
     assert f"{exposed} of the {total} commands" in doc, (
         f"the document should say {exposed!r} of the {total!r} commands"
     )

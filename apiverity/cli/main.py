@@ -265,6 +265,15 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     p.add_argument(
+        "--skip-auth-probe",
+        action="store_true",
+        help=(
+            "do not assess the MCP server's authentication posture. The probe is one extra "
+            "read-only tools/list with any credential headers stripped, which is the only way "
+            "to learn whether the credentials were doing anything"
+        ),
+    )
+    p.add_argument(
         "--invoke-tool",
         action="append",
         metavar="NAME",

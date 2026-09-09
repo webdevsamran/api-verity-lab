@@ -65,6 +65,21 @@ class McpTransportError(RuntimeError):
     """The server could not be reached, or did not answer JSON-RPC at all."""
 
 
+class McpHttpError(McpTransportError):
+    """The server answered HTTP, but not with JSON-RPC.
+
+    Carries the status and response headers because the posture check needs
+    them: a 401 with `WWW-Authenticate` and a 401 without it are the difference
+    between a client that can discover how to authenticate and one that cannot,
+    and both look identical once the failure is flattened into a string.
+    """
+
+    def __init__(self, message: str, *, status: int, headers: dict[str, str]) -> None:
+        super().__init__(message)
+        self.status = status
+        self.headers = headers
+
+
 @dataclass
 class RpcResult:
     """One JSON-RPC reply, with the error kept rather than raised."""
@@ -141,6 +156,11 @@ class McpClient:
         self._client = client
         self._owns_client = client is None
         self._id = 0
+        #: Status and headers of the most recent response. Read by the auth
+        #: posture check, which reasons about a challenge the JSON-RPC layer
+        #: never sees.
+        self.last_status: int | None = None
+        self.last_headers: dict[str, str] = {}
 
     def __enter__(self) -> McpClient:
         if self._client is None:
@@ -184,11 +204,16 @@ class McpClient:
         except httpx.HTTPError as exc:
             raise McpTransportError(f"{self.endpoint}: {exc}") from exc
 
+        self.last_status = response.status_code
+        self.last_headers = {k.lower(): v for k, v in response.headers.items()}
+
         try:
             payload = response.json()
         except (json.JSONDecodeError, ValueError) as exc:
-            raise McpTransportError(
-                f"{self.endpoint}: HTTP {response.status_code} body is not JSON"
+            raise McpHttpError(
+                f"{self.endpoint}: HTTP {response.status_code} body is not JSON",
+                status=response.status_code,
+                headers=self.last_headers,
             ) from exc
 
         if not isinstance(payload, dict):

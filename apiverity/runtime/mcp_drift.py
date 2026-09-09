@@ -63,6 +63,10 @@ class McpDriftReport(BaseModel):
     tools_served: int = 0
     duration_ms: int = 0
     observation: dict[str, Any] = Field(default_factory=dict)
+    #: What the run established about who this server will talk to. Present
+    #: even when every check passed, because a posture report that only speaks
+    #: when something is wrong cannot be used as evidence that it is not.
+    auth_posture: dict[str, Any] = Field(default_factory=dict)
 
 
 def _conformance(tools: list[dict[str, Any]], envelope: dict[str, Any]) -> list[McpFinding]:
@@ -297,6 +301,7 @@ def detect_mcp_drift(
     headers: dict[str, str] | None = None,
     max_pages: int = DEFAULT_MAX_PAGES,
     check_stability: bool = True,
+    check_auth: bool = True,
     client_factory: Any = None,
 ) -> McpDriftReport:
     """Compare a declared manifest against a live server, read-only.
@@ -353,6 +358,22 @@ def detect_mcp_drift(
             with make_client() as other:
                 second, _ = list_tools(other, Observation(endpoint=endpoint), max_pages=max_pages)
 
+    auth_findings: list[McpFinding] = []
+    posture: dict[str, Any] = {}
+    if check_auth:
+        # Imported here, not at module level: mcp_auth reports its results as
+        # `McpFinding`, which is defined above. A top-level import in both
+        # directions is a cycle.
+        from apiverity.runtime.mcp_auth import assess_auth_posture
+
+        auth_findings, posture = assess_auth_posture(
+            endpoint,
+            tools_served=len(tools),
+            headers=headers,
+            timeout=timeout,
+            max_pages=max_pages,
+        )
+
     if not observation.pagination_exhausted:
         findings.append(
             McpFinding(
@@ -366,6 +387,7 @@ def detect_mcp_drift(
             )
         )
 
+    findings.extend(auth_findings)
     findings.extend(_conformance(tools, envelope))
     if check_stability:
         findings.extend(_stability(tools, second))
@@ -394,6 +416,7 @@ def detect_mcp_drift(
         tools_declared=len(declared.operations) if declared else 0,
         tools_served=len(observed.operations),
         observation=observation.as_dict(),
+        auth_posture=posture,
         duration_ms=int((time.monotonic() - started) * 1000),
     )
 

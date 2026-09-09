@@ -48,6 +48,16 @@ def _ids(report: Any) -> set[str]:
     return {f.rule_id for f in report.findings}
 
 
+def _gating(report: Any) -> list[Any]:
+    """Findings a gate acts on.
+
+    Not `report.findings`: a conformant run also carries INFO observations --
+    the protocol era, the authentication posture -- and "no drift" has always
+    meant "nothing at or above WARN", not "the report said nothing at all".
+    """
+    return [f for f in report.findings if f.severity in ("WARN", "ERROR")]
+
+
 # ------------------------------------------------------------- happy path
 
 
@@ -56,7 +66,7 @@ def test_a_server_that_matches_its_manifest_reports_nothing() -> None:
     tools = [_tool("alpha"), _tool("beta")]
     with McpMockServer(tools) as server:
         report = detect_mcp_drift(_declared(*tools), server.endpoint)
-    assert report.findings == []
+    assert _gating(report) == []
     assert report.tools_declared == report.tools_served == 2
     assert report.observation["discover_status"] == "ok"
     assert report.observation["protocol_revision"] == "2026-07-28"
@@ -193,7 +203,7 @@ def test_pagination_is_followed_to_exhaustion_when_it_fits() -> None:
     assert report.observation["pagination_exhausted"] is True
     assert report.observation["pages_read"] == 3
     assert report.tools_served == 7
-    assert report.findings == []
+    assert _gating(report) == []
 
 
 def test_a_refused_protocol_version_stops_before_any_tool_comparison() -> None:

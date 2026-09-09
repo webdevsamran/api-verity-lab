@@ -21,6 +21,25 @@ from apiverity.cli.commands.common import (
 )
 from apiverity.core.model import Service
 
+#: Severities that make a gate fail. INFO is excluded on purpose.
+#:
+#: `drift` used to exit 1 whenever the report carried any finding at all, which
+#: meant a fully conformant MCP server failed the gate for telling us something
+#: true and harmless -- `MCP-CONF-LIST-ORDER-NONDETERMINISTIC` says in its own
+#: message that it is not a defect, and then failed the build. Reporting an
+#: observation and failing on it are different jobs; the artifact still carries
+#: every INFO finding either way.
+_GATING = frozenset({"WARN", "ERROR"})
+
+
+def _gate(findings: list[Any]) -> int:
+    """EXIT_FINDINGS when anything is at or above WARN, else EXIT_OK."""
+    return (
+        EXIT_FINDINGS
+        if any(str(getattr(f, "severity", "ERROR")).upper() in _GATING for f in findings)
+        else EXIT_OK
+    )
+
 
 def cmd_drift(args: argparse.Namespace) -> int:
     from apiverity.runtime.drift import detect_drift
@@ -62,7 +81,7 @@ def cmd_drift(args: argparse.Namespace) -> int:
         print(f"error: target unreachable: {exc}", file=sys.stderr)
         return EXIT_UNREACHABLE
     _emit({"tool": "apiverity", "command": "drift", "report": report}, args.json)
-    return EXIT_FINDINGS if report.findings else EXIT_OK
+    return _gate(report.findings)
 
 
 def _drift_mcp(args: argparse.Namespace, service: Service) -> int:
@@ -95,6 +114,7 @@ def _drift_mcp(args: argparse.Namespace, service: Service) -> int:
             timeout=args.timeout,
             headers=headers or None,
             max_pages=getattr(args, "max_list_pages", 50),
+            check_auth=not getattr(args, "skip_auth_probe", False),
         )
     except McpTransportError as exc:
         print(f"error: target unreachable: {exc}", file=sys.stderr)
@@ -146,7 +166,7 @@ def _drift_mcp(args: argparse.Namespace, service: Service) -> int:
             )
 
     _emit(payload, args.json)
-    return EXIT_FINDINGS if report.findings else EXIT_OK
+    return _gate(report.findings)
 
 
 def _drift_corpus(
@@ -177,7 +197,7 @@ def _drift_corpus(
     )
     if args.json:
         _emit({"tool": "apiverity", "command": "drift", "report": report}, True)
-        return EXIT_FINDINGS if report.findings else EXIT_OK
+        return _gate(report.findings)
 
     quality = report.quality
     print(f"corpus: {corpus}")
@@ -212,7 +232,7 @@ def _drift_corpus(
             f"  [{finding.severity}] {finding.rule_id} {finding.operation_key}: "
             f"{finding.message} ({share}, {finding.frequency * 100:.0f}%){suffix}"
         )
-    return EXIT_FINDINGS
+    return _gate(report.findings)
 
 
 def cmd_replay(args: argparse.Namespace) -> int:
@@ -373,4 +393,4 @@ def _drift_graphql(args: argparse.Namespace) -> int:
         },
         args.json,
     )
-    return EXIT_FINDINGS if findings else EXIT_OK
+    return _gate(findings)

@@ -15,20 +15,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 README = (ROOT / "README.md").read_text(encoding="utf-8")
 
-_WORDS = {
-    "ten": 10,
-    "eleven": 11,
-    "twelve": 12,
-    "thirteen": 13,
-    "fourteen": 14,
-    "fifteen": 15,
-    "sixteen": 16,
-    "seventeen": 17,
-    "eighteen": 18,
-    "nineteen": 19,
-    "twenty": 20,
-}
-
 
 def _first_table_rows(after: str) -> list[str]:
     """The rows of the first markdown table following `after`."""
@@ -46,14 +32,13 @@ def _first_table_rows(after: str) -> list[str]:
     return rows
 
 
-def test_the_question_count_matches_the_table() -> None:
-    match = re.search(r"answers (\w+) questions", README)
+def test_the_question_count_matches_the_table(spell_number) -> None:
+    match = re.search(r"answers ([\w-]+) questions", README)
     assert match, "the questions claim has been reworded; update this test with it"
-    claimed = _WORDS.get(match.group(1))
-    assert claimed is not None, f"unhandled number word {match.group(1)!r}"
-    assert claimed == len(_first_table_rows("questions from one place")), (
-        f"README claims {match.group(1)} questions but the table has "
-        f"{len(_first_table_rows('questions from one place'))} rows"
+    rows = len(_first_table_rows("questions from one place"))
+    assert match.group(1) == spell_number(rows), (
+        f"README says {match.group(1)!r} questions over a table of {rows} rows; "
+        f"it should say {spell_number(rows)!r}"
     )
 
 

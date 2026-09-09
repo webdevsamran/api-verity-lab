@@ -6,10 +6,22 @@ are appended.
 
 Defined in [`apiverity/cli/commands/common.py`](../apiverity/cli/commands/common.py).
 
+## INFO findings do not fail a run
+
+`1` means findings a gate should act on, which is findings at or above `WARN`.
+Severity `INFO` is an observation: the protocol era a manifest came from, a
+tool list whose *order* varies between connections, a local server that serves
+its inventory anonymously. Those are worth recording and they are not defects,
+and a run that fails on them teaches people to stop reading the output.
+
+They are still in the artifact. `--json` carries every finding at every
+severity, so a report that exits `0` is not a report that found nothing --
+read `findings`, not just the status.
+
 | Code | Name | Meaning |
 |---|---|---|
 | `0` | `OK` | Completed; nothing to report. |
-| `1` | `FINDINGS` | Completed; findings were detected. A gate should treat this as failure. |
+| `1` | `FINDINGS` | Completed; findings at or above **WARN** were detected. A gate should treat this as failure. |
 | `2` | `USAGE` | The command was invoked incorrectly. |
 | `3` | `UNREACHABLE` | A target could not be contacted. |
 | `4` | `INTERNAL` | An unexpected error inside the tool. |

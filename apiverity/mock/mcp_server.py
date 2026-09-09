@@ -45,6 +45,16 @@ class McpMockServer:
         False makes it a legacy server that answers -32601.
     ``omit_cache_fields``
         drop `ttlMs`/`cacheScope` from the list result.
+    ``require_auth``
+        a bearer token. Requests without it get 401, which is what a server
+        that actually gates its inventory looks like.
+    ``challenge``
+        whether that 401 carries `WWW-Authenticate`. False produces the server
+        a client cannot recover from: refused, with nowhere to go.
+    ``anonymous_tools``
+        a reduced tool list served to unauthenticated callers instead of a 401
+        -- partial exposure, which is the case a probe that only tries
+        authenticated requests can never see.
     """
 
     def __init__(
@@ -58,6 +68,9 @@ class McpMockServer:
         supported_versions: list[str] | None = None,
         implement_discover: bool = True,
         omit_cache_fields: bool = False,
+        require_auth: str | None = None,
+        challenge: bool = True,
+        anonymous_tools: list[dict[str, Any]] | None = None,
         call_handler: Callable[[str, dict[str, Any]], dict[str, Any]] | None = None,
     ) -> None:
         self.tools = tools or []
@@ -67,6 +80,9 @@ class McpMockServer:
         self.supported_versions = supported_versions
         self.implement_discover = implement_discover
         self.omit_cache_fields = omit_cache_fields
+        self.require_auth = require_auth
+        self.challenge = challenge
+        self.anonymous_tools = anonymous_tools
         self.call_handler = call_handler
         self.calls: list[tuple[str, dict[str, Any]]] = []
         self._list_requests = 0
@@ -81,12 +97,36 @@ class McpMockServer:
 
             def do_POST(self) -> None:  # BaseHTTPRequestHandler dispatches on this name
                 length = int(self.headers.get("content-length", 0))
+                body = self.rfile.read(length) or b"{}"
+                presented = self.headers.get("authorization")
+                authorized = (
+                    server.require_auth is None or presented == f"Bearer {server.require_auth}"
+                )
+                if not authorized and server.anonymous_tools is None:
+                    self._unauthorized()
+                    return
                 try:
-                    request = json.loads(self.rfile.read(length) or b"{}")
+                    request = json.loads(body)
                 except json.JSONDecodeError:
                     self._send({"jsonrpc": "2.0", "id": None, "error": {"code": -32700}})
                     return
-                self._send(server.handle(request))
+                self._send(server.handle(request, authorized=authorized))
+
+            def _unauthorized(self) -> None:
+                # Deliberately not JSON: a real gateway rejects before the
+                # JSON-RPC layer is reached, and the client has to cope with a
+                # body it cannot parse.
+                payload = b"unauthorized"
+                self.send_response(401)
+                if server.challenge:
+                    self.send_header(
+                        "WWW-Authenticate",
+                        'Bearer resource_metadata="/.well-known/oauth-protected-resource"',
+                    )
+                self.send_header("content-type", "text/plain")
+                self.send_header("content-length", str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload)
 
             def _send(self, payload: dict[str, Any]) -> None:
                 body = json.dumps(payload).encode()
@@ -108,7 +148,7 @@ class McpMockServer:
     def endpoint(self) -> str:
         return f"http://{self.host}:{self.port}/mcp"
 
-    def handle(self, request: dict[str, Any]) -> dict[str, Any]:
+    def handle(self, request: dict[str, Any], *, authorized: bool = True) -> dict[str, Any]:
         method = request.get("method")
         request_id = request.get("id")
         params = request.get("params") or {}
@@ -141,7 +181,11 @@ class McpMockServer:
             }
 
         if method == "tools/list":
-            return {"jsonrpc": "2.0", "id": request_id, "result": self._tools_page(params)}
+            return {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "result": self._tools_page(params, authorized=authorized),
+            }
 
         if method == "tools/call":
             name = str(params.get("name", ""))
@@ -161,8 +205,10 @@ class McpMockServer:
 
         return self._error(request_id, ERR_METHOD_NOT_FOUND, f"Method not found: {method}")
 
-    def _tools_page(self, params: dict[str, Any]) -> dict[str, Any]:
-        if self.per_connection_tools:
+    def _tools_page(self, params: dict[str, Any], *, authorized: bool = True) -> dict[str, Any]:
+        if not authorized and self.anonymous_tools is not None:
+            tools = self.anonymous_tools
+        elif self.per_connection_tools:
             index = min(self._list_requests, len(self.per_connection_tools) - 1)
             tools = self.per_connection_tools[index]
             self._list_requests += 1

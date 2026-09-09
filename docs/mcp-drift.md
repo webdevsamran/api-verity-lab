@@ -93,6 +93,49 @@ report records `authorization_presented` and the header *names* — never the
 values, which do not reach the artifact. A report claiming a tool is missing,
 gathered from an unauthenticated probe, has to say it was unauthenticated.
 
+## Authentication posture
+
+Roughly seven thousand internet-exposed MCP servers had been catalogued by
+early 2026, and about half of them required no authentication at all. Every
+`drift` run against a live server now records what it established about who
+that server will talk to, in `auth_posture`, whether or not anything is wrong
+-- a posture report that only speaks when something is broken cannot be used as
+evidence that nothing is.
+
+What the run does depends on what you supplied:
+
+* **No credentials.** Nothing extra is sent. The `tools/list` that already
+  succeeded *is* the evidence: an anonymous caller gets the inventory.
+* **Credentials.** One more `tools/list` goes out with them stripped. This is
+  the only way to learn whether the credentials were doing anything, and the
+  answer that matters is not "anonymous access is refused" but "anonymous
+  access returns the same twenty tools". No amount of authenticated probing can
+  tell those apart.
+
+`--skip-auth-probe` turns the second one off.
+
+| Rule | Fires on |
+|---|---|
+| `MCP-AUTH-ANONYMOUS-LIST` | The tool inventory came back to a request carrying no credential |
+| `MCP-AUTH-ENFORCED` | It did not -- recorded as INFO, because it is the evidence |
+| `MCP-AUTH-NO-CHALLENGE` | A 401 or 403 with no `WWW-Authenticate`, so a client has no way to discover where to authenticate |
+| `MCP-AUTH-INDETERMINATE` | The unauthenticated probe did not complete; a failed connection is not evidence of enforcement |
+| `MCP-AUTH-PLAINTEXT-TRANSPORT` | Plain HTTP to a target that does not classify as local |
+
+`MCP-AUTH-ANONYMOUS-LIST` is graded by target: INFO for a local host, WARN for
+dev, staging and unknown, ERROR for one the classifier calls production. The
+fact is identical in all five cases and the consequence is not, and grading a
+laptop the same as a public host is how a check earns being ignored on the one
+host where it mattered. The classifier is the same
+`traffic/safety.py::classify_target` the replay gate uses, and every finding
+names the classification it applied so a reader can disagree with it.
+
+None of these cite a specification clause. The MCP authorization story has
+moved more than once; what is reported is what the run observed -- which
+request, which status, which headers came back. "A 401 with no
+`WWW-Authenticate` leaves a client no way to discover where to obtain a
+credential" is true regardless of what any revision says about it.
+
 ## Calling tools, if you ask for it
 
 `tools/call` has side effects, so it is opt-in and gated the way

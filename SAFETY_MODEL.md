@@ -32,7 +32,10 @@ These controls are implemented in code and enforced by default.
 
 8. **Reads by default, always.** `apiverity drift <manifest> --base-url` calls
     only `server/discover` and `tools/list`. Nothing invokes a tool unless
-    `--invoke-tool NAME` names one.
+    `--invoke-tool NAME` names one. When credentials are supplied, one extra
+    `tools/list` runs with them stripped -- still a read, and the only way to
+    learn what the server hands a caller who has none. `--skip-auth-probe`
+    turns it off.
 9. **Exact names, never globs.** A pattern matched against a live tool list
     would hand the *server* the choice of what runs. Names resolve against the
     declared manifest, so a server cannot offer a name and have it called.
