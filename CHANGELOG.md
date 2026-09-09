@@ -4,6 +4,25 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`result-v1` rejected artifacts from a protocol it shipped.** The published
+  `protocol` enum listed `openapi | graphql | grpc` while
+  `apiverity.core.model.Protocol` had six members and the AsyncAPI adapter had
+  been shipping since 0.2.0, so `apiverity validate events.yaml --json` emitted
+  `"protocol": "asyncapi"` and violated the project's own schema on the happy
+  path. The enum now carries every `Protocol` member.
+
+  Nothing caught it because `scripts/validate_result_artifacts.py` ran
+  `validate` -- the only command that writes that field -- against a single
+  OpenAPI fixture, so exactly one of the enum's values was ever exercised. The
+  script now also validates an AsyncAPI contract
+  (`fixtures/asyncapi/events-v1.yaml`), and
+  `tests/unit/test_result_schema_matches_protocols.py` binds the enum to the
+  `Protocol` enum in both directions, so neither a new protocol nor an invented
+  schema value can drift again. The enum change is additive: no artifact that
+  validated before stops validating.
+
 ## [0.2.0] - 2026-09-07
 
 Ten open issues closed. The theme running through them is that several

@@ -1,0 +1,41 @@
+# Deliberately outside fixtures/apis/ -- .github/workflows/api-verity.yml selects
+# changed contracts with SPEC_DIRS='^(fixtures/apis|openapi|specs|contracts)/' and
+# diffs them against the base branch. This file exists to be validated by
+# scripts/validate_result_artifacts.py, not to be gated as a product contract,
+# and fixtures/grpc/ already sets that precedent.
+asyncapi: "3.0.0"
+info:
+  title: Order Events
+  version: "1.0.0"
+  description: A minimal AsyncAPI 3 contract used to prove the emitted artifact validates.
+channels:
+  orderCreated:
+    address: orders/created
+    messages:
+      OrderCreated:
+        name: OrderCreated
+        payload:
+          type: object
+          required: [id, total_cents]
+          properties:
+            id: { type: string, format: uuid }
+            total_cents: { type: integer, minimum: 0 }
+            currency: { type: string, enum: [USD, EUR, GBP] }
+  orderCancelRequested:
+    address: orders/cancel-requested
+    messages:
+      CancelOrder:
+        name: CancelOrder
+        payload:
+          type: object
+          required: [id]
+          properties:
+            id: { type: string, format: uuid }
+            reason: { type: string }
+operations:
+  onOrderCreated:
+    action: receive
+    channel: { $ref: "#/channels/orderCreated" }
+  requestOrderCancel:
+    action: send
+    channel: { $ref: "#/channels/orderCancelRequested" }

@@ -58,6 +58,15 @@ COMMANDS: list[tuple[str, list[str]]] = [
         "validate",
         ["validate", str(FIXTURES / "apis/versioned/v1.yaml"), "--json"],
     ),
+    # `validate` is the only command that writes the constrained `protocol`
+    # field, so pointing it at a single OpenAPI fixture tested exactly one of
+    # the enum's values. AsyncAPI shipped, emitted `"protocol": "asyncapi"`,
+    # and violated result-v1 on the happy path without failing anything. One
+    # non-OpenAPI protocol here is what turns that into a red build.
+    (
+        "validate (asyncapi)",
+        ["validate", str(FIXTURES / "asyncapi/events-v1.yaml"), "--json"],
+    ),
     (
         "coverage",
         ["coverage", str(FIXTURES / "apis/versioned/v1.yaml"), "--json"],
