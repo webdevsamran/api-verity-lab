@@ -87,6 +87,19 @@ def cmd_breaking(args: argparse.Namespace) -> int:
         )
         findings = findings + policy.evaluate(findings, changes)
     errors = sum(1 for f in findings if f.severity.value == "ERROR")
+
+    advice = None
+    if getattr(args, "suggest_version", False):
+        from apiverity.rules.semver import suggest_bump
+
+        advice = suggest_bump(
+            args.old_version or old.version,
+            findings,
+            changes,
+            require_minor_for_warnings=args.require_minor_for_warnings,
+            declared_new_version=args.new_version or new.version,
+        ).as_dict()
+
     _emit(
         {
             "tool": "apiverity",
@@ -103,6 +116,7 @@ def cmd_breaking(args: argparse.Namespace) -> int:
             "change_count": len(changes),
             "findings": findings,
             "errors": errors,
+            **({"version_advice": advice} if advice is not None else {}),
         },
         args.json,
     )

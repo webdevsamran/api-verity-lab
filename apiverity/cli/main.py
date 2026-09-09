@@ -24,6 +24,7 @@ from apiverity.cli.commands.governance import (
     cmd_validate,
 )
 from apiverity.cli.commands.platform import (
+    cmd_explain,
     cmd_plugins,
     cmd_rules,
     cmd_self_test,
@@ -50,6 +51,7 @@ __all__ = [
     "cmd_coverage",
     "cmd_diff",
     "cmd_drift",
+    "cmd_explain",
     "cmd_export",
     "cmd_mock",
     "cmd_plugins",
@@ -88,6 +90,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--old-version")
     p.add_argument("--new-version")
     p.add_argument("--require-minor-for-warnings", action="store_true")
+    p.add_argument(
+        "--suggest-version",
+        action="store_true",
+        help=(
+            "also recommend the next version, with the rule ids that forced it. The "
+            "policy has always had every input needed to answer this and only ever "
+            "said whether the version you picked was wrong"
+        ),
+    )
     p.add_argument("--severity-override", action="append")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_breaking)
@@ -326,6 +337,13 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("plugins")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_plugins)
+    p = sub.add_parser(
+        "explain",
+        help="explain one rule: what it means, why, and how to change its severity",
+    )
+    p.add_argument("rule_id", help="a rule id, e.g. BRK-RESP-FIELD-REMOVED (case-insensitive)")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_explain)
     p = sub.add_parser("rules")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_rules)

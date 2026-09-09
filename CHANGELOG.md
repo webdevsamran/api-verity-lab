@@ -4,6 +4,41 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — governance UX
+
+- **`apiverity explain <rule-id>`.** The catalogue already carried a
+  description; what it did not carry was *where to look next*, which is the
+  question someone reaching for `--severity-override` actually has. `explain`
+  prints the rule, its severity, its group, the documentation section, and the
+  exact override and suppression syntax. A typo gets a did-you-mean rather than
+  a dead end. A rule nobody understands gets suppressed rather than fixed —
+  ESLint's whole adoption story.
+
+  Two tests keep it honest: every rule in the catalogue must be explainable,
+  and none may fall into the unclassified "Other" bucket, so a new rule family
+  added without a guide entry fails rather than silently pointing readers at
+  the top of the catalogue.
+
+- **`apiverity breaking --suggest-version`.** The semver policy has always held
+  every input needed to say what the next version should be, and only ever said
+  whether the one you picked was wrong. It now answers the other question, and
+  reports the rule ids that forced the answer — a recommendation with nothing
+  behind it is an opinion, not a verdict.
+
+  An unparseable current version still yields a bump (which the findings
+  determine) but never a made-up number (which they do not). Pre-1.0 is not
+  special-cased into "anything goes": a project that publishes 0.4.0 and breaks
+  its consumers has still broken them.
+
+### Fixed
+
+- `explain` writes a `command` value into its artifact, and that field is
+  enum-constrained — the same trap as the AsyncAPI `protocol` gap. Added to the
+  schema *and* to `validate_result_artifacts.py`, so the next command to emit
+  an artifact is caught by CI rather than by a user.
+- `docs/mcp-exposure.md` said "of the nineteen commands" when there are twenty.
+  Both numbers in that sentence are now derived from the code.
+
 ### Added — apiverity as an MCP server
 
 - **`apiverity-mcp --root .`** exposes the read-only subset

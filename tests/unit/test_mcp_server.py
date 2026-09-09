@@ -52,10 +52,15 @@ def test_the_documented_tool_count_matches_the_code() -> None:
     counts are derived. Bound here to `len(TOOLS)` and to the table's own row
     count, so the prose, the table and the code cannot drift apart again.
     """
+    from apiverity.cli.main import build_parser
+
     doc = (_ROOT / "docs" / "mcp-exposure.md").read_text(encoding="utf-8")
-    words = {7: "Seven", 8: "Eight", 9: "Nine", 10: "Ten"}
-    assert f"{words[len(TOOLS)]} of the nineteen commands" in doc, (
-        f"the document does not say {words[len(TOOLS)]!r}, but {len(TOOLS)} tools are exposed"
+    exposed = {7: "Seven", 8: "Eight", 9: "Nine", 10: "Ten"}[len(TOOLS)]
+    total = {19: "nineteen", 20: "twenty", 21: "twenty-one", 22: "twenty-two"}[
+        len(build_parser()._subparsers._group_actions[0].choices)
+    ]
+    assert f"{exposed} of the {total} commands" in doc, (
+        f"the document should say {exposed!r} of the {total!r} commands"
     )
     table_rows = [line for line in doc.splitlines() if line.startswith("| `") and "|" in line[3:]]
     assert len(table_rows) == len(TOOLS), (

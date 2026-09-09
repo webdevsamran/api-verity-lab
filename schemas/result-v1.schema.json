@@ -27,6 +27,7 @@
         "coverage",
         "diff",
         "drift",
+        "explain",
         "plugins",
         "regression",
         "replay",

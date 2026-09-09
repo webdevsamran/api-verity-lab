@@ -31,13 +31,15 @@ fuzzing, drift detection, mocking and performance budgets. Each has its own
 result format, its own CI wiring and its own mental model — so findings never
 compose: you can't ask "which endpoints are both under-tested *and* drifting?"
 
-api-verity-lab answers fifteen questions from one place:
+api-verity-lab answers seventeen questions from one place:
 
 | Question | Command |
 |---|---|
 | What changed between API versions? | `apiverity diff old.yaml new.yaml` |
 | Is it breaking, risky or safe? | `apiverity breaking` |
 | Was semantic versioning respected? | `apiverity breaking --check-semver` |
+| What version *should* this be? | `apiverity breaking --suggest-version` |
+| What does this rule mean and how do I change it? | `apiverity explain BRK-RESP-FIELD-REMOVED` |
 | Does the running API match its contract? | `apiverity drift --base-url` |
 | How often did real traffic disagree with it? | `apiverity drift --corpus traffic.har` |
 | Does an MCP server still serve the tools it declared? | `apiverity drift tools.json --base-url` |
@@ -124,7 +126,10 @@ GET /users/{id}:
 ```
 
 The catalog ships 57 rules across ERROR/WARN/INFO with per-rule severity
-overrides — see [`docs/rule-catalog.md`](docs/rule-catalog.md) or run `apiverity rules`.
+overrides — see [`docs/rule-catalog.md`](docs/rule-catalog.md), run `apiverity rules`,
+or ask about one directly: `apiverity explain BRK-RESP-FIELD-REMOVED` prints what it
+means, which group it belongs to, and the exact `--severity-override` to change it.
+A rule nobody understands gets suppressed rather than fixed.
 
 <!-- capture:breaking -->
 ```console
