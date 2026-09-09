@@ -3,44 +3,149 @@
   "$id": "https://github.com/webdevsamran/api-verity-lab/schemas/result-v1.schema.json",
   "title": "apiverity result artifact (v1)",
   "type": "object",
-  "required": ["tool", "tool_version", "command", "contract_hash"],
+  "required": [
+    "tool",
+    "tool_version",
+    "command",
+    "contract_hash"
+  ],
   "properties": {
-    "tool": { "const": "apiverity" },
-    "tool_version": { "type": "string" },
-    "result_schema_version": { "const": 1 },
-    "command": {
-      "enum": ["validate", "diff", "breaking", "test", "workflow", "drift",
-               "replay", "baseline", "regression", "coverage"]
+    "tool": {
+      "const": "apiverity"
     },
-    "contract_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-    "protocol": { "enum": ["openapi", "graphql", "grpc"] },
-    "target": { "type": "string" },
-    "seed": { "type": "integer" },
-    "duration_ms": { "type": "integer" },
+    "tool_version": {
+      "type": "string"
+    },
+    "result_schema_version": {
+      "const": 1
+    },
+    "command": {
+      "enum": [
+        "baseline",
+        "breaking",
+        "changelog",
+        "coverage",
+        "diff",
+        "drift",
+        "plugins",
+        "regression",
+        "replay",
+        "rules",
+        "self-test",
+        "test",
+        "validate",
+        "workflow"
+      ]
+    },
+    "contract_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "protocol": {
+      "enum": [
+        "openapi",
+        "graphql",
+        "grpc"
+      ]
+    },
+    "target": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Base URL contacted, or null when nothing was contacted."
+    },
+    "seed": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Generation seed, or null when the command is not seeded."
+    },
+    "duration_ms": {
+      "type": "integer"
+    },
     "redaction": {
       "type": "object",
       "properties": {
-        "applied": { "type": "boolean" },
-        "sensitive_field_count": { "type": "integer" }
+        "applied": {
+          "type": "boolean"
+        },
+        "sensitive_field_count": {
+          "type": "integer"
+        }
       }
     },
     "findings": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["rule_id", "severity", "message"],
+        "required": [
+          "rule_id",
+          "severity",
+          "message"
+        ],
         "properties": {
-          "rule_id": { "type": "string" },
-          "severity": { "enum": ["ERROR", "WARN", "INFO"] },
-          "message": { "type": "string" },
-          "operation_key": { "type": "string" },
-          "old_location": { "type": "object" },
-          "new_location": { "type": "object" }
+          "rule_id": {
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "ERROR",
+              "WARN",
+              "INFO"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "operation_key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Operation the finding belongs to, or null for contract-level findings."
+          },
+          "old_location": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "new_location": {
+            "type": [
+              "object",
+              "null"
+            ]
+          }
         }
       }
     },
-    "changes": { "type": "array", "items": { "type": "object" } },
-    "results": { "type": "array", "items": { "type": "object" } },
-    "operations": { "type": "array", "items": { "type": "object" } }
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "operations": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "change_count": {
+      "type": "integer",
+      "description": "Number of changes considered (breaking)."
+    },
+    "operation_count": {
+      "type": "integer",
+      "description": "Number of operations in the contract (validate, self-test)."
+    }
   }
 }

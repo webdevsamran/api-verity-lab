@@ -28,7 +28,14 @@ def cmd_validate(args: argparse.Namespace) -> int:
         "protocol": plugin.protocol().value,
         "title": service.title,
         "version": service.version,
-        "operations": len(service.operations),
+        # `operations` in a result-v1 artifact is the array of per-operation
+        # stats that performance/engine.py reads back from a baseline
+        # (`{o["operation_key"]: o for o in baseline["operations"]}`). Emitting
+        # an integer under the same key meant a `validate` artifact and a
+        # `baseline` artifact disagreed about the type of the same field, and
+        # handing the former to the performance engine would raise rather than
+        # report. The count is still useful, under a name that says so.
+        "operation_count": len(service.operations),
         "findings": all_findings,
         "errors": errors,
     }
@@ -86,7 +93,14 @@ def cmd_breaking(args: argparse.Namespace) -> int:
             "command": "breaking",
             "old_version": old.version,
             "new_version": new.version,
-            "changes": len(changes),
+            # `diff` emits `changes` as the array of changes; this emitted the
+            # same key as an integer count, so a consumer reading `changes`
+            # got a list or a number depending on which command produced the
+            # artifact -- and schemas/result-v1 declares it an array, which
+            # made every `breaking` artifact silently non-conformant. Renamed
+            # rather than converted: the count is genuinely useful here, and
+            # `breaking` reports findings, not the changes themselves.
+            "change_count": len(changes),
             "findings": findings,
             "errors": errors,
         },

@@ -114,7 +114,9 @@ def cmd_self_test(args: argparse.Namespace) -> int:
             "tool": "apiverity",
             "command": "self-test",
             "ok": ok,
-            "operations": len(service.operations),
+            # See governance.py: `operations` is the per-operation array in a
+            # result-v1 artifact, not a count.
+            "operation_count": len(service.operations),
             "spec_findings": len(findings),
         },
         args.json,

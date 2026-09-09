@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v5.6.0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
           cache: pip
@@ -54,6 +54,13 @@ jobs:
         # fails if the committed README stops matching what the code produces.
         run: python scripts/capture_readme_examples.py --check
 
+      - name: Secret scan
+        # The only secret check here was a local pre-commit `detect-private-key`
+        # hook, which `git commit --no-verify` skips and CI never ran. This is
+        # the scanner tooltrace-bench uses, plus the Slack, Google, Stripe and
+        # npm rules a planted-secret test showed it was missing.
+        run: python scripts/secret_scan.py
+
   # pyproject declares "Operating System :: OS Independent" and Python 3.11 and
   # 3.12, but CI ran ubuntu-latest on 3.12 only -- so a 3.11 user, or anyone on
   # Windows or macOS, was running wholly unvalidated code against a classifier
@@ -82,7 +89,7 @@ jobs:
             python-version: "3.12"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v5.6.0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
@@ -100,19 +107,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v5.6.0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
       - run: pip install jsonschema pyyaml && pip install -e .
       - name: Validate bundled result artifacts against schemas/result-v1
-        run: |
-          python - <<'PY'
-          import json, pathlib
-          from jsonschema import Draft202012Validator
-          schema = json.loads(pathlib.Path("schemas/result-v1.schema.json").read_text())
-          Draft202012Validator.check_schema(schema)
-          print("result-v1 schema is valid")
-          PY
+        # This step used to load the schema, call `check_schema` on it, and
+        # print "result-v1 schema is valid". That validates the schema
+        # *document*; it never loaded an artifact. It was green, required and
+        # branch-protected while proving nothing about its own name.
+        #
+        # Running it for real immediately found five disagreements between the
+        # schema and the emitters, including `changes` and `operations` each
+        # carrying an integer in one command and an array in another.
+        run: python scripts/validate_result_artifacts.py
+      - name: Pinned actions match their version comments
+        # Five `uses:` lines pinned setup-python@5fda3b95a4ea and called it
+        # "v5.6.0". That SHA is v7.0.0. The pin is the control; the comment is
+        # what a reviewer reads.
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python scripts/check_action_pins.py
 
   frontend:
     name: Frontend lint · typecheck · build
@@ -130,6 +145,12 @@ jobs:
       - run: npm ci || npm install
       - run: npm run lint
       - run: npm test
+      # local-ai-hardware-bench has audited its frontend dependencies from the
+      # start; this repository ran pip-audit and nothing on the npm side, so
+      # half its dependency surface was unexamined while a job named
+      # "Dependency scan" was green.
+      - name: npm audit (fail on high+)
+        run: npm audit --audit-level=high
       - run: npm run build
       # Code splitting is invisible when it breaks: a static import of a page
       # module collapses every chunk back into the entry and nothing fails.
