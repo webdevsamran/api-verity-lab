@@ -1,5 +1,5 @@
 /* Contract pages: explorer, version history, diff, breaking, semver, rules, changelog. */
-import { METHOD_COLORS, Badge, Empty, Filters, PageHead, SevBadge, StatusBadge } from '../components/ui'
+import { Badge, Empty, Filters, MethodTag, PageHead, SevBadge, StatusBadge } from '../components/ui'
 import { navigate, setParam, useRoute } from '../router'
 import type { PageProps } from './types'
 
@@ -17,15 +17,15 @@ export function ExplorerPage({ data }: { data: PageProps['data'] }) {
             <div key={o.key} onClick={() => navigate('explorer', { op: o.key })}
               onKeyDown={(e) => e.key === 'Enter' && navigate('explorer', { op: o.key })}
               role="button" tabIndex={0} className={'op-row' + (selected === o.key ? ' selected' : '')}>
-              <Badge color={METHOD_COLORS[o.method]}>{o.method}</Badge>{' '}
-              <code>{o.path}</code> {o.deprecated && <Badge color="#e5484d">deprecated</Badge>}
+              <MethodTag method={o.method} />{' '}
+              <code>{o.path}</code> {o.deprecated && <Badge tone="error">deprecated</Badge>}
             </div>
           ))}
         </div>
         <div>
           {!op ? <Empty msg="Select an endpoint." /> : (
             <>
-              <h3><Badge color={METHOD_COLORS[op.method]}>{op.method}</Badge> <code>{op.path}</code></h3>
+              <h3><MethodTag method={op.method} /> <code>{op.path}</code></h3>
               <p>{op.summary ?? 'No summary.'}</p>
               <p><strong>Parameters:</strong> {op.parameters.join(', ') || '—'}</p>
               <p><strong>Responses:</strong> {op.responses.join(', ')}</p>
@@ -92,7 +92,7 @@ export function SemverPage({ data }: { data: PageProps['data'] }) {
   return (
     <>
       <PageHead title="SemVer Verdict" sub={`v${v.old_version} → v${v.new_version}`} />
-      <p>Required bump: <Badge color={v.required_bump === 'major' ? '#e5484d' : v.required_bump === 'minor' ? '#f5a623' : '#2ea043'}>{v.required_bump}</Badge></p>
+      <p>Required bump: <Badge tone={v.required_bump === 'major' ? 'error' : v.required_bump === 'minor' ? 'warn' : 'success'}>{v.required_bump}</Badge></p>
       <p>Policy compliant: <StatusBadge ok={v.compliant} /></p>
       {v.findings.length > 0 && (
         <table><thead><tr><th>Rule</th><th>Severity</th><th>Message</th></tr></thead>

@@ -3,7 +3,37 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="description"
+      content="API Verity Lab — unified API contract governance: breaking-change analysis, schema-driven testing, runtime drift detection and performance budgets."
+    />
     <title>API Verity Lab</title>
+    <script>
+      /* Resolve the theme before the first paint.
+       *
+       * App.tsx used to set data-theme in an effect, so the first paint had no
+       * theme attribute -- and styles.css defined its tokens only under
+       * [data-theme=...]. The page rendered with no variables at all and then
+       * snapped into place when React mounted. styles.css now has a bare :root
+       * so that is no longer fatal, but a stored dark preference would still
+       * flash light for a frame.
+       *
+       * Wrapped in try/catch because localStorage throws outright in some
+       * privacy modes; a theme preference is not worth a blank page.
+       */
+      (function () {
+        try {
+          var stored = localStorage.getItem('apiverity-theme');
+          if (stored === 'dark' || stored === 'light') {
+            document.documentElement.dataset.theme = stored;
+          }
+          /* 'system' and a missing value both fall through deliberately: with
+           * no attribute, the prefers-color-scheme block in styles.css decides,
+           * which is what "system" means. */
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -55,7 +55,7 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
 - OIDC/SAML concrete providers — BLOCKED behind a real IdP; `IdentityProvider` protocol + local provider exist and are tested
 
 ## Frontend
-- 31-page product UI (public/local + team pages), themes, virtualized tables, DEMO labeling, demo corpus generator — EXISTING (landed this pass as commit series)
+- 30-route product UI (public/local + team pages), design tokens, dark/light/system themes, virtualized tables, DEMO labeling, demo corpus generator — EXISTING. The route count is derived from `web/src/pages/index.tsx`, not asserted here
 
 ## Deliberately not pursued
 See `PRODUCT_GAPS.md` ("Features deliberately not pursued").

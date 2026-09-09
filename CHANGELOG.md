@@ -4,6 +4,76 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — dashboard
+
+- **A design system.** `web/src/styles.css` had six variables, and
+  `components/ui.tsx` then hard-coded hexes beside them (`#e5484d` for ERROR,
+  `#2ea043` for pass) which no theme could reach -- the same red on a white page
+  and a near-black one. Colour, type, space, radius, elevation and motion are
+  tokens now, and the fourteen raw hexes across four page modules are gone.
+
+- **Motion that exists.** The only motion rule in the stylesheet was the
+  `prefers-reduced-motion` reset, disabling transitions the file never defined.
+  There are now staggered card entrances, growing chart bars, a self-drawing
+  line, skeleton shimmer, press states, a sliding nav marker and a theme
+  cross-fade through the View Transitions API -- and the reset still comes last
+  and still wins.
+
+- **A command palette** (⌘K or `/`), lazily loaded into its own 2 kB chunk so
+  the sessions that never open it never pay for it. Subsequence matching, so
+  "brk" finds Breaking Changes.
+
+- **A skip link, focus management and keyboard paths** throughout. Thirty nav
+  items used to sit between the top of the page and the content.
+
+- **`StatCard`, `Skeleton`, `LineChart`, `Sparkline`, `SeverityBar`.** Charts
+  are hand-drawn SVG with a real table beside each one -- an `aria-label` can
+  say "latency over time" but cannot tell anyone what p95 was on Tuesday. No
+  charting dependency: the entry chunk is budgeted at 210 kB and a library
+  would cost more than every page in the app combined.
+
+### Fixed — dashboard
+
+- **A stale chunk blanked the whole app.** A lazily-imported module that 404s
+  unmounts the React tree, and that happens routinely: the site is redeployed
+  while someone has it open, so their HTML asks for a filename the server no
+  longer has. Pressing ⌘K after a rebuild produced a blank page.
+  `ChunkBoundary` offers a reload instead, and distinguishes a stale chunk from
+  a genuine render error rather than blaming everything on the deploy.
+
+- **Rapid theme presses were lost.** `setTheme` ran inside
+  `startViewTransition`; three presses from "system" landed on "light", a net
+  movement of one. The state update is outside the transition now and only the
+  attribute write is cross-faded, so every press counts.
+
+- **Unhandled promise rejections from the theme switch.** Every promise a
+  `ViewTransition` exposes rejects when the transition is abandoned, which is a
+  normal outcome, and three `InvalidStateError`s reached the console for it.
+
+- **A flash of unstyled content.** Tokens were defined only under
+  `[data-theme=...]` and the attribute was set in an effect, so the first paint
+  had no variables at all. `:root` carries the light theme, and `index.html`
+  resolves a stored preference before the stylesheet parses. The choice also
+  persists now, which it did not.
+
+- **`--faint` failed WCAG AA at 3.04:1** on white, and it is what the 11px nav
+  group labels and chart ticks are drawn in -- none of them large text. Every
+  text token now clears 4.5:1 in both themes, measured in the browser and
+  pinned by `tests/unit/test_frontend_contrast.py`.
+
+- **"4/17 passed" rendered as one 30px string**, wrapped onto two lines and
+  pushed its card taller than the rest. The unit is typographically separate
+  now, and takes a space before a word but not before "%".
+
+- **Three different page counts, none right.** `ROADMAP.md` said 15,
+  `docs/capability-status.md` said 31, and the router defines 30.
+  `tests/unit/test_frontend_page_count.py` derives it, and also checks that no
+  nav link is a dead end and no route is unreachable.
+
+- **`scripts/check-bundle.mjs`** still passes: the entry chunk went from
+  197.7 kB to 205.4 kB against its 210 kB budget, and the palette and every
+  page group remain separate chunks.
+
 ### Added
 
 - **A real GitHub Action** (`action.yml`). The README advertised "GitHub Action

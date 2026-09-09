@@ -32,7 +32,7 @@ export function EnvironmentsPage({ data }: { data: PageProps['data'] }) {
       <table><thead><tr><th>Name</th><th>Base URL</th><th>Safety class</th><th>Owner</th><th>Allowed modes</th></tr></thead>
         <tbody>{data.org.environments.map((e) => (
           <tr key={e.id}><td>{e.name}</td><td><code>{e.base_url}</code></td>
-            <td><Badge color={e.safety_class === 'dev' ? '#2ea043' : '#f5a623'}>{e.safety_class}</Badge></td>
+            <td><Badge tone={e.safety_class === 'dev' ? 'success' : 'warn'}>{e.safety_class}</Badge></td>
             <td>{e.owner ?? '—'}</td><td>{e.allowed_modes}</td></tr>
         ))}</tbody></table>
     </>
@@ -49,7 +49,7 @@ export function ApprovalsPage({ data }: { data: PageProps['data'] }) {
           <tbody>{data.org.approvals.map((a) => (
             <tr key={a.id}><td>{a.contract_title}</td><td>v{a.from_version} → v{a.to_version}</td>
               <td>{a.justification}</td>
-              <td><Badge color={a.status === 'approved' ? '#2ea043' : a.status === 'rejected' ? '#e5484d' : '#f5a623'}>{a.status}</Badge></td>
+              <td><Badge tone={a.status === 'approved' ? 'success' : a.status === 'rejected' ? 'error' : 'warn'}>{a.status}</Badge></td>
               <td>{a.requested_by}</td><td>{a.decided_by ?? '—'}</td></tr>
           ))}</tbody></table>
       )}
@@ -80,7 +80,7 @@ export function JobsPage({ data }: { data: PageProps['data'] }) {
       <table><thead><tr><th>ID</th><th>Kind</th><th>Status</th><th>Requested by</th><th>Verifies</th><th>Environment</th></tr></thead>
         <tbody>{data.org.runs.map((r) => (
           <tr key={r.id}><td>#{r.id}</td><td>{r.kind}</td>
-            <td><Badge color={r.status === 'passed' ? '#2ea043' : r.status === 'running' ? '#3b82f6' : '#e5484d'}>{r.status}</Badge></td>
+            <td><Badge tone={r.status === 'passed' ? 'success' : r.status === 'running' ? 'info' : 'error'}>{r.status}</Badge></td>
             <td>{r.requested_by}</td><td>{r.verification_for ?? '—'}</td><td>{r.environment ?? '—'}</td></tr>
         ))}</tbody></table>
     </>
@@ -124,7 +124,7 @@ export function UsersPage({ data }: { data: PageProps['data'] }) {
       <table><thead><tr><th>Subject</th><th>Name</th><th>Role</th><th>Kind</th></tr></thead>
         <tbody>{data.org.users.map((u) => (
           <tr key={u.id}><td><code>{u.subject}</code></td><td>{u.display_name}</td>
-            <td><Badge color={u.role === 'owner' ? '#a855f7' : u.role === 'admin' ? '#3b82f6' : '#6b7280'}>{u.role}</Badge></td>
+            <td><Badge tone={u.role === 'owner' ? 'info' : u.role === 'admin' ? 'info' : 'neutral'}>{u.role}</Badge></td>
             <td>{u.kind}</td></tr>
         ))}</tbody></table>
     </>

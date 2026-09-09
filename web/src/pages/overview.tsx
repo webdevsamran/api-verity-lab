@@ -1,23 +1,42 @@
 /* Overview pages: home, catalog, docs, plugins, contributors, about. */
-import { Badge, CopyCmd, Empty, PageHead } from '../components/ui'
+import { Badge, CopyCmd, Empty, PageHead, Skeleton, StatGrid, type Stat } from '../components/ui'
 import type { PageProps } from './types'
 
 export function HomePage({ data }: { data: PageProps['data'] }) {
-  if (!data) return <Empty msg="Loading demo results…" />
-  const cards: [string, string | number][] = [
-    ['Changes detected', data.diff.changes.length],
-    ['Breaking findings', data.breaking.findings.filter((f) => f.severity === 'ERROR').length],
-    ['Test cases', `${data.test.passed}/${data.test.total} passed`],
-    ['Drift findings', data.drift.findings.length],
-    ['Contract coverage', `${data.coverage.overall_percent}%`],
-    ['Services in catalog', data.catalog?.services.length ?? 0],
+  // A skeleton, not an empty state: "no results" and "results are on their
+  // way" look identical to a reader, and only one of them is worth waiting on.
+  if (!data) return <Skeleton rows={4} cards={6} />
+  const breaking = data.breaking.findings.filter((f) => f.severity === 'ERROR').length
+  const stats: Stat[] = [
+    { label: 'Changes detected', value: data.diff.changes.length },
+    {
+      label: 'Breaking findings',
+      value: breaking,
+      tone: breaking > 0 ? 'error' : 'success',
+    },
+    {
+      label: 'Test cases',
+      value: `${data.test.passed}/${data.test.total}`,
+      suffix: 'passed',
+      tone: data.test.failed > 0 ? 'warn' : 'success',
+    },
+    {
+      label: 'Drift findings',
+      value: data.drift.findings.length,
+      tone: data.drift.findings.length > 0 ? 'warn' : 'success',
+    },
+    {
+      label: 'Contract coverage',
+      value: data.coverage.overall_percent,
+      suffix: '%',
+      tone: data.coverage.overall_percent >= 80 ? 'success' : 'warn',
+    },
+    { label: 'Services in catalog', value: data.catalog?.services.length ?? 0 },
   ]
   return (
     <>
       <PageHead title="API Verity Lab" sub={data.meta.label} />
-      <div className="cards">{cards.map(([k, v]) => (
-        <div key={k} className="card"><div className="card-value">{v}</div><div className="card-key">{k}</div></div>
-      ))}</div>
+      <StatGrid stats={stats} />
       <h3>Signature workflows</h3>
       <ul>
         <li><code>apiverity diff</code> / <code>breaking</code> — semantic source-aware comparison & explainable compatibility rules</li>
@@ -38,7 +57,7 @@ export function CatalogPage({ data }: { data: PageProps['data'] }) {
       <table><thead><tr><th>Service</th><th>Product</th><th>Protocol</th><th>Lifecycle</th><th>Owner</th><th>Versions</th><th>Environments</th></tr></thead>
         <tbody>{data.catalog.services.map((s) => (
           <tr key={s.title}><td>{s.title}</td><td>{s.product}</td><td>{s.protocol}</td>
-            <td><Badge color="#3b82f6">{s.lifecycle}</Badge></td><td>{s.owner}</td>
+            <td><Badge tone="info">{s.lifecycle}</Badge></td><td>{s.owner}</td>
             <td>{s.versions.join(', ')}</td><td>{s.environments.join(', ')}</td></tr>
         ))}</tbody></table>
     </>
@@ -79,7 +98,7 @@ export function PluginsPage() {
       <PageHead title="Plugin Catalog" sub="plugin API v2 — manifests, capability negotiation, conformance kit" />
       <table><thead><tr><th>Plugin</th><th>Capability</th><th>Description</th></tr></thead>
         <tbody>{BUILTIN_PLUGINS.map(([name, cap, desc]) => (
-          <tr key={name}><td><code>{name}</code></td><td><Badge color="#3b82f6">{cap}</Badge></td><td>{desc}</td></tr>
+          <tr key={name}><td><code>{name}</code></td><td><Badge tone="info">{cap}</Badge></td><td>{desc}</td></tr>
         ))}</tbody></table>
       <CopyCmd cmd="python -m apiverity.plugins.scaffold my-plugin ./plugins" />
     </>

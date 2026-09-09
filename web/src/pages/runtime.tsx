@@ -1,5 +1,5 @@
 /* Runtime pages: drift, replay, performance, mock. */
-import { METHOD_COLORS, BarChart, Badge, CopyCmd, Empty, PageHead, StatusBadge } from '../components/ui'
+import { BarChart, Badge, CopyCmd, Empty, MethodTag, PageHead, StatusBadge } from '../components/ui'
 import type { PageProps } from './types'
 
 export function DriftPage({ data }: { data: PageProps['data'] }) {
@@ -26,7 +26,7 @@ export function ReplayPage({ data }: { data: PageProps['data'] }) {
       <PageHead title="Traffic Corpus / Replay" sub="dry-run plan only — nothing was sent" />
       <table><tbody>
         <tr><th scope="row">Target</th><td><code>{m.target}</code></td></tr>
-        <tr><th scope="row">Safety class</th><td><Badge color="#3b82f6">{m.safety_class}</Badge></td></tr>
+        <tr><th scope="row">Safety class</th><td><Badge tone="info">{m.safety_class}</Badge></td></tr>
         <tr><th scope="row">Corpus</th><td><code>{m.corpus}</code> ({m.entries} GET entries)</td></tr>
         <tr><th scope="row">Rate limit</th><td>{m.rate_per_second} req/s max</td></tr>
         <tr><th scope="row">Destructive methods</th><td><StatusBadge ok={!m.destructive_methods_allowed} /> {m.destructive_methods_allowed ? 'allowed' : 'blocked (allowlist required)'}</td></tr>
@@ -67,7 +67,7 @@ export function MockPage({ data }: { data: PageProps['data'] }) {
       <CopyCmd cmd="apiverity mock serve fixtures/apis/crud/openapi.yaml --port 8090 --seed 42" />
       <table><thead><tr><th>Operation</th><th>Method</th><th>Path</th><th>Deterministic responses</th></tr></thead>
         <tbody>{data.contract.operations.map((o) => (
-          <tr key={o.key}><td>{o.key}</td><td><Badge color={METHOD_COLORS[o.method]}>{o.method}</Badge></td>
+          <tr key={o.key}><td>{o.key}</td><td><MethodTag method={o.method} /></td>
             <td><code>{o.path}</code></td><td>{o.responses.join(', ')}</td></tr>
         ))}</tbody></table>
     </>
