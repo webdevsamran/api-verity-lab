@@ -4,6 +4,39 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — plain-English summaries
+
+- **`apiverity breaking --summary`** renders what changed, who it affects and
+  what to do, in the shape of a pull request description rather than a release
+  note. `changelog` lists every change grouped by operation, which is right for
+  a release and wrong for a PR body where the reader wants three sentences and
+  a decision.
+
+  Deterministic templates, no model call: a summary a language model writes is
+  one nobody can diff, nobody can test, and nobody can run in CI without a
+  network-egress conversation — and the structured diff already contains
+  everything the sentences need. Twenty findings of one kind become one counted
+  sentence, not twenty lines.
+
+  It always offers the additive alternative — deprecate with a sunset date
+  instead of removing, add optional fields instead of changing required ones —
+  because a tool that only blocks gets uninstalled. With `--suggest-version` it
+  names the concrete version: "Release this as **2.0.0**" rather than "behind a
+  major version bump".
+
+  A rule the phrase table does not know is named by its id rather than
+  paraphrased. A guessed sentence would be neither accurate nor lookup-able.
+
+- The GitHub Action passes `--summary --suggest-version`, so every artifact it
+  uploads carries prose a PR comment can quote directly.
+
+### Fixed
+
+- `str.capitalize()` lower-cased the rest of the string, turning the fallback
+  phrase "BRK-SOMETHING-NEW fired" into "Brk-something-new fired" — destroying
+  the rule id the very next sentence tells the reader to look up. Caught by its
+  own test.
+
 ### Added — project configuration and onboarding
 
 - **`.apiverity.yaml`, with a published schema.** There was no project config

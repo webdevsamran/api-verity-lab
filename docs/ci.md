@@ -62,6 +62,23 @@ root-level YAML a tool adds would be handed to the OpenAPI loader. This
 repository learned that when `.pre-commit-config.yaml` reached the loader and
 blocked every merge.
 
+Each artifact carries a plain-English summary — a verdict, what changed
+grouped and counted, and the version to release it as — rendered from
+deterministic templates with no model call, so it is the same on every run:
+
+> **This change is breaking.** (1.2.0 → 2.0.0) 6 findings at ERROR across 9 changes.
+>
+> **What changed**
+> - Constraints were tightened, so previously valid input now fails (2)
+> - Operations were removed
+>
+> **What to do**
+> - Release this as **2.0.0**, not a patch.
+> - Or make it additive: deprecate with a sunset date instead of removing.
+
+Read it out of the artifact with `jq -r '.summary.markdown'` and post it
+wherever your team reads.
+
 **Adopting on an existing API?** Start with `fail-on: never`. You get the full
 report and the artifacts on every pull request without blocking anyone, which
 is how you find out what your contract history actually contains before you

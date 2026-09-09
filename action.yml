@@ -196,7 +196,12 @@ runs:
 
           if [ -n "$BASE" ] && git show "origin/${BASE}:$spec" > "$ARTIFACTS/.base-spec" 2>/dev/null; then
             echo "::group::breaking $spec"
-            apiverity breaking "$ARTIFACTS/.base-spec" "$spec" $SEMVER_FLAG --json \
+            # --summary and --suggest-version cost nothing here and turn the
+            # artifact into something a PR comment can quote directly: a
+            # verdict, what changed grouped and counted, and the version to
+            # release it as. Both are deterministic templates, no model call.
+            apiverity breaking "$ARTIFACTS/.base-spec" "$spec" $SEMVER_FLAG \
+              --summary --suggest-version --json \
               > "$ARTIFACTS/${SAFE}.json"
             CODE=$?
             # Exit 1 means ERROR-severity findings, which is the gate working.

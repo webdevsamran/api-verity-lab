@@ -88,6 +88,9 @@ def cmd_breaking(args: argparse.Namespace) -> int:
         findings = findings + policy.evaluate(findings, changes)
     errors = sum(1 for f in findings if f.severity.value == "ERROR")
 
+    # Advice first: the summary quotes the concrete version when both flags are
+    # given, and "release this as 2.0.0" is a more useful sentence than
+    # "release this behind a major version bump".
     advice = None
     if getattr(args, "suggest_version", False):
         from apiverity.rules.semver import suggest_bump
@@ -99,6 +102,22 @@ def cmd_breaking(args: argparse.Namespace) -> int:
             require_minor_for_warnings=args.require_minor_for_warnings,
             declared_new_version=args.new_version or new.version,
         ).as_dict()
+
+    summary = None
+    if getattr(args, "summary", False):
+        from apiverity.rules.summary import summarize
+
+        summary = summarize(
+            changes,
+            findings,
+            old_version=args.old_version or old.version,
+            new_version=args.new_version or new.version,
+            suggested_version=(
+                str(advice["suggested_version"])
+                if advice and isinstance(advice.get("suggested_version"), str)
+                else None
+            ),
+        )
 
     _emit(
         {
@@ -117,6 +136,11 @@ def cmd_breaking(args: argparse.Namespace) -> int:
             "findings": findings,
             "errors": errors,
             **({"version_advice": advice} if advice is not None else {}),
+            **(
+                {"summary": {**summary.as_dict(), "markdown": summary.as_markdown()}}
+                if summary is not None
+                else {}
+            ),
         },
         args.json,
     )

@@ -31,7 +31,7 @@ fuzzing, drift detection, mocking and performance budgets. Each has its own
 result format, its own CI wiring and its own mental model — so findings never
 compose: you can't ask "which endpoints are both under-tested *and* drifting?"
 
-api-verity-lab answers eighteen questions from one place:
+api-verity-lab answers nineteen questions from one place:
 
 | Question | Command |
 |---|---|
@@ -39,6 +39,7 @@ api-verity-lab answers eighteen questions from one place:
 | Is it breaking, risky or safe? | `apiverity breaking` |
 | Was semantic versioning respected? | `apiverity breaking --check-semver` |
 | What version *should* this be? | `apiverity breaking --suggest-version` |
+| Can I paste this into a PR description? | `apiverity breaking --summary` |
 | What does this rule mean and how do I change it? | `apiverity explain BRK-RESP-FIELD-REMOVED` |
 | Does the running API match its contract? | `apiverity drift --base-url` |
 | How often did real traffic disagree with it? | `apiverity drift --corpus traffic.har` |

@@ -111,6 +111,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--new-version")
     p.add_argument("--require-minor-for-warnings", action="store_true")
     p.add_argument(
+        "--summary",
+        action="store_true",
+        help=(
+            "also render a plain-English summary -- what changed, who it affects, what to "
+            "do -- suitable for a pull request description. Deterministic templates, no "
+            "model call"
+        ),
+    )
+    p.add_argument(
         "--suggest-version",
         action="store_true",
         help=(
