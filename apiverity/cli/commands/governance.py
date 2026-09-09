@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
 from apiverity.cli.commands.common import (
     EXIT_FINDINGS,
     EXIT_OK,
+    EXIT_USAGE,
     _emit,
     _load,
     _pair,
@@ -79,6 +81,40 @@ def cmd_breaking(args: argparse.Namespace) -> int:
     from apiverity.diff.protocol_compat import analyze_protocol_compat
 
     findings = findings + analyze_compat(old, new) + analyze_protocol_compat(old, new)
+
+    # Who breaks, not just what. Annotation only, unless the registry declares
+    # itself complete *and* the caller asks: "no consumer listed" and "no
+    # consumer exists" are different statements, and softening a finding on the
+    # first is how a breaking change ships.
+    radius = None
+    affected_names: list[str] = []
+    if getattr(args, "consumers", None):
+        from apiverity.rules.consumers import (
+            RegistryError,
+            annotate,
+            blast_radius,
+            load_registry,
+            validate_against,
+        )
+
+        try:
+            registry = load_registry(args.consumers)
+        except RegistryError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return EXIT_USAGE
+
+        # Both sides. A consumer using an operation the new version removed is
+        # the case this exists to report, not a typo in the registry.
+        known = {op.key for op in old.operations} | {op.key for op in new.operations}
+        findings = findings + validate_against(registry, known)
+        findings = annotate(
+            findings,
+            registry,
+            adjust_severity=bool(getattr(args, "severity_by_consumers", False)),
+        )
+        radius = blast_radius(findings, registry)
+        affected_names = sorted(radius["by_consumer"])
+
     if args.check_semver:
         policy = SemverPolicy(
             args.old_version or old.version,
@@ -117,6 +153,7 @@ def cmd_breaking(args: argparse.Namespace) -> int:
                 if advice and isinstance(advice.get("suggested_version"), str)
                 else None
             ),
+            consumers=affected_names or None,
         )
 
     _emit(
@@ -141,6 +178,7 @@ def cmd_breaking(args: argparse.Namespace) -> int:
             "change_count": len(changes),
             "findings": findings,
             "errors": errors,
+            **({"blast_radius": radius} if radius is not None else {}),
             **({"version_advice": advice} if advice is not None else {}),
             **(
                 {"summary": {**summary.as_dict(), "markdown": summary.as_markdown()}}

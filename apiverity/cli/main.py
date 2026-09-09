@@ -143,6 +143,24 @@ def build_parser() -> argparse.ArgumentParser:
             "said whether the version you picked was wrong"
         ),
     )
+    p.add_argument(
+        "--consumers",
+        metavar="FILE",
+        help=(
+            "a consumer registry, so a finding names whose build breaks. Annotation only: "
+            "the severity is untouched unless the registry declares itself complete and "
+            "--severity-by-consumers is also given"
+        ),
+    )
+    p.add_argument(
+        "--severity-by-consumers",
+        action="store_true",
+        help=(
+            "report an ERROR with no registered consumer at WARN. Requires a registry with "
+            "`complete: true`, because 'no consumer listed' and 'no consumer exists' are "
+            "different statements and only one of them is safe to act on"
+        ),
+    )
     p.add_argument("--severity-override", action="append")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_breaking)
