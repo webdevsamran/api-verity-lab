@@ -33,8 +33,11 @@
         "replay",
         "rules",
         "self-test",
+        "mock",
+        "serve",
         "test",
         "validate",
+        "verify",
         "workflow"
       ]
     },

@@ -7,7 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-from apiverity.cli.commands.common import EXIT_OK, EXIT_USAGE, NL, _emit
+from apiverity.cli.commands.common import EXIT_FINDINGS, EXIT_OK, EXIT_USAGE, NL, _emit
 
 
 def cmd_report(args: argparse.Namespace) -> int:
@@ -90,6 +90,86 @@ def cmd_export(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def cmd_verify(args: argparse.Namespace) -> int:
+    """Check a bundle against its own SHA256SUMS.
+
+    `export` has always written that file and nothing has ever read it, which
+    makes the checksum decorative: a bundle emailed between machines, or
+    downloaded from a CI artifact store, could be altered in any way and
+    nothing would notice. A checksum nobody verifies is a comment.
+
+    Three distinct failures, reported separately because they mean different
+    things: a file whose digest no longer matches (tampered or corrupted), a
+    file listed in SHA256SUMS that is gone (truncated), and a file present in
+    the bundle that the manifest does not list (added).
+    """
+    import hashlib
+
+    bundle = Path(args.bundle)
+    if not bundle.is_dir():
+        print(f"error: not a bundle directory: {bundle}", file=sys.stderr)
+        return EXIT_USAGE
+
+    sums = bundle / "SHA256SUMS"
+    if not sums.is_file():
+        print(
+            f"error: {bundle} has no SHA256SUMS; it was not produced by `apiverity export`",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+
+    declared: dict[str, str] = {}
+    for line in sums.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        digest, _, name = line.partition("  ")
+        if not name:
+            print(f"error: malformed SHA256SUMS line: {line!r}", file=sys.stderr)
+            return EXIT_USAGE
+        declared[name] = digest
+
+    present = {f.name for f in bundle.iterdir() if f.is_file() and f.name != "SHA256SUMS"}
+
+    mismatched: list[str] = []
+    missing: list[str] = []
+    for name, digest in sorted(declared.items()):
+        path = bundle / name
+        if not path.is_file():
+            missing.append(name)
+            continue
+        if hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+            mismatched.append(name)
+    unlisted = sorted(present - set(declared))
+
+    ok = not (mismatched or missing or unlisted)
+    _emit(
+        {
+            "tool": "apiverity",
+            "command": "verify",
+            "bundle": str(bundle),
+            "verified": ok,
+            "files_checked": len(declared),
+            "mismatched": mismatched,
+            "missing": missing,
+            "unlisted": unlisted,
+        },
+        args.json,
+    )
+    if not ok:
+        for name in mismatched:
+            print(f"error: {name}: checksum does not match SHA256SUMS", file=sys.stderr)
+        for name in missing:
+            print(
+                f"error: {name}: listed in SHA256SUMS but absent from the bundle", file=sys.stderr
+            )
+        for name in unlisted:
+            print(
+                f"error: {name}: present in the bundle but not listed in SHA256SUMS",
+                file=sys.stderr,
+            )
+    return EXIT_OK if ok else EXIT_FINDINGS
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     """Serve a result bundle (or web/dist) on localhost."""
     import functools
@@ -98,7 +178,19 @@ def cmd_serve(args: argparse.Namespace) -> int:
     root = Path(args.directory)
     handler = functools.partial(SimpleHTTPRequestHandler, directory=str(root))
     httpd = ThreadingHTTPServer(("127.0.0.1", args.port), handler)
-    print(f"serving {root} at http://127.0.0.1:{args.port} (Ctrl+C to stop)")
+    if getattr(args, "json", False):
+        # Before serve_forever blocks, for the same reason as `mock`.
+        _emit(
+            {
+                "tool": "apiverity",
+                "command": "serve",
+                "base_url": f"http://127.0.0.1:{args.port}",
+                "directory": str(root),
+            },
+            True,
+        )
+    else:
+        print(f"serving {root} at http://127.0.0.1:{args.port} (Ctrl+C to stop)")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

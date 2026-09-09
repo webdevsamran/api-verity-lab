@@ -141,6 +141,24 @@ def cmd_changelog(args: argparse.Namespace) -> int:
     )
     if args.output:
         Path(args.output).write_text(text, encoding="utf-8")
-    else:
+
+    if getattr(args, "json", False):
+        # The rendered document goes *inside* the artifact rather than to
+        # stdout beside it: a caller asking for JSON is parsing stdout, and a
+        # markdown changelog printed alongside would corrupt the parse.
+        _emit(
+            {
+                "tool": "apiverity",
+                "command": "changelog",
+                "old_version": old.version,
+                "new_version": new.version,
+                "format": "html" if args.html else "markdown",
+                "change_count": len(changes),
+                "output_path": args.output or None,
+                "document": text,
+            },
+            True,
+        )
+    elif not args.output:
         print(text)
     return EXIT_OK

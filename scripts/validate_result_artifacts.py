@@ -91,6 +91,15 @@ COMMANDS: list[tuple[str, list[str]]] = [
     # A new command that emits an artifact has to be added to the schema, and
     # this is the step that says so.
     ("explain", ["explain", "BRK-OP-REMOVED", "--json"]),
+    (
+        "changelog",
+        [
+            "changelog",
+            str(FIXTURES / "apis/versioned/v1.yaml"),
+            str(FIXTURES / "apis/versioned/v2.yaml"),
+            "--json",
+        ],
+    ),
     ("plugins", ["plugins", "--json"]),
 ]
 

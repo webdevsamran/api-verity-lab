@@ -31,7 +31,7 @@ fuzzing, drift detection, mocking and performance budgets. Each has its own
 result format, its own CI wiring and its own mental model — so findings never
 compose: you can't ask "which endpoints are both under-tested *and* drifting?"
 
-api-verity-lab answers seventeen questions from one place:
+api-verity-lab answers eighteen questions from one place:
 
 | Question | Command |
 |---|---|
@@ -50,6 +50,7 @@ api-verity-lab answers seventeen questions from one place:
 | Did latency/error rate regress? | `apiverity regression` |
 | Which endpoints lack coverage? | `apiverity coverage` |
 | Can CI block breaking changes before release? | [GitHub Action](action.yml) (included) |
+| Was this result bundle tampered with? | `apiverity verify bundle/` |
 | Is a provider version safe to deploy? | `apiverity` server `/v1/can-i-deploy` |
 | Who executes jobs inside our private network? | Workers pull via `POST /v1/jobs/claim` |
 
@@ -85,7 +86,7 @@ apiverity regression fixtures/apis/crud/openapi.yaml --base-url http://127.0.0.1
     --baseline baseline.json --policy "GET /users p95 <= 250ms"
 ```
 
-Every command supports `--json`, stable exit codes (`0` ok, `1` findings at/above
+Every command emits structured output (`--json`, or `--format` on `report`), stable exit codes (`0` ok, `1` findings at/above
 threshold, `2` usage error, `3` target unreachable, `4` internal error).
 
 ## A diff example

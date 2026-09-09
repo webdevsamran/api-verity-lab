@@ -4,6 +4,34 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — bundle integrity and scriptable output
+
+- **`apiverity verify <bundle>`.** `export` has always written `SHA256SUMS`
+  and nothing has ever read it, which made the checksum decorative: a bundle
+  emailed between machines, or pulled from a CI artifact store, could be
+  altered in any way and nothing would notice.
+
+  Three failure modes, reported separately because they call for different
+  responses: a digest that no longer matches (tampered or corrupted), a listed
+  file that is gone (truncated), and a file present that the manifest never
+  listed (added). "The bundle is wrong" is not an actionable sentence. A
+  directory that was never a bundle is a *usage* error, distinct from a bundle
+  that fails verification.
+
+- **`--json` on `changelog`, `mock` and `serve`**, which were unscriptable: a
+  CI step wanting the changelog had to parse markdown, and one wanting the
+  mock's address had to scrape a log line.
+
+  Adding the flag everywhere would have been wrong, and two commands show why.
+  `report` keeps `--format json|sarif|junit|html|yaml`, which is strictly more
+  expressive, and a test asserts that any command excluded from `--json` really
+  does have something better — so the exclusion list cannot become a place to
+  park an oversight. `mock` and `serve` block forever, so they emit the bound
+  address *before* serving; a `--json` that produced nothing until Ctrl+C would
+  be a flag that does nothing. `changelog` puts the rendered document *inside*
+  the artifact rather than printing it alongside, because a caller asking for
+  JSON is parsing stdout.
+
 ### Added — governance UX
 
 - **`apiverity explain <rule-id>`.** The catalogue already carried a

@@ -15,7 +15,7 @@ import sys
 from typing import Any
 
 from apiverity import __version__
-from apiverity.cli.commands.artifacts import cmd_export, cmd_report, cmd_serve
+from apiverity.cli.commands.artifacts import cmd_export, cmd_report, cmd_serve, cmd_verify
 from apiverity.cli.commands.common import EXIT_INTERNAL, EXIT_OK
 from apiverity.cli.commands.governance import (
     cmd_breaking,
@@ -64,6 +64,7 @@ __all__ = [
     "cmd_server_db",
     "cmd_test",
     "cmd_validate",
+    "cmd_verify",
     "cmd_workflow",
     "main",
 ]
@@ -106,6 +107,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("old")
     p.add_argument("new")
     p.add_argument("--html", action="store_true")
+    p.add_argument("--json", action="store_true")
     p.add_argument("--output")
     p.set_defaults(func=cmd_changelog)
     p = sub.add_parser("test")
@@ -176,6 +178,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--force-status", type=int)
     p.add_argument("--malformed", action="store_true")
     p.add_argument("--rate-limit-after", type=int)
+    p.add_argument(
+        "--json",
+        action="store_true",
+        help="print the bound address as an artifact before serving, for scripts",
+    )
     p.set_defaults(func=cmd_mock)
     p = sub.add_parser("coverage")
     p.add_argument("spec")
@@ -322,9 +329,21 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--perf")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_export)
+    p = sub.add_parser(
+        "verify",
+        help="check a bundle against its own SHA256SUMS",
+    )
+    p.add_argument("bundle", help="path to a .apiverity bundle directory")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_verify)
     p = sub.add_parser("serve")
     p.add_argument("directory")
     p.add_argument("--port", type=int, default=8080)
+    p.add_argument(
+        "--json",
+        action="store_true",
+        help="print the bound address as an artifact before serving, for scripts",
+    )
     p.set_defaults(func=cmd_serve)
     p = sub.add_parser("server-db", help="backup/restore/export/import a server database")
     p.add_argument("action", choices=["backup", "restore", "export", "import"])

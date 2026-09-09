@@ -127,6 +127,25 @@ def cmd_mock(args: argparse.Namespace) -> int:
         rate_limit_after=args.rate_limit_after,
     )
     host = "127.0.0.1"  # always localhost by default
+    if getattr(args, "json", False):
+        # Printed before the server blocks, so a script can read the address it
+        # is about to talk to. A --json that produced nothing until Ctrl+C
+        # would be a flag that does nothing.
+        _emit(
+            {
+                "tool": "apiverity",
+                "command": "mock",
+                "base_url": f"http://{host}:{args.port}",
+                "operations": len(service.operations),
+                "faults": {
+                    "latency_ms": args.latency_ms,
+                    "force_status": args.force_status,
+                    "malformed_json": args.malformed,
+                    "rate_limit_after": args.rate_limit_after,
+                },
+            },
+            True,
+        )
     serve(service, host=host, port=args.port, faults=faults)
     return EXIT_OK
 
