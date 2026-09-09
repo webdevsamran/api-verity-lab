@@ -51,6 +51,12 @@ jobs:
         # autocomplete a key the tool rejects.
         run: python scripts/generate_config_schema.py --check
 
+      - name: Capability manifest and llms.txt match the code
+        # docs/llms.txt and docs/capabilities.json tell other people's tools
+        # what this one can do. A hand-written capability list is a claim that
+        # rots, and this is the last file to leave to memory.
+        run: python scripts/generate_capability_manifest.py --check
+
       - name: Compliance mapping doc matches the code
         # The OWASP control -> rule mapping is published in
         # docs/compliance-mapping.md. A renamed rule would leave that table

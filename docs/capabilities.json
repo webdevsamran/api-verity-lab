@@ -1,0 +1,430 @@
+{
+  "name": "api-verity-lab",
+  "version": "0.2.0",
+  "summary": "API contract governance across six protocols: diff, breaking-change rules, runtime drift, performance budgets and agent-tool governance under one contract model and one result format.",
+  "repository": "https://github.com/webdevsamran/api-verity-lab",
+  "documentation": "https://webdevsamran.github.io/api-verity-lab",
+  "license": "Apache-2.0",
+  "spec_plugins": [
+    {
+      "plugin": "AsyncApiSpecPlugin",
+      "protocol": "asyncapi"
+    },
+    {
+      "plugin": "GraphQlSpecPlugin",
+      "protocol": "graphql"
+    },
+    {
+      "plugin": "GrpcSpecPlugin",
+      "protocol": "grpc"
+    },
+    {
+      "plugin": "McpSpecPlugin",
+      "protocol": "mcp"
+    },
+    {
+      "plugin": "OpenApiSpecPlugin",
+      "protocol": "openapi"
+    },
+    {
+      "plugin": "Swagger2SpecPlugin",
+      "protocol": "openapi"
+    }
+  ],
+  "protocol_values": [
+    "openapi",
+    "graphql",
+    "grpc",
+    "asyncapi",
+    "sse",
+    "websocket",
+    "mcp"
+  ],
+  "commands": [
+    {
+      "name": "baseline",
+      "summary": "measure latency percentiles and store them for later comparison",
+      "options": [
+        "--base-url",
+        "--iterations",
+        "--json",
+        "--warmup",
+        "-o"
+      ]
+    },
+    {
+      "name": "breaking",
+      "summary": "classify those changes against the rule catalogue and fail on the breaking ones",
+      "options": [
+        "--check-semver",
+        "--consumers",
+        "--json",
+        "--new-version",
+        "--old-version",
+        "--require-minor-for-warnings",
+        "--severity-by-consumers",
+        "--severity-override",
+        "--suggest-fix",
+        "--suggest-version",
+        "--summary"
+      ]
+    },
+    {
+      "name": "budget",
+      "summary": "check observed calls against a declared call budget",
+      "options": [
+        "--budget",
+        "--json",
+        "--spec"
+      ]
+    },
+    {
+      "name": "changelog",
+      "summary": "a release note for a version bump, in markdown or HTML",
+      "options": [
+        "--html",
+        "--json",
+        "--output"
+      ]
+    },
+    {
+      "name": "config",
+      "summary": "validate or show the project config",
+      "options": [
+        "--json",
+        "--path"
+      ]
+    },
+    {
+      "name": "coverage",
+      "summary": "which operations and statuses a run actually exercised",
+      "options": [
+        "--exercised",
+        "--json"
+      ]
+    },
+    {
+      "name": "diff",
+      "summary": "every semantic change between two contracts, with a stable id each",
+      "options": [
+        "--json"
+      ]
+    },
+    {
+      "name": "drift",
+      "summary": "the declared contract against a live service, a recorded corpus or an MCP server",
+      "options": [
+        "--allow-undeclared-fields",
+        "--base-url",
+        "--baseline",
+        "--corpus",
+        "--execute",
+        "--header",
+        "--i-know-this-is-production",
+        "--include-response-bodies",
+        "--invoke-tool",
+        "--json",
+        "--max-list-pages",
+        "--save-baseline",
+        "--seed",
+        "--skip-auth-probe",
+        "--timeout"
+      ]
+    },
+    {
+      "name": "evidence",
+      "summary": "assemble result artifacts into a dated, checksummed evidence pack",
+      "options": [
+        "--as-of",
+        "--json",
+        "-o"
+      ]
+    },
+    {
+      "name": "explain",
+      "summary": "explain one rule: what it means, why, and how to change its severity",
+      "options": [
+        "--json"
+      ]
+    },
+    {
+      "name": "export",
+      "summary": "write a portable .apiverity bundle with checksums",
+      "options": [
+        "--config",
+        "--data",
+        "--json",
+        "--perf",
+        "--spec",
+        "--workflow",
+        "-o"
+      ]
+    },
+    {
+      "name": "ghosts",
+      "summary": "find routes the contract no longer declares that the server still answers",
+      "options": [
+        "--base-url",
+        "--corpus",
+        "--json",
+        "--timeout",
+        "--was"
+      ]
+    },
+    {
+      "name": "infer",
+      "summary": "draft a contract from recorded traffic, labelled as a draft",
+      "options": [
+        "--infer-enums",
+        "--json",
+        "--title",
+        "-o"
+      ]
+    },
+    {
+      "name": "init",
+      "summary": "detect this project's contracts and write .apiverity.yaml",
+      "options": [
+        "--dry-run",
+        "--force",
+        "--json"
+      ]
+    },
+    {
+      "name": "mcp-inventory",
+      "summary": "list the MCP servers this machine is configured to reach, and flag unapproved ones",
+      "options": [
+        "--config",
+        "--include-home",
+        "--inventory",
+        "--json"
+      ]
+    },
+    {
+      "name": "mcp-lock",
+      "summary": "write or check mcp.lock, a reviewed baseline for an MCP tool surface",
+      "options": [
+        "--base-url",
+        "--force",
+        "--header",
+        "--json",
+        "--key-env",
+        "--lock",
+        "--max-list-pages",
+        "--require-minor-for-warnings",
+        "--sign",
+        "--surface-version",
+        "--timeout"
+      ]
+    },
+    {
+      "name": "mock",
+      "summary": "serve a deterministic mock of a contract, with optional misbehaviour",
+      "options": [
+        "--force-status",
+        "--json",
+        "--latency-ms",
+        "--malformed",
+        "--port",
+        "--rate-limit-after"
+      ]
+    },
+    {
+      "name": "plugins",
+      "summary": "list installed plugins across the six entry-point groups",
+      "options": [
+        "--json"
+      ]
+    },
+    {
+      "name": "regression",
+      "summary": "measure again and fail when latency or error rate regressed past a tolerance",
+      "options": [
+        "--base-url",
+        "--baseline",
+        "--iterations",
+        "--json",
+        "--policy",
+        "--tolerance",
+        "--warmup"
+      ]
+    },
+    {
+      "name": "replay",
+      "summary": "replay a sanitized traffic corpus, dry-run by default",
+      "options": [
+        "--allow-host",
+        "--base-url",
+        "--execute",
+        "--i-know-this-is-production",
+        "--json",
+        "--rate"
+      ]
+    },
+    {
+      "name": "report",
+      "summary": "render a result bundle: terminal, markdown, HTML, JUnit, SARIF, or an OWASP mapping",
+      "options": [
+        "--format"
+      ]
+    },
+    {
+      "name": "rules",
+      "summary": "the whole rule catalogue, with severities",
+      "options": [
+        "--json"
+      ]
+    },
+    {
+      "name": "self-test",
+      "summary": "check this installation can load, diff and classify a bundled fixture",
+      "options": [
+        "--json"
+      ]
+    },
+    {
+      "name": "serve",
+      "summary": "serve a bundle over HTTP for local viewing",
+      "options": [
+        "--json",
+        "--port"
+      ]
+    },
+    {
+      "name": "server-db",
+      "summary": "backup/restore/export/import a server database",
+      "options": [
+        "--db",
+        "--input",
+        "--json",
+        "--org-id",
+        "-o"
+      ]
+    },
+    {
+      "name": "sweep",
+      "summary": "every contract in a tree, with an owner and a verdict for each",
+      "options": [
+        "--base",
+        "--json",
+        "--limit"
+      ]
+    },
+    {
+      "name": "test",
+      "summary": "generate cases from the schema and run them against a live service",
+      "options": [
+        "--base-url",
+        "--generator",
+        "--include-mutations",
+        "--json",
+        "--list-generators",
+        "--minimize",
+        "--operations",
+        "--seed",
+        "--timeout"
+      ]
+    },
+    {
+      "name": "validate",
+      "summary": "load a contract, report what is wrong with the document itself",
+      "options": [
+        "--json"
+      ]
+    },
+    {
+      "name": "verify",
+      "summary": "check a bundle against its own SHA256SUMS",
+      "options": [
+        "--json"
+      ]
+    },
+    {
+      "name": "workflow",
+      "summary": "run a multi-step workflow manifest, or infer a draft from a contract",
+      "options": [
+        "--base-url",
+        "--infer",
+        "--json",
+        "--list-templates",
+        "--template",
+        "-o"
+      ]
+    }
+  ],
+  "rules": {
+    "count": 57,
+    "ids": [
+      "BRK-CONSTRAINT-LOOSENED",
+      "BRK-CONSTRAINT-TIGHTENED",
+      "BRK-DEPRECATION-ADDED",
+      "BRK-DEPRECATION-REMOVED",
+      "BRK-ENUM-NARROWED-REQUEST",
+      "BRK-ENUM-NARROWED-RESPONSE",
+      "BRK-ENUM-WIDENED",
+      "BRK-FIELD-NUMBER-REUSED",
+      "BRK-FIELD-NUMBER-UNRESERVED",
+      "BRK-FIELD-PRESENCE-LOST",
+      "BRK-HEADER-ADDED",
+      "BRK-HEADER-REMOVED",
+      "BRK-MCP-ANNOTATION-DECLARATION-CHANGED",
+      "BRK-MCP-DESTRUCTIVE-HINT-CLEARED",
+      "BRK-MCP-DESTRUCTIVE-HINT-SET",
+      "BRK-MCP-IDEMPOTENT-HINT-CLEARED",
+      "BRK-MCP-IDEMPOTENT-HINT-SET",
+      "BRK-MCP-MANIFEST-TRUNCATED",
+      "BRK-MCP-OPENWORLD-HINT-CHANGED",
+      "BRK-MCP-OUTPUT-SCHEMA-ADDED",
+      "BRK-MCP-OUTPUT-SCHEMA-REMOVED",
+      "BRK-MCP-READONLY-HINT-CLEARED",
+      "BRK-MCP-READONLY-HINT-SET",
+      "BRK-MCP-TOOL-DESCRIPTION-CHANGED",
+      "BRK-MCP-TOOL-RENAME-SUSPECTED",
+      "BRK-MEDIA-TYPE-CHANGED",
+      "BRK-ONEOF-NARROWED",
+      "BRK-ONEOF-WIDENED",
+      "BRK-OP-ADDED",
+      "BRK-OP-REMOVED",
+      "BRK-PARAM-ADDED-OPTIONAL",
+      "BRK-PARAM-ADDED-REQUIRED",
+      "BRK-PARAM-OPTIONALIZED",
+      "BRK-PARAM-REMOVED",
+      "BRK-PARAM-REQUIRED",
+      "BRK-PARAM-TYPE-CHANGED",
+      "BRK-REQ-BODY-ADDED-OPTIONAL",
+      "BRK-REQ-BODY-ADDED-REQUIRED",
+      "BRK-REQ-BODY-REMOVED",
+      "BRK-REQ-BODY-REQUIRED",
+      "BRK-REQ-FIELD-ADDED-OPTIONAL",
+      "BRK-REQ-FIELD-ADDED-REQUIRED",
+      "BRK-REQ-FIELD-BECAME-REQUIRED",
+      "BRK-REQ-FIELD-OPTIONALIZED",
+      "BRK-REQ-FIELD-REMOVED",
+      "BRK-RESERVATION-REMOVED",
+      "BRK-RESP-CONSTRAINT-TIGHTENED",
+      "BRK-RESP-FIELD-ADDED",
+      "BRK-RESP-FIELD-OPTIONALIZED",
+      "BRK-RESP-FIELD-REMOVED",
+      "BRK-RESP-STATUS-ADDED",
+      "BRK-RESP-STATUS-REMOVED",
+      "BRK-RESP-TYPE-CHANGED",
+      "BRK-RPC-ADDED",
+      "BRK-RPC-REMOVED",
+      "BRK-RPC-STREAMING-CHANGED",
+      "BRK-SECURITY-CHANGED"
+    ],
+    "every_rule_has_an_alternative": true
+  },
+  "exit_codes": {
+    "ok": 0,
+    "findings": 1,
+    "usage": 2,
+    "unreachable": 3,
+    "internal": 4
+  },
+  "schemas": {
+    "result": "schemas/result-v1.schema.json",
+    "config": "schemas/config-v1.schema.json"
+  },
+  "generated_by": "scripts/generate_capability_manifest.py"
+}

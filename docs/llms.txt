@@ -1,0 +1,65 @@
+# api-verity-lab
+
+> API contract governance across six formats -- OpenAPI 3.0/3.1/3.2, Swagger 2.0,
+> AsyncAPI 2.x/3.x, GraphQL, gRPC and MCP tool manifests -- under one normalized
+> contract model and one versioned result format. Diffs contracts, classifies
+> breaking changes against 57 rules with stable ids, detects runtime drift
+> against live services and recorded traffic, governs the tool surface agents call,
+> and measures performance budgets.
+
+Apache-2.0. Python 3.11+. No telemetry. Every claim in these documents is either
+generated from the code or carries a dated source; counts in prose are bound to the
+thing they count by a test.
+
+## What it is for
+
+- Failing a pull request that breaks an API contract, with the rule id and the
+  non-breaking alternative.
+- Telling whether a running service still matches the contract its consumers were
+  given.
+- Governing what an AI agent can call: tool-manifest diffing, declared-versus-live
+  drift, tool-description poisoning, authentication posture, and a reviewed baseline.
+
+## Docs
+
+- [Rule catalog](https://webdevsamran.github.io/api-verity-lab/rule-catalog/): Every breaking-change rule, its severity, and the non-breaking alternative
+- [Spec support](https://webdevsamran.github.io/api-verity-lab/spec-support/): Which spec versions and constructs are read, and which are not
+- [Protocol support](https://webdevsamran.github.io/api-verity-lab/protocol-support/): What each of the six protocols supports
+- [Exit codes](https://webdevsamran.github.io/api-verity-lab/exit-codes/): The exit-code contract, and how it differs from sibling projects
+- [MCP drift](https://webdevsamran.github.io/api-verity-lab/mcp-drift/): Declared tool manifest against a running MCP server
+- [MCP tool poisoning](https://webdevsamran.github.io/api-verity-lab/mcp-poisoning/): Reading a tool description as executable text (OWASP MCP03)
+- [MCP lockfile](https://webdevsamran.github.io/api-verity-lab/mcp-lock/): A reviewed baseline for an agent's tool surface
+- [MCP inventory](https://webdevsamran.github.io/api-verity-lab/mcp-inventory/): Shadow MCP servers, found by reading client configs
+- [Call budgets](https://webdevsamran.github.io/api-verity-lab/call-budgets/): How often an agent may call each tool
+- [Blast radius](https://webdevsamran.github.io/api-verity-lab/blast-radius/): Which consumers a breaking change affects
+- [Ghost routes](https://webdevsamran.github.io/api-verity-lab/ghost-routes/): Routes the contract deleted that the deployment kept
+- [Inferred contracts](https://webdevsamran.github.io/api-verity-lab/inferred-contracts/): Drafting a contract from recorded traffic
+- [Monorepo sweep](https://webdevsamran.github.io/api-verity-lab/monorepo-sweep/): Every contract in a tree, with an owner and a verdict
+- [Compliance mapping](https://webdevsamran.github.io/api-verity-lab/compliance-mapping/): Findings mapped onto OWASP MCP, Agentic and API Top 10
+- [Evidence packs](https://webdevsamran.github.io/api-verity-lab/evidence/): Dated, checksummed records for SOC 2, ISO 42001, DORA, EU AI Act
+- [CI integration](https://webdevsamran.github.io/api-verity-lab/ci/): Wiring the gate into a pipeline
+- [Safety model](https://webdevsamran.github.io/api-verity-lab/safety-model/): What this tool will and will not do to a target
+- [Privacy](https://webdevsamran.github.io/api-verity-lab/privacy/): What reaches an artifact, and what never does
+- [Self-hosting](https://webdevsamran.github.io/api-verity-lab/self-hosting/): Running the server
+- [SDK](https://webdevsamran.github.io/api-verity-lab/sdk/): Using the library directly
+- [Architecture](https://webdevsamran.github.io/api-verity-lab/architecture/): How the one contract model works
+- [Competitive analysis](https://webdevsamran.github.io/api-verity-lab/competitive-analysis/): Verified, dated comparison with other tools
+
+## Machine-readable
+
+- [capabilities.json](https://webdevsamran.github.io/api-verity-lab/capabilities.json): every command, protocol, rule id and
+  exit code, generated from the code
+- [result-v1 schema](https://webdevsamran.github.io/api-verity-lab/../schemas/result-v1.schema.json): the artifact contract
+  every command writes
+
+## Commands
+
+`baseline`, `breaking`, `budget`, `changelog`, `config`, `coverage`, `diff`, `drift`, `evidence`, `explain`, `export`, `ghosts`, `infer`, `init`, `mcp-inventory`, `mcp-lock`, `mock`, `plugins`, `regression`, `replay`, `report`, `rules`, `self-test`, `serve`, `server-db`, `sweep`, `test`, `validate`, `verify`, `workflow`.
+
+## What it does not do
+
+- It does not authenticate, deploy, or modify a target service.
+- It does not send traffic anywhere it was not explicitly pointed at, and never
+  invokes an MCP tool without a named opt-in.
+- It does not claim a compliance control is satisfied; it produces the records an
+  auditor maps.

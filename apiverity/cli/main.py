@@ -151,16 +151,25 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_infer)
 
-    p = sub.add_parser("validate")
+    p = sub.add_parser(
+        "validate",
+        help="load a contract, report what is wrong with the document itself",
+    )
     p.add_argument("spec")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_validate)
-    p = sub.add_parser("diff")
+    p = sub.add_parser(
+        "diff",
+        help="every semantic change between two contracts, with a stable id each",
+    )
     p.add_argument("old")
     p.add_argument("new")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_diff)
-    p = sub.add_parser("breaking")
+    p = sub.add_parser(
+        "breaking",
+        help="classify those changes against the rule catalogue and fail on the breaking ones",
+    )
     p.add_argument("old")
     p.add_argument("new")
     p.add_argument("--check-semver", action="store_true")
@@ -214,14 +223,20 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--severity-override", action="append")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_breaking)
-    p = sub.add_parser("changelog")
+    p = sub.add_parser(
+        "changelog",
+        help="a release note for a version bump, in markdown or HTML",
+    )
     p.add_argument("old")
     p.add_argument("new")
     p.add_argument("--html", action="store_true")
     p.add_argument("--json", action="store_true")
     p.add_argument("--output")
     p.set_defaults(func=cmd_changelog)
-    p = sub.add_parser("test")
+    p = sub.add_parser(
+        "test",
+        help="generate cases from the schema and run them against a live service",
+    )
     p.add_argument("spec")
     p.add_argument("--base-url")
     p.add_argument("--seed", type=int, default=0)
@@ -261,7 +276,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--minimize", action="store_true")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_test)
-    p = sub.add_parser("workflow")
+    p = sub.add_parser(
+        "workflow",
+        help="run a multi-step workflow manifest, or infer a draft from a contract",
+    )
     p.add_argument("manifest", help="a workflow manifest to run, or a spec with --infer")
     p.add_argument("--base-url")
     p.add_argument(
@@ -282,7 +300,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("-o", "--output", help="write the draft to a file instead of stdout")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_workflow)
-    p = sub.add_parser("mock")
+    p = sub.add_parser(
+        "mock",
+        help="serve a deterministic mock of a contract, with optional misbehaviour",
+    )
     p.add_argument("spec")
     p.add_argument("--port", type=int, default=8090)
     p.add_argument("--latency-ms", type=int, default=0)
@@ -295,12 +316,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="print the bound address as an artifact before serving, for scripts",
     )
     p.set_defaults(func=cmd_mock)
-    p = sub.add_parser("coverage")
+    p = sub.add_parser(
+        "coverage",
+        help="which operations and statuses a run actually exercised",
+    )
     p.add_argument("spec")
     p.add_argument("--exercised", nargs="*")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_coverage)
-    p = sub.add_parser("drift")
+    p = sub.add_parser(
+        "drift",
+        help="the declared contract against a live service, a recorded corpus or an MCP server",
+    )
     p.add_argument("spec")
     p.add_argument(
         "--base-url",
@@ -503,7 +530,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_ghosts)
 
-    p = sub.add_parser("replay")
+    p = sub.add_parser(
+        "replay",
+        help="replay a sanitized traffic corpus, dry-run by default",
+    )
     p.add_argument("har")
     p.add_argument("--base-url", required=True)
     p.add_argument("--allow-host", action="append", required=True)
@@ -512,7 +542,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--i-know-this-is-production", action="store_true")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_replay)
-    p = sub.add_parser("baseline")
+    p = sub.add_parser(
+        "baseline",
+        help="measure latency percentiles and store them for later comparison",
+    )
     p.add_argument("spec")
     p.add_argument("--base-url", required=True)
     p.add_argument("-o", "--output", default="perf-baseline.json")
@@ -529,7 +562,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_baseline)
-    p = sub.add_parser("regression")
+    p = sub.add_parser(
+        "regression",
+        help="measure again and fail when latency or error rate regressed past a tolerance",
+    )
     p.add_argument("spec")
     p.add_argument("--base-url", required=True)
     p.add_argument("--baseline")
@@ -553,11 +589,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_regression)
-    p = sub.add_parser("report")
+    p = sub.add_parser(
+        "report",
+        help="render a result bundle: terminal, markdown, HTML, JUnit, SARIF, or an OWASP mapping",
+    )
     p.add_argument("bundle")
     p.add_argument("--format", default="json")
     p.set_defaults(func=cmd_report)
-    p = sub.add_parser("export")
+    p = sub.add_parser(
+        "export",
+        help="write a portable .apiverity bundle with checksums",
+    )
     p.add_argument("--data", required=True)
     p.add_argument("-o", "--output", required=True)
     p.add_argument("--spec")
@@ -590,7 +632,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("bundle", help="path to a .apiverity bundle directory")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_verify)
-    p = sub.add_parser("serve")
+    p = sub.add_parser(
+        "serve",
+        help="serve a bundle over HTTP for local viewing",
+    )
     p.add_argument("directory")
     p.add_argument("--port", type=int, default=8080)
     p.add_argument(
@@ -607,7 +652,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--org-id", type=int, help="org id for export")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_server_db)
-    p = sub.add_parser("plugins")
+    p = sub.add_parser(
+        "plugins",
+        help="list installed plugins across the six entry-point groups",
+    )
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_plugins)
     p = sub.add_parser(
@@ -617,10 +665,16 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("rule_id", help="a rule id, e.g. BRK-RESP-FIELD-REMOVED (case-insensitive)")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_explain)
-    p = sub.add_parser("rules")
+    p = sub.add_parser(
+        "rules",
+        help="the whole rule catalogue, with severities",
+    )
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_rules)
-    p = sub.add_parser("self-test")
+    p = sub.add_parser(
+        "self-test",
+        help="check this installation can load, diff and classify a bundled fixture",
+    )
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_self_test)
     return parser
