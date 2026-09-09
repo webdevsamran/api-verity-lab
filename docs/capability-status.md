@@ -20,6 +20,14 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   never populated, so scope coverage had no data for any contract in any
   version — EXISTING (`specs/openapi/parser.py`)
 - JSON Schema 2020-12-aware comparisons — PARTIAL (shared SchemaNode semantics; `$dynamicRef` not modeled)
+- Canonicalization before diffing (`core/canonical.py`): `allOf` collapsed where
+  it can be collapsed without deciding anything, enums deduplicated and ordered,
+  properties and `required` sorted. Conjunction semantics are honoured —
+  constraints merge to the tightest bound, enums intersect. Branches that
+  disagree are left composed and reported (`SPEC-ALLOF-CONFLICT`) rather than
+  merged, and `oneOf`/`anyOf` are never flattened because a disjunction is not a
+  conjunction. Applied in `diff_services`, not at load, so `validate` still
+  reports on the document as written — EXISTING
 - GraphQL: SDL import with provenance (**fixed in an earlier pass**: a kind-casing bug that silently loaded zero operations), schema-driven query generation, persisted operation documents (`test --operations`), `{data, errors}` envelope assertions, and introspection-based drift (`drift --base-url`) — EXISTING (`specs/graphql/operations.py`, `specs/graphql/runner.py`)
 - gRPC: `.proto` sources and compiled `FileDescriptorSet` input (`.desc`/`.pb`/`.protoset`) — EXISTING (`specs/grpc/descriptor.py`, no protobuf runtime dependency); streaming cardinality, explicit presence, oneof membership and reserved ranges in the diff; wire-compat metadata (`diff/protocol_compat.py`)
 - SSE / WebSocket message-contract representations — EXISTING (operation kinds `EVENT`, `WS_MESSAGE`)

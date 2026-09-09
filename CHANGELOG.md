@@ -4,6 +4,48 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — canonicalization before diffing
+
+- **`allOf` is collapsed, enums are deduplicated, and everything is ordered**
+  before two contracts are compared (`apiverity/core/canonical.py`, applied in
+  `diff_services`).
+
+  The differ compares `allOf` branches *positionally* — it zips the two lists,
+  and only when their lengths match. Three consequences, and the third is not
+  cosmetic:
+
+  * `allOf: [Base, {extra}]` and the same schema written inline were completely
+    different documents, so refactoring a spec without changing its meaning
+    reported as a rewrite;
+  * reordering branches renumbered every nested comparison, though `allOf` is a
+    conjunction and order carries no meaning;
+  * **two `allOf` lists of different lengths were skipped entirely and
+    silently**, so adding a branch hid every change inside the ones that
+    remained. A reviewer read a clean diff and concluded nothing had changed.
+
+  Conjunction semantics are honoured rather than approximated: constraints
+  merge to the tightest bound (largest minimum, smallest maximum) and enums
+  intersect, because a value must satisfy every branch.
+
+- **What it refuses to do is half the design.** Branches that disagree about a
+  type are left composed and reported as `SPEC-ALLOF-CONFLICT`: an `allOf` of
+  `{type: string}` and `{type: integer}` is unsatisfiable, and silently picking
+  a winner would turn a broken contract into a plausible-looking one.
+  `oneOf`/`anyOf` are never flattened — a disjunction is not a conjunction.
+
+  It runs in `diff_services`, not the loader, so `validate` still reports on the
+  document as written, source locations and all. `canonical=False` compares the
+  documents as text when the question really is about the document.
+
+### Fixed
+
+- **`_stable_unique` dropped enum members**, found by its own test. Python
+  considers `True == 1`, so a plain membership check discarded one of them, and
+  an enum declaring both `1` and `true` — different values under JSON Schema —
+  would silently lose a member. Narrowing an enum is a breaking change;
+  doing it by accident inside the tool that detects breaking changes is worse.
+  Deduplication now keys on `(type, value)`.
+
 ### Added — OpenAPI 3.2
 
 - **OpenAPI 3.2.0 (released 2025-09-19) loads and is governed.** The version

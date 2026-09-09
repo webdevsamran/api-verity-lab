@@ -1095,7 +1095,27 @@ class DiffEngine:
                     )
 
 
-def diff_services(old: Service, new: Service) -> list[Change]:
+def diff_services(old: Service, new: Service, *, canonical: bool = True) -> list[Change]:
+    """Compare two contracts.
+
+    Canonicalized first by default, because the comparison is meant to be
+    semantic and the raw documents are not. `allOf: [Base, {extra}]` and the
+    same schema written inline describe the same contract, and without this the
+    differ -- which zips `allOf` branches positionally -- reports refactoring a
+    spec as rewriting it.
+
+    Deliberately here rather than in the loader: `validate` reports on the
+    document as written, source locations and all, and should not be shown a
+    rewritten one. Only the comparison needs meaning rather than text.
+
+    `canonical=False` compares the documents as they are, which is occasionally
+    what you want when the question is about the document rather than the API.
+    """
+    if canonical:
+        from apiverity.core.canonical import canonicalize_service
+
+        old, _ = canonicalize_service(old)
+        new, _ = canonicalize_service(new)
     return DiffEngine(old, new).run()
 
 
