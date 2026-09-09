@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
@@ -11,6 +12,11 @@ from apiverity.rules.breaking import evaluate_breaking
 from apiverity.rules.changelog import generate_changelog
 from apiverity.rules.semver import SemverPolicy
 from apiverity.security import run_security_checks
+
+# CONTRIBUTING.md advertises `pytest -m integration` as a local command, and
+# pyproject registers the marker under --strict-markers -- but no file in this
+# directory carried it, so that command selected nothing at all.
+pytestmark = pytest.mark.integration
 
 
 def test_openapi_parse_with_source_locations(crud_service):

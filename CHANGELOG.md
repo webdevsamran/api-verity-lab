@@ -4,6 +4,51 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — MCP tool invocation, behind a gate
+
+- **`--invoke-tool NAME` calls a tool and checks the result against its
+  declared `outputSchema`.** Gated the way `apiverity replay` is, because
+  replay already answers "how do we let someone send real traffic without
+  letting them do it by accident" and a second vocabulary would be worse than
+  reusing the first:
+
+  * exact names only, never globs — a pattern matched against a live tool list
+    hands the *server* the choice of what runs, and names resolve against the
+    declared manifest so a server cannot offer a name and have it called;
+  * dry run by default: `--invoke-tool` alone prints the plan, every tool and
+    every generated argument, and sends nothing;
+  * `--execute` with no named tool is a usage error, not a wildcard;
+  * a target that does not classify as local/dev/staging needs
+    `--i-know-this-is-production`.
+
+- **Annotations authorize nothing.** `readOnlyHint` and `destructiveHint` are
+  attacker-controlled data — the specification says clients MUST treat
+  annotations as untrusted unless the server is trusted — so the gate never
+  consults them. `test_read_only_hint_does_not_authorize_a_call` is the
+  inversion test: a tool claiming to be read-only must be no easier to invoke
+  than any other, or the safest-looking tool becomes the easiest to abuse.
+
+- **Findings never quote what a tool returned.**
+  `core/validation.py::validate_value` embeds the offending value in its
+  message, so routing live `structuredContent` through it would write real
+  response data into a committed artifact — the opposite of what
+  `docs/privacy.md` promises. This path reports the JSON pointer, the declared
+  constraint and the observed *type* (`"/hits: expected array, got string"`),
+  and a test asserts a synthetic secret in a tool result never reaches the
+  serialised report.
+
+- Arguments come from the **declared** input schema, seeded and recorded,
+  because the question is whether the server honours what it published.
+
+- `SAFETY_MODEL.md` gained five numbered controls for this path. Its list had
+  also drifted out of sequence and is renumbered contiguously.
+
+### Fixed
+
+- `pytest -m integration`, advertised in `CONTRIBUTING.md` and registered under
+  `--strict-markers`, selected **zero** tests: no file in `tests/integration/`
+  carried the marker. It now selects 106.
+
 ### Added — MCP runtime drift
 
 - **`apiverity drift <manifest> --base-url <endpoint>`** compares a declared

@@ -9,6 +9,11 @@ from apiverity.server import Store, create_app
 from apiverity.server.auth import Identity, LocalTokenProvider, Role, authenticate, authorize
 from apiverity.server.webhooks import Delivery, dispatch, sign_payload
 
+# CONTRIBUTING.md advertises `pytest -m integration` as a local command, and
+# pyproject registers the marker under --strict-markers -- but no file in this
+# directory carried it, so that command selected nothing at all.
+pytestmark = pytest.mark.integration
+
 
 @pytest.fixture()
 def store() -> Store:

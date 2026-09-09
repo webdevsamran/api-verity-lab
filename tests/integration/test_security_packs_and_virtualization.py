@@ -4,6 +4,7 @@ service virtualization workspace."""
 from __future__ import annotations
 
 import httpx
+import pytest
 
 from apiverity.core.model import (
     Example,
@@ -20,6 +21,11 @@ from apiverity.mock.virtualization import workspace_from_services
 from apiverity.rules.policy import PolicyEngine
 from apiverity.security.oauth_scopes import analyze_scope_coverage
 from apiverity.security.packs import SECURITY_PACK
+
+# CONTRIBUTING.md advertises `pytest -m integration` as a local command, and
+# pyproject registers the marker under --strict-markers -- but no file in this
+# directory carried it, so that command selected nothing at all.
+pytestmark = pytest.mark.integration
 
 
 def _svc(**kw) -> Service:

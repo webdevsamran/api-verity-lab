@@ -28,29 +28,54 @@ These controls are implemented in code and enforced by default.
    configured reverse proxy for development services — never silent traffic
    redirection.
 
+## MCP tool invocation
+
+8. **Reads by default, always.** `apiverity drift <manifest> --base-url` calls
+    only `server/discover` and `tools/list`. Nothing invokes a tool unless
+    `--invoke-tool NAME` names one.
+9. **Exact names, never globs.** A pattern matched against a live tool list
+    would hand the *server* the choice of what runs. Names resolve against the
+    declared manifest, so a server cannot offer a name and have it called.
+10. **Dry run first, and `--execute` needs a target.** `--invoke-tool` alone
+    prints the plan — every tool, every generated argument — and sends nothing.
+    `--execute` with no named tool is a usage error, not a wildcard. A target
+    that does not classify as local/dev/staging additionally requires
+    `--i-know-this-is-production`.
+11. **Annotations never authorize anything.** `readOnlyHint` and
+    `destructiveHint` are attacker-controlled data — the specification says
+    clients MUST treat annotations as untrusted unless the server is trusted —
+    so they are reported as findings and are never consulted by the gate. A
+    tool claiming to be read-only is no easier to invoke than any other, or the
+    safest-looking tool would be the easiest to abuse.
+12. **stdio is not supported, deliberately.** Every gate above is expressed
+    over a URL: `classify_target` derives local/dev/staging/production from a
+    hostname and cannot classify `npx -y some-mcp-server`. Supporting stdio
+    would mean spawning a command read out of a config file — arbitrary code
+    execution — before any of these controls could express it.
+
 ## Data protection
 
-8. **Redaction before persistence.** HAR import and all captured traffic pass
+13. **Redaction before persistence.** HAR import and all captured traffic pass
    a configurable redaction DSL (headers, cookies, JSON pointers, query
    params, regex patterns) before anything touches disk
    (`traffic/redact.py`). Reports record `redaction.applied`.
-9. **Secret hygiene.** Auth credentials live in env-referenced profiles and
+14. **Secret hygiene.** Auth credentials live in env-referenced profiles and
    are never persisted into results, bundles, logs or traces; OTLP trace
    attributes matching authorization/token/secret/password/body keys are
    replaced with `[REDACTED]` before spans materialize (`exporters/otel.py`).
-10. **Defensive scanning of contracts themselves** flags embedded secrets,
+15. **Defensive scanning of contracts themselves** flags embedded secrets,
     sensitive example data and insecure server URLs (`security/packs.py`).
 
 ## Server hardening (self-hosted)
 
-11. Hashed tokens at rest; RBAC role matrix; multi-tenant isolation tests.
-12. Fixed-window API rate limiting (opt-in `rate_limit_per_minute`), health
+16. Hashed tokens at rest; RBAC role matrix; multi-tenant isolation tests.
+17. Fixed-window API rate limiting (opt-in `rate_limit_per_minute`), health
     endpoint exempt.
-13. Append-only hash-chained audit events; tampering is detectable
+18. Append-only hash-chained audit events; tampering is detectable
     (`store.audit_verify_chain`).
-14. Job queue backpressure returns clean 409s instead of unbounded work;
+19. Job queue backpressure returns clean 409s instead of unbounded work;
     idempotency keys make CI retries safe.
-15. Backups exclude credential hashes; org exports never contain token hashes.
+20. Backups exclude credential hashes; org exports never contain token hashes.
 
 ## What we do not claim
 

@@ -15,6 +15,11 @@ from apiverity.server import Store
 from apiverity.server.api import create_app
 from apiverity.server.jobs import JobQueue, QueueFull
 
+# CONTRIBUTING.md advertises `pytest -m integration` as a local command, and
+# pyproject registers the marker under --strict-markers -- but no file in this
+# directory carried it, so that command selected nothing at all.
+pytestmark = pytest.mark.integration
+
 
 def _auth(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}

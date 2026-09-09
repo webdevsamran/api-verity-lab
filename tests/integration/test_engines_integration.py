@@ -16,6 +16,11 @@ from apiverity.security import run_security_checks
 from apiverity.specs.loader import detect_and_load
 from apiverity.stateful.engine import WorkflowEngine, load_workflow_manifest
 
+# CONTRIBUTING.md advertises `pytest -m integration` as a local command, and
+# pyproject registers the marker under --strict-markers -- but no file in this
+# directory carried it, so that command selected nothing at all.
+pytestmark = pytest.mark.integration
+
 FIX = Path("fixtures")
 
 

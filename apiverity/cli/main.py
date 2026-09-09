@@ -218,6 +218,33 @@ def build_parser() -> argparse.ArgumentParser:
             "tools that were not seen are NOT reported missing -- they may be on a later page"
         ),
     )
+    p.add_argument(
+        "--invoke-tool",
+        action="append",
+        metavar="NAME",
+        help=(
+            "also call this MCP tool and check the result against its declared "
+            "outputSchema. Exact names only -- a glob against a live tool list would let "
+            "the server choose what runs. Repeatable. Prints a plan and sends nothing "
+            "unless --execute is also given"
+        ),
+    )
+    p.add_argument(
+        "--execute",
+        action="store_true",
+        help="actually send the --invoke-tool calls instead of printing the plan",
+    )
+    p.add_argument(
+        "--i-know-this-is-production",
+        action="store_true",
+        help="required to --execute against a target that does not classify as local/dev/staging",
+    )
+    p.add_argument(
+        "--seed",
+        type=int,
+        default=0,
+        help="seed for generated tool arguments; recorded in the artifact",
+    )
     p.add_argument("--timeout", type=float, default=10.0)
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_drift)

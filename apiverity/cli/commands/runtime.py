@@ -6,6 +6,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 from apiverity.cli.commands.common import (
     EXIT_FINDINGS,
@@ -15,6 +16,7 @@ from apiverity.cli.commands.common import (
     NL,
     _emit,
     _load,
+    set_last_seed,
     set_last_target,
 )
 from apiverity.core.model import Service
@@ -76,6 +78,16 @@ def _drift_mcp(args: argparse.Namespace, service: Service) -> int:
             return EXIT_USAGE
         headers[name.strip()] = value.strip()
 
+    invoke = list(getattr(args, "invoke_tool", None) or [])
+    execute = bool(getattr(args, "execute", False))
+    if execute and not invoke:
+        print(
+            "error: --execute needs at least one --invoke-tool; without it the "
+            "server's own tool list would decide what runs",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+
     try:
         report = detect_mcp_drift(
             service,
@@ -96,15 +108,44 @@ def _drift_mcp(args: argparse.Namespace, service: Service) -> int:
     # reaches the artifact as `protocol_version` from `_LAST_PROTOCOL`, set
     # when the manifest was loaded. Writing it twice is how the two would
     # eventually disagree.
-    _emit(
-        {
-            "tool": "apiverity",
-            "command": "drift",
-            "target": args.base_url,
-            "report": report,
-        },
-        args.json,
-    )
+    payload: dict[str, Any] = {
+        "tool": "apiverity",
+        "command": "drift",
+        "target": args.base_url,
+        "report": report,
+    }
+
+    if invoke:
+        from apiverity.runtime.mcp_invoke import InvokeRefused, invoke_tools
+
+        set_last_seed(int(getattr(args, "seed", 0)))
+        try:
+            invocation = invoke_tools(
+                service,
+                args.base_url,
+                invoke,
+                execute=execute,
+                allow_production=bool(getattr(args, "i_know_this_is_production", False)),
+                timeout=args.timeout,
+                headers=headers or None,
+                seed=int(getattr(args, "seed", 0)),
+            )
+        except InvokeRefused as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return EXIT_USAGE
+        except McpTransportError as exc:
+            print(f"error: target unreachable: {exc}", file=sys.stderr)
+            return EXIT_UNREACHABLE
+        payload["invocation"] = invocation
+        report.findings.extend(invocation.findings)
+        if not execute:
+            print(
+                f"dry run: {len(invocation.plan)} tool call(s) planned, none sent. "
+                "Add --execute to send them.",
+                file=sys.stderr,
+            )
+
+    _emit(payload, args.json)
     return EXIT_FINDINGS if report.findings else EXIT_OK
 
 

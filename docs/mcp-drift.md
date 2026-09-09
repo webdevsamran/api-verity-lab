@@ -93,9 +93,43 @@ report records `authorization_presented` and the header *names* — never the
 values, which do not reach the artifact. A report claiming a tool is missing,
 gathered from an unauthenticated probe, has to say it was unauthenticated.
 
-## What it does not do
+## Calling tools, if you ask for it
 
-It does not call tools. `tools/call` has side effects, and the annotations that
-would say whether a tool is safe to call are exactly the ones the specification
-tells clients to distrust. Invoking tools is a separate opt-in with its own
-gate, modelled on `apiverity replay`.
+`tools/call` has side effects, so it is opt-in and gated the way
+`apiverity replay` is:
+
+```bash
+# prints the plan -- every tool, every generated argument -- and sends nothing
+apiverity drift manifest.json --base-url http://127.0.0.1:3000/mcp \
+    --invoke-tool search_orders
+
+# actually sends
+apiverity drift manifest.json --base-url http://127.0.0.1:3000/mcp \
+    --invoke-tool search_orders --execute
+```
+
+* **Exact names only, never globs.** A pattern matched against a live tool list
+  hands the *server* the choice of what runs. Names resolve against the
+  declared manifest, so a server cannot offer a name and have it called.
+* **`--execute` with no `--invoke-tool` is a usage error**, not a wildcard.
+* A target that does not classify as local/dev/staging needs
+  `--i-know-this-is-production`.
+* **Annotations authorize nothing.** `readOnlyHint` is attacker-controlled
+  data, and the specification says clients MUST treat annotations as untrusted;
+  a tool claiming to be read-only is no easier to invoke than any other. They
+  are reported as findings and never consulted by the gate.
+
+Arguments are generated from the **declared** input schema and seeded
+(`--seed`, recorded in the artifact) — declared rather than served, because the
+question is whether the server honours what it published.
+
+What comes back is checked against the declared `outputSchema`:
+`MCP-DRIFT-CALL-OUTPUT-SCHEMA` when `structuredContent` does not conform,
+`MCP-DRIFT-CALL-NO-STRUCTURED-CONTENT` when a tool declares a schema and
+returns nothing, `MCP-DRIFT-CALL-ERROR-SHAPE` when a tool failure arrives as a
+JSON-RPC error rather than a successful result with `isError: true`.
+
+**Findings never quote the value a tool returned.** They carry the JSON
+pointer, the declared constraint and the observed *type* —
+`"/hits: expected array, got string"` — because a tool result is arbitrary
+production data and `docs/privacy.md` promises it does not reach an artifact.
