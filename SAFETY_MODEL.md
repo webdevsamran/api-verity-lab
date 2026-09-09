@@ -68,17 +68,23 @@ These controls are implemented in code and enforced by default.
    replaced with `[REDACTED]` before spans materialize (`exporters/otel.py`).
 15. **Defensive scanning of contracts themselves** flags embedded secrets,
     sensitive example data and insecure server URLs (`security/packs.py`).
+16. **Responses are scanned for credentials, and the credential is never
+    recorded.** A live response, a recorded HAR entry and an MCP tool result
+    all pass `security/leakage.py`. A finding carries the *kind* of secret, the
+    JSON pointer, and its length -- never the value, because a scanner that
+    quotes the token it found has copied a live credential into a file, a log
+    and a CI annotation.
 
 ## Server hardening (self-hosted)
 
-16. Hashed tokens at rest; RBAC role matrix; multi-tenant isolation tests.
-17. Fixed-window API rate limiting (opt-in `rate_limit_per_minute`), health
+17. Hashed tokens at rest; RBAC role matrix; multi-tenant isolation tests.
+18. Fixed-window API rate limiting (opt-in `rate_limit_per_minute`), health
     endpoint exempt.
-18. Append-only hash-chained audit events; tampering is detectable
+19. Append-only hash-chained audit events; tampering is detectable
     (`store.audit_verify_chain`).
-19. Job queue backpressure returns clean 409s instead of unbounded work;
+20. Job queue backpressure returns clean 409s instead of unbounded work;
     idempotency keys make CI retries safe.
-20. Backups exclude credential hashes; org exports never contain token hashes.
+21. Backups exclude credential hashes; org exports never contain token hashes.
 
 ## What we do not claim
 

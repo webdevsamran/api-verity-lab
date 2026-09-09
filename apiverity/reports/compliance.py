@@ -88,6 +88,10 @@ _PRODUCED_BY: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("MCP-DRIFT-", ("drift",)),
     ("MCP-CONF-", ("drift",)),
     ("MCP-LOCK-", ("mcp-lock",)),
+    ("MCP-SHADOW-", ("mcp-inventory",)),
+    ("MCP-INVENTORY-", ("mcp-inventory",)),
+    ("MCP-CALL-RESULT-", ("drift",)),
+    ("DRIFT-RESPONSE-CREDENTIAL", ("drift",)),
     ("BRK-", ("breaking", "drift", "mcp-lock")),
     ("SEMVER-", ("breaking",)),
     ("SEC-", ("validate",)),
@@ -114,10 +118,15 @@ MCP_TOP_10 = Framework(
         Control(
             "MCP01",
             "Token Mismanagement & Secret Exposure",
-            rules=("MCP-AUTH-PLAINTEXT-TRANSPORT",),
+            rules=(
+                "MCP-AUTH-PLAINTEXT-TRANSPORT",
+                "MCP-CALL-RESULT-CREDENTIAL",
+                "MCP-SHADOW-INLINE-CREDENTIAL",
+            ),
             caveat=(
-                "only the transport is visible from here. How a server stores, scopes or "
-                "rotates a token is not something a contract or a tools/list response reveals"
+                "the transport, a credential written into a client config, and a credential "
+                "coming back in a tool result. How a server stores, scopes or rotates a token "
+                "is still not something a manifest reveals"
             ),
         ),
         Control(
@@ -141,10 +150,16 @@ MCP_TOP_10 = Framework(
         Control(
             "MCP04",
             "Software Supply Chain Attacks & Dependency Tampering",
-            rules=("MCP-LOCK-SIGNATURE-", "MCP-LOCK-UNSIGNED", "MCP-LOCK-TOOL-"),
+            rules=(
+                "MCP-LOCK-SIGNATURE-",
+                "MCP-LOCK-UNSIGNED",
+                "MCP-LOCK-TOOL-",
+                "MCP-SHADOW-FETCHED-AT-LAUNCH",
+            ),
             caveat=(
-                "this covers the tool surface you depend on changing under you. It says "
-                "nothing about the packages the server itself installs"
+                "the tool surface you depend on changing under you, and a server launched with "
+                "`npx`/`uvx`, where the code that starts is whatever the registry serves today. "
+                "It says nothing about the packages the server itself installs"
             ),
         ),
         Control(
@@ -184,10 +199,12 @@ MCP_TOP_10 = Framework(
         Control(
             "MCP09",
             "Shadow MCP Servers",
-            rules=("MCP-DRIFT-TOOL-UNDECLARED", "MCP-LOCK-TOOL-ADDED"),
+            rules=("MCP-SHADOW-SERVER", "MCP-DRIFT-TOOL-UNDECLARED", "MCP-LOCK-TOOL-ADDED"),
             caveat=(
-                "these find an undeclared *tool* on a server you named. Discovering servers "
-                "nobody declared is a different problem and this tool does not scan for them"
+                "`apiverity mcp-inventory` finds servers configured on this machine and absent "
+                "from an approved list, by reading client configuration rather than scanning a "
+                "network. A server nobody configured here, on a host nobody named, is out of "
+                "reach of both"
             ),
         ),
         Control(
@@ -229,13 +246,25 @@ ASI_TOP_10 = Framework(
         Control(
             "ASI03",
             "Identity & Privilege Abuse",
-            rules=("MCP-AUTH-", "SEC-AUTH-"),
+            rules=(
+                "MCP-AUTH-",
+                "SEC-AUTH-",
+                "MCP-CALL-RESULT-CREDENTIAL",
+                "MCP-SHADOW-INLINE-CREDENTIAL",
+            ),
+            caveat=(
+                "a credential returned in a tool result enters the agent's context on every "
+                "call, which is where inherited privilege starts"
+            ),
         ),
         Control(
             "ASI04",
             "Agentic Supply Chain Vulnerabilities",
-            rules=("MCP-LOCK-",),
-            caveat="the tool surface as the dependency; not the server's own dependencies",
+            rules=("MCP-LOCK-", "MCP-SHADOW-FETCHED-AT-LAUNCH"),
+            caveat=(
+                "the tool surface as the dependency, and a server fetched from a registry at "
+                "launch; not the server's own dependencies"
+            ),
         ),
         Control(
             "ASI05",
@@ -323,7 +352,7 @@ API_TOP_10 = Framework(
         Control(
             "API3",
             "Broken Object Property Level Authorization",
-            rules=("SEC-ADDL-PROPERTIES", "BRK-RESP-FIELD-"),
+            rules=("SEC-ADDL-PROPERTIES", "BRK-RESP-FIELD-", "DRIFT-RESPONSE-CREDENTIAL"),
             caveat=(
                 "a response that grew a field, or a schema that accepts any property, is "
                 "where over-exposure hides. Whether a returned field should have been visible "

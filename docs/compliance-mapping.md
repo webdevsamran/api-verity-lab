@@ -28,15 +28,15 @@ Source: <https://owasp.org/www-project-mcp-top-10/>, published 2025. Read 2026-0
 
 | # | Control | Rules | Produced by |
 |---|---|---|---|
-| MCP01 | Token Mismanagement & Secret Exposure | `MCP-AUTH-PLAINTEXT-TRANSPORT` | `drift` |
+| MCP01 | Token Mismanagement & Secret Exposure | `MCP-AUTH-PLAINTEXT-TRANSPORT`<br>`MCP-CALL-RESULT-CREDENTIAL`<br>`MCP-SHADOW-INLINE-CREDENTIAL` | `drift`, `mcp-inventory` |
 | MCP02 | Privilege Escalation via Scope Creep | `MCP-LOCK-TOOL-ADDED`<br>`MCP-DRIFT-TOOL-UNDECLARED`<br>`BRK-RPC-ADDED` | `breaking`, `drift`, `mcp-lock` |
 | MCP03 | Tool Poisoning | `MCP-POISON-`<br>`BRK-MCP-TOOL-DESCRIPTION-CHANGED`<br>`MCP-DRIFT-SCHEMA` | `breaking`, `drift`, `mcp-lock`, `validate` |
-| MCP04 | Software Supply Chain Attacks & Dependency Tampering | `MCP-LOCK-SIGNATURE-`<br>`MCP-LOCK-UNSIGNED`<br>`MCP-LOCK-TOOL-` | `mcp-lock` |
+| MCP04 | Software Supply Chain Attacks & Dependency Tampering | `MCP-LOCK-SIGNATURE-`<br>`MCP-LOCK-UNSIGNED`<br>`MCP-LOCK-TOOL-`<br>`MCP-SHADOW-FETCHED-AT-LAUNCH` | `mcp-inventory`, `mcp-lock` |
 | MCP05 | Command Injection & Execution | *not assessable* | -- |
 | MCP06 | Intent Flow Subversion | `MCP-POISON-CROSS-TOOL`<br>`MCP-POISON-INSTRUCTION` | `validate` |
 | MCP07 | Insufficient Authentication & Authorization | `MCP-AUTH-` | `drift` |
 | MCP08 | Lack of Audit and Telemetry | *not assessable* | -- |
-| MCP09 | Shadow MCP Servers | `MCP-DRIFT-TOOL-UNDECLARED`<br>`MCP-LOCK-TOOL-ADDED` | `drift`, `mcp-lock` |
+| MCP09 | Shadow MCP Servers | `MCP-SHADOW-SERVER`<br>`MCP-DRIFT-TOOL-UNDECLARED`<br>`MCP-LOCK-TOOL-ADDED` | `drift`, `mcp-inventory`, `mcp-lock` |
 | MCP10 | Context Injection & Over-Sharing | `MCP-POISON-INVISIBLE-TEXT`<br>`MCP-POISON-HIDDEN-MARKUP` | `validate` |
 
 ### What this tool cannot see
@@ -46,11 +46,11 @@ Source: <https://owasp.org/www-project-mcp-top-10/>, published 2025. Read 2026-0
 
 ### Where the coverage is partial
 
-- **MCP01 Token Mismanagement & Secret Exposure** — only the transport is visible from here. How a server stores, scopes or rotates a token is not something a contract or a tools/list response reveals
+- **MCP01 Token Mismanagement & Secret Exposure** — the transport, a credential written into a client config, and a credential coming back in a tool result. How a server stores, scopes or rotates a token is still not something a manifest reveals
 - **MCP02 Privilege Escalation via Scope Creep** — a growing tool surface is scope creep the contract can see; privileges the server holds behind those tools are not declared anywhere it can read
-- **MCP04 Software Supply Chain Attacks & Dependency Tampering** — this covers the tool surface you depend on changing under you. It says nothing about the packages the server itself installs
+- **MCP04 Software Supply Chain Attacks & Dependency Tampering** — the tool surface you depend on changing under you, and a server launched with `npx`/`uvx`, where the code that starts is whatever the registry serves today. It says nothing about the packages the server itself installs
 - **MCP07 Insufficient Authentication & Authorization** — established by probing tools/list with and without a credential. Whether individual tool *calls* are authorized is not tested, because testing it would mean calling them
-- **MCP09 Shadow MCP Servers** — these find an undeclared *tool* on a server you named. Discovering servers nobody declared is a different problem and this tool does not scan for them
+- **MCP09 Shadow MCP Servers** — `apiverity mcp-inventory` finds servers configured on this machine and absent from an approved list, by reading client configuration rather than scanning a network. A server nobody configured here, on a host nobody named, is out of reach of both
 
 ## OWASP Top 10 for Agentic Applications v1.0
 
@@ -60,8 +60,8 @@ Source: <https://genai.owasp.org/>, published 2025-12-09. Read 2026-09-09.
 |---|---|---|---|
 | ASI01 | Agent Goal Hijack | `MCP-POISON-INSTRUCTION`<br>`MCP-POISON-CROSS-TOOL`<br>`MCP-POISON-INVISIBLE-TEXT` | `validate` |
 | ASI02 | Tool Misuse | `MCP-ANNOTATION-`<br>`MCP-DRIFT-`<br>`BRK-MCP-` | `breaking`, `drift`, `mcp-lock`, `validate` |
-| ASI03 | Identity & Privilege Abuse | `MCP-AUTH-`<br>`SEC-AUTH-` | `drift`, `validate` |
-| ASI04 | Agentic Supply Chain Vulnerabilities | `MCP-LOCK-` | `mcp-lock` |
+| ASI03 | Identity & Privilege Abuse | `MCP-AUTH-`<br>`SEC-AUTH-`<br>`MCP-CALL-RESULT-CREDENTIAL`<br>`MCP-SHADOW-INLINE-CREDENTIAL` | `drift`, `mcp-inventory`, `validate` |
+| ASI04 | Agentic Supply Chain Vulnerabilities | `MCP-LOCK-`<br>`MCP-SHADOW-FETCHED-AT-LAUNCH` | `mcp-inventory`, `mcp-lock` |
 | ASI05 | Unexpected Code Execution | *not assessable* | -- |
 | ASI06 | Memory & Context Poisoning | `MCP-POISON-INVISIBLE-TEXT`<br>`MCP-POISON-HIDDEN-MARKUP` | `validate` |
 | ASI07 | Insecure Inter-Agent Communication | `MCP-AUTH-PLAINTEXT-TRANSPORT` | `drift` |
@@ -79,7 +79,8 @@ Source: <https://genai.owasp.org/>, published 2025-12-09. Read 2026-09-09.
 
 - **ASI01 Agent Goal Hijack** — covers hijacking delivered through a tool manifest, which is the surface this tool reads. A prompt reaching the agent by any other route is out of view
 - **ASI02 Tool Misuse** — a tool whose declared safety hints contradict its name or its served behaviour is misuse waiting to happen; whether an agent actually misused one is a trace question, not a contract question
-- **ASI04 Agentic Supply Chain Vulnerabilities** — the tool surface as the dependency; not the server's own dependencies
+- **ASI03 Identity & Privilege Abuse** — a credential returned in a tool result enters the agent's context on every call, which is where inherited privilege starts
+- **ASI04 Agentic Supply Chain Vulnerabilities** — the tool surface as the dependency, and a server fetched from a registry at launch; not the server's own dependencies
 - **ASI06 Memory & Context Poisoning** — a poisoned description enters the agent's context every time the tool list is read. Poisoning of an agent's own stored memory is not visible here
 - **ASI07 Insecure Inter-Agent Communication** — one leg of it: the transport between this client and one server. Agent-to-agent protocols are not among the six this engine reads
 - **ASI09 Human-Agent Trust Exploitation** — text that a client renders differently from what the model reads is exactly this: the human approves one thing and the agent acts on another
@@ -92,7 +93,7 @@ Source: <https://owasp.org/API-Security/editions/2023/en/0x11-t10/>, published 2
 |---|---|---|---|
 | API1 | Broken Object Level Authorization | *not assessable* | -- |
 | API2 | Broken Authentication | `SEC-AUTH-`<br>`SEC-SCHEME-`<br>`MCP-AUTH-` | `drift`, `validate` |
-| API3 | Broken Object Property Level Authorization | `SEC-ADDL-PROPERTIES`<br>`BRK-RESP-FIELD-` | `breaking`, `drift`, `mcp-lock`, `validate` |
+| API3 | Broken Object Property Level Authorization | `SEC-ADDL-PROPERTIES`<br>`BRK-RESP-FIELD-`<br>`DRIFT-RESPONSE-CREDENTIAL` | `breaking`, `drift`, `mcp-lock`, `validate` |
 | API4 | Unrestricted Resource Consumption | `SEC-RATE-LIMIT-METADATA`<br>`BRK-CONSTRAINT-` | `breaking`, `drift`, `mcp-lock`, `validate` |
 | API5 | Broken Function Level Authorization | `SEC-UNAUTH-WRITE`<br>`SEC-AUTH-MISSING` | `validate` |
 | API6 | Unrestricted Access to Sensitive Business Flows | *not assessable* | -- |

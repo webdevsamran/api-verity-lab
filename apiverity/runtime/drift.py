@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from typing import Any
 
 import httpx
 from pydantic import BaseModel, Field
@@ -10,12 +11,14 @@ from pydantic import BaseModel, Field
 from apiverity.core.model import Service
 from apiverity.core.validation import validate_value
 from apiverity.fuzz.generate import fill_path, generate_valid
+from apiverity.security.leakage import scan_body, scan_headers
 
 
 class DriftFinding(BaseModel):
     operation_key: str
     rule_id: str  # DRIFT-STATUS | DRIFT-CONTENT-TYPE | DRIFT-SCHEMA |
-    # DRIFT-MISSING-FIELD | DRIFT-UNDECLARED-FIELD | DRIFT-HEADER
+    # DRIFT-MISSING-FIELD | DRIFT-UNDECLARED-FIELD | DRIFT-HEADER |
+    # DRIFT-UNREACHABLE | DRIFT-RESPONSE-CREDENTIAL
     severity: str = "WARN"
     message: str
 
@@ -25,6 +28,25 @@ class DriftReport(BaseModel):
     findings: list[DriftFinding] = Field(default_factory=list)
     operations_checked: int = 0
     duration_ms: int = 0
+
+
+def _leaks(response: httpx.Response) -> list[Any]:
+    """Credential-shaped content in a live response, headers included.
+
+    Parsing the body is best-effort: a body that is not JSON is scanned as
+    text, because a token echoed into an HTML error page is still a token.
+    """
+    from apiverity.security.leakage import Leak, scan_text
+
+    leaks: list[Leak] = list(scan_headers(response.headers))
+    try:
+        leaks.extend(scan_body(response.json()))
+    except ValueError:
+        leaks.extend(scan_text(response.text[:200_000], "/"))
+    seen: dict[tuple[str, str], Leak] = {}
+    for leak in leaks:
+        seen.setdefault((leak.kind, leak.pointer), leak)
+    return sorted(seen.values(), key=lambda leak: (leak.pointer, leak.kind))
 
 
 def detect_drift(
@@ -59,6 +81,25 @@ def detect_drift(
                 )
                 continue
             report.operations_checked += 1
+
+            # Before anything about the contract. A credential coming back to
+            # a caller is worth reporting whether or not the response conformed
+            # to what was declared -- and a conforming response is exactly
+            # where nobody looks.
+            report.findings.extend(
+                DriftFinding(
+                    operation_key=op.key,
+                    rule_id="DRIFT-RESPONSE-CREDENTIAL",
+                    severity="ERROR",
+                    message=(
+                        f"the response contains what looks like a {leak.kind} at {leak.pointer} "
+                        f"({leak.length} characters). The value is deliberately not reported and "
+                        "does not reach the artifact"
+                    ),
+                )
+                for leak in _leaks(resp)
+            )
+
             declared = next((r for r in op.responses if r.status == str(resp.status_code)), None)
             if declared is None:
                 report.findings.append(

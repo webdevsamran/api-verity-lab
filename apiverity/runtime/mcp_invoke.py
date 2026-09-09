@@ -43,6 +43,7 @@ from pydantic import BaseModel, Field
 from apiverity.core.model import Operation, SchemaNode, Service
 from apiverity.fuzz.generate import generate_valid
 from apiverity.runtime.mcp_drift import McpFinding
+from apiverity.security.leakage import scan_body
 from apiverity.specs.mcp.runner import McpClient
 from apiverity.traffic.safety import classify_target
 
@@ -240,6 +241,24 @@ def _check_result(
     step: InvokePlan, result: dict[str, Any], operation: Operation | None
 ) -> list[McpFinding]:
     findings: list[McpFinding] = []
+
+    # A tool result goes straight into an agent's context. A credential in one
+    # is a credential the model now has, which is OWASP MCP01, and it is worth
+    # reporting whether or not the tool declared an outputSchema -- so this
+    # runs before the early return below.
+    findings.extend(
+        McpFinding(
+            rule_id="MCP-CALL-RESULT-CREDENTIAL",
+            severity="ERROR",
+            tool=step.tool,
+            message=(
+                f"the result of {step.tool!r} contains what looks like a {leak.kind} at "
+                f"{leak.pointer} ({leak.length} characters); it would enter the agent's "
+                "context on every call. The value is deliberately not reported here"
+            ),
+        )
+        for leak in scan_body(result)
+    )
 
     for block in result.get("content") or []:
         if isinstance(block, dict) and block.get("type") not in CONTENT_BLOCKS:

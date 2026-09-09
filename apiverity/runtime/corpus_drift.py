@@ -26,6 +26,7 @@ from pydantic import BaseModel, Field
 
 from apiverity.core.model import Operation, Response, Service
 from apiverity.core.validation import validate_value
+from apiverity.security.leakage import scan_body
 
 __all__ = [
     "AggregatedFinding",
@@ -326,7 +327,25 @@ def analyze_corpus(
             quality.bodies_unavailable += 1
             reason = str(entry.get("response_body_dropped") or "no body recorded")
             quality.body_drop_reasons[reason] = quality.body_drop_reasons.get(reason, 0) + 1
-        elif schema is not None:
+        else:
+            # Independent of whether a schema was found for this response. A
+            # credential that came back to a real caller is a finding whether
+            # or not the body conformed, and redaction runs before a corpus is
+            # read -- so anything still here survived it.
+            for leak in scan_body(body):
+                accumulator.add(
+                    op.key,
+                    "DRIFT-RESPONSE-CREDENTIAL",
+                    (
+                        f"the recorded response contains what looks like a {leak.kind} at "
+                        f"{leak.pointer} ({leak.length} characters); the value is deliberately "
+                        "not reported and does not reach the artifact"
+                    ),
+                    severity="ERROR",
+                    example=url,
+                )
+
+        if body is not None and schema is not None:
             for problem in validate_value(
                 schema, body, forbid_undeclared_fields=forbid_undeclared_fields
             ):

@@ -29,3 +29,8 @@ cfg = RedactionConfig(
   are resolved at request time and never written to artifacts.
 - Synthetic-secret tests in the suite assert `Bearer`, `sk-…`, passwords,
   tokens and api keys never survive redaction.
+- Credential scanning of responses (`apiverity.security.leakage`) reports the
+  *kind* of secret, the JSON pointer it sits at and its length. The value is
+  never in the finding and never reaches an artifact: a scanner that quotes the
+  token it found to prove it found one has copied a live credential into a
+  file, a log and a CI annotation. Read it at the source, rotate it there.
