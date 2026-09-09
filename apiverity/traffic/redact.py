@@ -117,6 +117,18 @@ def import_har(
     opts in -- redaction still applies, and every entry records why a body is
     absent so a later report can distinguish "nothing was returned" from "we
     chose not to keep it".
+
+    Timestamps are carried through. They were dropped here, which meant every
+    analyser downstream saw an unordered bag of requests: a drift report could
+    say a header was missing from four hundred responses and not whether that
+    started last Tuesday, and a call budget could not express a window at all.
+    `startedDateTime` is copied verbatim rather than parsed, because a HAR
+    writes an ISO-8601 instant and re-deriving one loses the offset the
+    recorder chose.
+
+    A timestamp is metadata about a real request and the redaction config has
+    no rule for it, deliberately: the corpus already came from a HAR the caller
+    holds, and an entry with no time is not anonymous, only useless.
     """
     cfg = cfg or RedactionConfig()
     data = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -156,6 +168,8 @@ def import_har(
                 "response_body": response_body,
                 "response_body_dropped": response_body_dropped,
                 "response_mime": str(content.get("mimeType") or ""),
+                "started_at": entry.get("startedDateTime"),
+                "elapsed_ms": entry.get("time"),
             }
         )
     return entries

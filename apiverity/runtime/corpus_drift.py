@@ -61,6 +61,12 @@ class AggregatedFinding(BaseModel):
     #: Example request URLs, capped -- enough to reproduce, not a second copy
     #: of the corpus.
     examples: list[str] = Field(default_factory=list)
+    #: When this was first and last seen, as the corpus recorded it. Both are
+    #: None for a corpus whose entries carry no timestamp. A frequency without
+    #: a span cannot tell "it has always done this" from "it started on
+    #: Tuesday", and those have different owners.
+    first_seen: str | None = None
+    last_seen: str | None = None
 
     @property
     def frequency(self) -> float:
@@ -105,6 +111,12 @@ class CorpusQuality(BaseModel):
     #: Operations in the contract that the corpus never exercised. Not drift,
     #: but the reason a clean report may mean untested rather than correct.
     uncovered_operations: list[str] = Field(default_factory=list)
+    #: The span the corpus actually covers, as its entries recorded it. A
+    #: frequency is only meaningful against a window, and "0/500 entries carry
+    #: a timestamp" is itself worth knowing about a corpus somebody committed.
+    first_seen: str | None = None
+    last_seen: str | None = None
+    timestamped_entries: int = 0
 
     @property
     def coverage(self) -> float:
@@ -242,6 +254,7 @@ class _Accumulator:
         *,
         severity: str = "WARN",
         example: str = "",
+        at: str | None = None,
     ) -> None:
         key = (operation_key, rule_id, message)
         finding = self._findings.get(key)
@@ -256,6 +269,12 @@ class _Accumulator:
         finding.occurrences += 1
         if example and len(finding.examples) < self._example_limit:
             finding.examples.append(example)
+        if at:
+            # String comparison, because a HAR writes ISO-8601 and ISO-8601
+            # sorts. Parsing would mean inventing a timezone for an entry that
+            # omitted one.
+            finding.first_seen = min(finding.first_seen or at, at)
+            finding.last_seen = max(finding.last_seen or at, at)
 
     def finish(self) -> list[AggregatedFinding]:
         for finding in self._findings.values():
@@ -282,6 +301,12 @@ def analyze_corpus(
     for entry in entries:
         method = str(entry.get("method") or "")
         url = str(entry.get("url") or "")
+        started_at = entry.get("started_at")
+        at = started_at if isinstance(started_at, str) and started_at else None
+        if at:
+            quality.timestamped_entries += 1
+            quality.first_seen = min(quality.first_seen or at, at)
+            quality.last_seen = max(quality.last_seen or at, at)
         status = entry.get("status")
         if not method or not url or not isinstance(status, int):
             quality.skipped_malformed += 1
@@ -307,6 +332,7 @@ def analyze_corpus(
                 f"returned status {status} which is not declared "
                 f"(declared: {[r.status for r in op.responses]})",
                 example=url,
+                at=at,
             )
             continue
 
@@ -320,7 +346,7 @@ def analyze_corpus(
 
         schema, content_problem = _select_schema(declared, mime)
         if content_problem and declared.content:
-            accumulator.add(op.key, "DRIFT-CONTENT-TYPE", content_problem, example=url)
+            accumulator.add(op.key, "DRIFT-CONTENT-TYPE", content_problem, example=url, at=at)
 
         body = entry.get("response_body")
         if body is None:
@@ -343,6 +369,7 @@ def analyze_corpus(
                     ),
                     severity="ERROR",
                     example=url,
+                    at=at,
                 )
 
         if body is not None and schema is not None:
@@ -356,7 +383,7 @@ def analyze_corpus(
                         "DRIFT-MISSING-FIELD" if "missing required" in problem else "DRIFT-SCHEMA"
                     )
                 )
-                accumulator.add(op.key, rule, problem, example=url)
+                accumulator.add(op.key, rule, problem, example=url, at=at)
 
         present = {k.lower() for k in (entry.get("response_headers") or {})}
         for header in declared.headers:
@@ -366,6 +393,7 @@ def analyze_corpus(
                     "DRIFT-HEADER",
                     f"declared response header '{header}' missing",
                     example=url,
+                    at=at,
                 )
 
     quality.unmatched_paths = [

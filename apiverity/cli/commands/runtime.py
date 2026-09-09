@@ -219,6 +219,11 @@ def _drift_corpus(
         # Said out loud, because a clean report over a corpus that never
         # touched half the API reads exactly like a correct one.
         print(f"  {len(quality.uncovered_operations)} operations never exercised")
+    if quality.first_seen:
+        print(f"  covering {quality.first_seen} to {quality.last_seen}")
+    elif quality.entries:
+        # A frequency with no window behind it is a ratio, not a trend.
+        print("  no entry carried a timestamp, so no window can be reported")
 
     if not report.findings:
         print("no drift found")
@@ -229,9 +234,14 @@ def _drift_corpus(
         kind = "systematic" if finding.systematic else ("one-off" if finding.one_off else "")
         share = f"{finding.occurrences}/{finding.observations}"
         suffix = f" [{kind}]" if kind else ""
+        span = (
+            f", {finding.first_seen} to {finding.last_seen}"
+            if finding.first_seen and finding.last_seen != finding.first_seen
+            else (f", at {finding.first_seen}" if finding.first_seen else "")
+        )
         print(
             f"  [{finding.severity}] {finding.rule_id} {finding.operation_key}: "
-            f"{finding.message} ({share}, {finding.frequency * 100:.0f}%){suffix}"
+            f"{finding.message} ({share}, {finding.frequency * 100:.0f}%{span}){suffix}"
         )
     return _gate(report.findings)
 
