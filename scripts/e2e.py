@@ -33,6 +33,20 @@ def main() -> None:
         if code not in (0,):
             failures.append(f"validate {spec} -> {code}")
 
+    # 1b. MCP manifests go through the same commands as every other format.
+    #     Deliberately from fixtures/mcp/ rather than fixtures/apis/: the
+    #     contract gate in .github/workflows/api-verity.yml selects changed
+    #     specs with ^(fixtures/apis|openapi|specs|contracts)/ and runs
+    #     `apiverity validate` on each, which would choke on the negative
+    #     fixtures that exist precisely to be unrecognised.
+    for manifest in ["tools_v1.json", "tools_v2.json"]:
+        code = run(["validate", str(FIX / "mcp" / manifest)])
+        if code != 0:
+            failures.append(f"validate mcp/{manifest} -> {code}")
+    code = run(["breaking", str(FIX / "mcp/tools_v1.json"), str(FIX / "mcp/tools_v2.json")])
+    if code != EXIT_FINDINGS:
+        failures.append(f"breaking mcp -> {code} (expected {EXIT_FINDINGS})")
+
     # 2. diff + breaking + semver
     code = run(["diff", str(FIX / "apis/versioned/v1.yaml"), str(FIX / "apis/versioned/v2.yaml")])
     if code != 0:

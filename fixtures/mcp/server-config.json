@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "orders": { "command": "npx", "args": ["-y", "orders-mcp"] }
+  }
+}

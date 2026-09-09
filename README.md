@@ -121,7 +121,7 @@ GET /users/{id}:
       email: removed   # ← ERROR: clients reading .email will break
 ```
 
-The catalog ships 44 rules across ERROR/WARN/INFO with per-rule severity
+The catalog ships 57 rules across ERROR/WARN/INFO with per-rule severity
 overrides — see [`docs/rule-catalog.md`](docs/rule-catalog.md) or run `apiverity rules`.
 
 <!-- capture:breaking -->
@@ -226,6 +226,7 @@ flowchart LR
         OAS[OpenAPI / AsyncAPI]
         GQL[GraphQL SDL]
         PROTO[proto / descriptor set]
+        MCP[MCP tool manifest]
     end
 
     SPECS[specs/<br/>spec plugins]
@@ -234,6 +235,7 @@ flowchart LR
     OAS --> SPECS
     GQL --> SPECS
     PROTO --> SPECS
+    MCP --> SPECS
     SPECS --> CORE
 
     CORE --> DIFF[diff/<br/>stable change IDs]
@@ -269,7 +271,18 @@ apiverity.generators · apiverity.exporters · apiverity.transports
 Spec support matrix: OpenAPI 3.0/3.1 ✅ full · AsyncAPI 2.x/3.x ✅ channels,
 messages and direction-aware diffing · GraphQL SDL ✅ operation testing,
 persisted operations and introspection drift ·
-gRPC proto + compiled descriptor sets ✅ streaming, presence, reserved ranges.
+gRPC proto + compiled descriptor sets ✅ streaming, presence, reserved ranges ·
+**MCP tool manifests** ✅ a saved `tools/list` diffed under the same rules,
+plus a `BRK-MCP-*` family for the parts that are MCP's alone — annotation
+hints, `outputSchema` presence and tool-description edits.
+
+That last one is the shared model paying off rather than a new engine: a
+removed tool, a newly-required argument and a narrowed enum in a manifest fire
+the same `BRK-RPC-REMOVED`, `BRK-PARAM-ADDED-REQUIRED` and
+`BRK-ENUM-NARROWED-REQUEST` rules as an OpenAPI change, and land in the same
+`result-v1` artifact. Note that MCP defines no breaking-change semantics for a
+tool manifest, so [that taxonomy](docs/rule-catalog.md) is this project's own
+and says so.
 
 ## Frontend
 

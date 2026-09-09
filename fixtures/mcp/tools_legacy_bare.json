@@ -1,0 +1,13 @@
+{
+  "tools": [
+    {
+      "name": "search_orders",
+      "description": "Find orders matching a query. Read-only.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["query"],
+        "properties": { "query": { "type": "string", "minLength": 1 } }
+      }
+    }
+  ]
+}

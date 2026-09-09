@@ -16,12 +16,18 @@ def _builtin_plugins() -> list[SpecPlugin]:
     from apiverity.specs.asyncapi import AsyncApiSpecPlugin
     from apiverity.specs.graphql import GraphQlSpecPlugin
     from apiverity.specs.grpc import GrpcSpecPlugin
+    from apiverity.specs.mcp import McpSpecPlugin
     from apiverity.specs.openapi import OpenApiSpecPlugin
     from apiverity.specs.swagger2 import Swagger2SpecPlugin
 
+    # Order matters. MCP sits ahead of GraphQL and gRPC because those two sniff
+    # for substrings ("type Query", a `service` declaration) that can occur
+    # inside a JSON tool description, and behind OpenAPI/Swagger, whose own
+    # markers are unambiguous.
     return [
         OpenApiSpecPlugin(),
         Swagger2SpecPlugin(),
+        McpSpecPlugin(),
         GraphQlSpecPlugin(),
         GrpcSpecPlugin(),
         AsyncApiSpecPlugin(),

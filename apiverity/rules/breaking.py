@@ -212,6 +212,108 @@ CATALOG: dict[str, RuleSpec] = {
             Severity.ERROR,
             "A request/response media type was added or removed.",
         ),
+        # -- MCP tool manifests ------------------------------------------------
+        #
+        # Upstream MCP defines no breaking-change semantics for a tool
+        # manifest: tools carry no version field, and SEP-1575 "Tool Semantic
+        # Versioning" is an open, unsponsored proposal. This taxonomy is
+        # api-verity-lab's own, and the generated catalogue says so.
+        #
+        # Only the changes the shared engine cannot already see live here.
+        # A removed tool, a newly-required argument, a narrowed enum and a
+        # dropped response field all fire through BRK-RPC-REMOVED,
+        # BRK-PARAM-ADDED-REQUIRED, BRK-ENUM-NARROWED-REQUEST and
+        # BRK-RESP-FIELD-REMOVED, because an MCP manifest compiles into the
+        # same model as every other contract. Duplicating them under an MCP
+        # prefix would claim novelty where there is none.
+        RuleSpec(
+            "BRK-MCP-TOOL-DESCRIPTION-CHANGED",
+            Severity.WARN,
+            "A tool description changed. For an MCP tool the description is the routing "
+            "input the model reads, not documentation for a human, so a silent edit can "
+            "redirect an agent (OWASP MCP03, tool poisoning). WARN rather than ERROR "
+            "because copy edits are routine; raise it with --severity-override if you "
+            "treat a manifest as supply chain.",
+        ),
+        RuleSpec(
+            "BRK-MCP-OUTPUT-SCHEMA-REMOVED",
+            Severity.ERROR,
+            "A tool stopped declaring an outputSchema; consumers parsing its "
+            "structuredContent lose the guarantee they were written against.",
+        ),
+        RuleSpec(
+            "BRK-MCP-OUTPUT-SCHEMA-ADDED",
+            Severity.WARN,
+            "A tool now declares an outputSchema, so its own results must conform to it "
+            "from this version on.",
+        ),
+        # The four hint rules are WARN, not ERROR, and the reason is the same
+        # reason `idempotentHint` is not mapped onto Operation.idempotent: the
+        # specification says clients MUST treat annotations as untrusted unless
+        # the server is trusted. A rule cannot rest the catalogue's highest
+        # severity on a field the protocol itself declines to trust. This
+        # matches COMPAT-IDEMPOTENCY-REVOKED, which is WARN for the same
+        # reason.
+        RuleSpec(
+            "BRK-MCP-READONLY-HINT-CLEARED",
+            Severity.WARN,
+            "A tool stopped claiming readOnlyHint. A host that auto-approved it as safe "
+            "to call may now be invoking something that writes.",
+        ),
+        RuleSpec(
+            "BRK-MCP-READONLY-HINT-SET",
+            Severity.WARN,
+            "A tool now claims readOnlyHint; hosts may stop asking for confirmation on a "
+            "claim nobody verified.",
+        ),
+        RuleSpec(
+            "BRK-MCP-DESTRUCTIVE-HINT-SET",
+            Severity.WARN,
+            "A tool now declares it may perform irreversible updates.",
+        ),
+        RuleSpec(
+            "BRK-MCP-DESTRUCTIVE-HINT-CLEARED",
+            Severity.WARN,
+            "A tool stopped declaring destructiveHint; hosts may stop gating behaviour "
+            "that nobody re-verified as safe.",
+        ),
+        RuleSpec(
+            "BRK-MCP-IDEMPOTENT-HINT-CLEARED",
+            Severity.WARN,
+            "A tool stopped claiming idempotentHint; a retry that was safe may now "
+            "duplicate its effect.",
+        ),
+        RuleSpec(
+            "BRK-MCP-IDEMPOTENT-HINT-SET",
+            Severity.WARN,
+            "A tool now claims idempotentHint; hosts may begin retrying a call that was "
+            "not previously retry-safe.",
+        ),
+        RuleSpec(
+            "BRK-MCP-OPENWORLD-HINT-CHANGED",
+            Severity.INFO,
+            "openWorldHint changed. It describes the domain a tool reaches into and "
+            "constrains no caller.",
+        ),
+        RuleSpec(
+            "BRK-MCP-ANNOTATION-DECLARATION-CHANGED",
+            Severity.INFO,
+            "An annotation moved between false and undeclared without changing what it asserts.",
+        ),
+        RuleSpec(
+            "BRK-MCP-TOOL-RENAME-SUSPECTED",
+            Severity.INFO,
+            "Exactly one tool disappeared and one appeared with an identical schema. "
+            "Context for the removal, which is still reported: a manifest carries no "
+            "identity but the name, so a rename cannot be distinguished from "
+            "remove-plus-add.",
+        ),
+        RuleSpec(
+            "BRK-MCP-MANIFEST-TRUNCATED",
+            Severity.ERROR,
+            "One side is a single page of a paginated tools/list. Every tool past the "
+            "page boundary reads as removed, so the whole comparison is unsound.",
+        ),
     ]
 }
 
@@ -275,6 +377,26 @@ class BreakingEngine:
             return [self._finding("BRK-OP-REMOVED", change, change.description)]
         if kind == ChangeKind.RPC_REMOVED:
             return [self._finding("BRK-RPC-REMOVED", change, change.description)]
+
+        # --- MCP tool manifests ---------------------------------------------
+        if kind == ChangeKind.TOOL_DESCRIPTION_CHANGED:
+            return [self._finding("BRK-MCP-TOOL-DESCRIPTION-CHANGED", change, change.description)]
+        if kind == ChangeKind.TOOL_OUTPUT_SCHEMA_CHANGED:
+            rule = (
+                "BRK-MCP-OUTPUT-SCHEMA-ADDED"
+                if change.new_value
+                else "BRK-MCP-OUTPUT-SCHEMA-REMOVED"
+            )
+            return [self._finding(rule, change, change.description)]
+        if kind == ChangeKind.TOOL_RENAME_SUSPECTED:
+            return [self._finding("BRK-MCP-TOOL-RENAME-SUSPECTED", change, change.description)]
+        if kind == ChangeKind.MANIFEST_TRUNCATED:
+            return [self._finding("BRK-MCP-MANIFEST-TRUNCATED", change, change.description)]
+        if kind == ChangeKind.TOOL_ANNOTATION_CHANGED:
+            annotation_rule = _mcp_annotation_rule(change)
+            if annotation_rule is None:
+                return []
+            return [self._finding(annotation_rule, change, change.description)]
 
         # --- protobuf ------------------------------------------------------
         if kind == ChangeKind.RPC_STREAMING_CHANGED:
@@ -426,6 +548,48 @@ class BreakingEngine:
         else:
             rule = "BRK-RESP-CONSTRAINT-TIGHTENED" if tightening else "BRK-ENUM-WIDENED"
         return [self._finding(rule, change, desc)]
+
+
+#: (hint, transition) -> rule id. A transition is "set" when the hint becomes
+#: true, "cleared" when it stops being true, and None when it moves between
+#: false and undeclared -- which changes what the server *says* without
+#: changing what it *asserts*.
+_MCP_ANNOTATION_RULES: dict[tuple[str, str], str] = {
+    ("readOnlyHint", "set"): "BRK-MCP-READONLY-HINT-SET",
+    ("readOnlyHint", "cleared"): "BRK-MCP-READONLY-HINT-CLEARED",
+    ("destructiveHint", "set"): "BRK-MCP-DESTRUCTIVE-HINT-SET",
+    ("destructiveHint", "cleared"): "BRK-MCP-DESTRUCTIVE-HINT-CLEARED",
+    ("idempotentHint", "set"): "BRK-MCP-IDEMPOTENT-HINT-SET",
+    ("idempotentHint", "cleared"): "BRK-MCP-IDEMPOTENT-HINT-CLEARED",
+    ("openWorldHint", "set"): "BRK-MCP-OPENWORLD-HINT-CHANGED",
+    ("openWorldHint", "cleared"): "BRK-MCP-OPENWORLD-HINT-CHANGED",
+}
+
+
+def _mcp_annotation_rule(change: Change) -> str | None:
+    """Classify an annotation transition from its structured values.
+
+    Reads `old_value`/`new_value`, which the differ emits as
+    `{"annotation": name, "value": tri-state}`, rather than matching on the
+    message text. Two other dispatches in this file do sniff `description`, and
+    both carry a comment saying that is a compromise; a new rule family has no
+    reason to inherit it.
+    """
+    old_value = change.old_value if isinstance(change.old_value, dict) else {}
+    new_value = change.new_value if isinstance(change.new_value, dict) else {}
+    hint = old_value.get("annotation") or new_value.get("annotation")
+    if not isinstance(hint, str):
+        return None
+    before, after = old_value.get("value"), new_value.get("value")
+    if after is True and before is not True:
+        transition = "set"
+    elif before is True and after is not True:
+        transition = "cleared"
+    else:
+        # false <-> undeclared. The assertion is unchanged, so this is INFO
+        # rather than silence: a reviewer can still see the manifest moved.
+        return "BRK-MCP-ANNOTATION-DECLARATION-CHANGED"
+    return _MCP_ANNOTATION_RULES.get((hint, transition))
 
 
 def evaluate_breaking(

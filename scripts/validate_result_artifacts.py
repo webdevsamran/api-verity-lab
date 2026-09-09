@@ -67,6 +67,21 @@ COMMANDS: list[tuple[str, list[str]]] = [
         "validate (asyncapi)",
         ["validate", str(FIXTURES / "asyncapi/events-v1.yaml"), "--json"],
     ),
+    # MCP goes through the same emit path; the artifact must satisfy the same
+    # published schema, including the `protocol` enum that `validate` writes.
+    (
+        "validate (mcp)",
+        ["validate", str(FIXTURES / "mcp/tools_v1.json"), "--json"],
+    ),
+    (
+        "breaking (mcp)",
+        [
+            "breaking",
+            str(FIXTURES / "mcp/tools_v1.json"),
+            str(FIXTURES / "mcp/tools_v2.json"),
+            "--json",
+        ],
+    ),
     (
         "coverage",
         ["coverage", str(FIXTURES / "apis/versioned/v1.yaml"), "--json"],

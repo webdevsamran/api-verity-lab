@@ -6,19 +6,19 @@ Status legend, verified against this repository's code and tests:
 - **PARTIAL** — real foundation exists; named limitations apply.
 - **BLOCKED** — needs hardware/credentials/services we do not have; interface + local mocks only.
 
-| Capability | OpenAPI 3.0/3.1 | Swagger 2.0 | GraphQL SDL | gRPC/protobuf | AsyncAPI | SSE / WebSocket |
-|---|---|---|---|---|---|---|
-| Load + normalize | VERIFIED | VERIFIED | VERIFIED | VERIFIED | PARTIAL | PARTIAL |
-| Source locations | VERIFIED | VERIFIED | VERIFIED | VERIFIED | PARTIAL | n/a |
-| Semantic diff | VERIFIED | via v2 normalization | VERIFIED | VERIFIED | PARTIAL | PARTIAL |
-| Breaking rules | VERIFIED | via v2 normalization | VERIFIED | VERIFIED | BLOCKED* | BLOCKED* |
-| Dangerous-change category | n/a | n/a | VERIFIED | PARTIAL (width changes) | n/a | n/a |
-| Lint / governance packs | VERIFIED | via v2 normalization | VERIFIED (protocol-filtered) | VERIFIED (protocol-filtered) | PARTIAL | PARTIAL |
-| Case generation (pos/neg) | VERIFIED | via v2 normalization | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* |
-| Conformance testing vs runtime | VERIFIED | via v2 normalization | PARTIAL | BLOCKED* | BLOCKED* | BLOCKED* |
-| Mock / virtualization | VERIFIED | via v2 normalization | BLOCKED | BLOCKED | BLOCKED | BLOCKED |
-| Drift detection | VERIFIED | via v2 normalization | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* |
-| Performance budgets/regressions | VERIFIED | via v2 normalization | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* |
+| Capability | OpenAPI 3.0/3.1 | Swagger 2.0 | GraphQL SDL | gRPC/protobuf | AsyncAPI | SSE / WebSocket | MCP |
+|---|---|---|---|---|---|---|---|
+| Load + normalize | VERIFIED | VERIFIED | VERIFIED | VERIFIED | PARTIAL | PARTIAL | VERIFIED |
+| Source locations | VERIFIED | VERIFIED | VERIFIED | VERIFIED | PARTIAL | n/a | PARTIAL (JSON pointer, no line numbers) |
+| Semantic diff | VERIFIED | via v2 normalization | VERIFIED | VERIFIED | PARTIAL | PARTIAL | VERIFIED |
+| Breaking rules | VERIFIED | via v2 normalization | VERIFIED | VERIFIED | BLOCKED* | BLOCKED* | VERIFIED |
+| Dangerous-change category | n/a | n/a | VERIFIED | PARTIAL (width changes) | n/a | n/a | VERIFIED (hints, description edits) |
+| Lint / governance packs | VERIFIED | via v2 normalization | VERIFIED (protocol-filtered) | VERIFIED (protocol-filtered) | PARTIAL | PARTIAL | PARTIAL |
+| Case generation (pos/neg) | VERIFIED | via v2 normalization | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* |
+| Conformance testing vs runtime | VERIFIED | via v2 normalization | PARTIAL | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* |
+| Mock / virtualization | VERIFIED | via v2 normalization | BLOCKED | BLOCKED | BLOCKED | BLOCKED | BLOCKED |
+| Drift detection | VERIFIED | via v2 normalization | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* |
+| Performance budgets/regressions | VERIFIED | via v2 normalization | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* |
 
 \* *Interface and fixtures exist or are planned; live validation requires a real GraphQL server / gRPC
 server / broker, which this project does not ship or impersonate. Nothing here fakes a passing run.*

@@ -4,6 +4,53 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — MCP tool manifests as a contract format
+
+- **`apiverity validate|diff|breaking|changelog` now work on an MCP
+  `tools/list` manifest.** A saved list result, a whole JSON-RPC response, or a
+  bare `{"tools": [...]}` dump all compile into the same `Service` every other
+  format produces, so no new CLI flag and no new dependency are involved.
+
+  The point is what falls out for free. A removed tool fires `BRK-RPC-REMOVED`;
+  a newly-required argument fires `BRK-PARAM-ADDED-REQUIRED`; a narrowed enum
+  fires `BRK-ENUM-NARROWED-REQUEST`; a dropped output field fires
+  `BRK-RESP-FIELD-REMOVED` — all from the existing catalogue, all landing in
+  the same `result-v1` artifact as an OpenAPI change. Those are assertions in
+  `tests/unit/test_mcp_manifest.py`, because they are the evidence for the
+  "one contract model, one rule engine" claim rather than a side effect of it.
+
+- **Thirteen `BRK-MCP-*` rules** for what is genuinely MCP's alone: the four
+  `ToolAnnotations` hints, `outputSchema` presence, tool-description edits, a
+  suspected rename, and a paginated capture. Catalogue 44 → 57.
+
+  MCP defines no breaking-change semantics for a tool manifest — tools carry no
+  version field and SEP-1575 is an open, unsponsored proposal — so this
+  taxonomy is the project's own, and `docs/rule-catalog.md` now says exactly
+  that above the group. `scripts/generate_rule_catalog.py` grew a per-group
+  note slot so the disclaimer reaches the published document instead of living
+  in a source comment nobody reads.
+
+  The four annotation rules are WARN, not ERROR. The specification says clients
+  MUST treat annotations as untrusted unless the server is trusted, and a rule
+  cannot rest the catalogue's highest severity on a field the protocol itself
+  declines to trust. `--severity-override` is one flag away for anyone treating
+  a manifest as supply chain.
+
+  A description edit is a finding at WARN, unlike every other protocol, because
+  for an MCP tool the description *is* the routing input the model reads — a
+  silent edit is the documented tool-poisoning vector (OWASP MCP03).
+
+- Three deliberate non-decisions, each of which would have been a fabrication:
+  the response status is `"result"` and not an invented `"200"` (a JSON-RPC
+  result has no status code, and `compat.py` classifies on `startswith("2")`);
+  `idempotentHint` is *not* mapped onto `Operation.idempotent`, whose other
+  populators are authoritative declarations; and a bare tools dump never claims
+  to be from the legacy era, because it is byte-identical from either.
+
+- `ttlMs`, `cacheScope` and `nextCursor` are excluded by whitelist rather than
+  by a drop-list, so cache state can never reach the diff — pinned by a
+  Hypothesis property rather than one hand-picked pair of values.
+
 ### Added — dashboard
 
 - **A design system.** `web/src/styles.css` had six variables, and

@@ -1,0 +1,6 @@
+{
+  "name": "not-a-manifest",
+  "version": "1.0.0",
+  "scripts": { "build": "tsc" },
+  "dependencies": { "react": "19.2.8" }
+}

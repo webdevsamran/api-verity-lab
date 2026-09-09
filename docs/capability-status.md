@@ -15,6 +15,13 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
 - GraphQL: SDL import with provenance (**fixed in an earlier pass**: a kind-casing bug that silently loaded zero operations), schema-driven query generation, persisted operation documents (`test --operations`), `{data, errors}` envelope assertions, and introspection-based drift (`drift --base-url`) — EXISTING (`specs/graphql/operations.py`, `specs/graphql/runner.py`)
 - gRPC: `.proto` sources and compiled `FileDescriptorSet` input (`.desc`/`.pb`/`.protoset`) — EXISTING (`specs/grpc/descriptor.py`, no protobuf runtime dependency); streaming cardinality, explicit presence, oneof membership and reserved ranges in the diff; wire-compat metadata (`diff/protocol_compat.py`)
 - SSE / WebSocket message-contract representations — EXISTING (operation kinds `EVENT`, `WS_MESSAGE`)
+- MCP tool manifests (`specs/mcp/`): a saved `tools/list` — envelope, JSON-RPC
+  frame or bare dump — compiled into the same contract model, so the existing
+  breaking rules apply unchanged. Adds `BRK-MCP-*` for what is MCP's alone:
+  the four `ToolAnnotations` hints, `outputSchema` presence, description edits
+  (OWASP MCP03) and paginated captures. Cache and pagination state (`ttlMs`,
+  `cacheScope`, `nextCursor`) is excluded by whitelist so it can never diff.
+  Runtime drift against a live server is NOT part of this — EXISTING
 
 ## Diff / breaking / governance
 - Request/response-direction rules, enum/constraint/object/composition analysis, status-code/content-negotiation/header/security/server/pagination/idempotency compat — EXISTING (`diff/compat.py`, wired into CLI **this pass**)

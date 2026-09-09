@@ -25,6 +25,10 @@ class Protocol(StrEnum):
     ASYNCAPI = "asyncapi"
     SSE = "sse"
     WEBSOCKET = "websocket"
+    #: Model Context Protocol. The contract is a server's `tools/list`
+    #: manifest: the tools an agent can call, and the JSON Schemas they accept
+    #: and return.
+    MCP = "mcp"
 
 
 class SourceLocation(BaseModel):
@@ -229,6 +233,7 @@ class OperationKind(StrEnum):
     GRPC_RPC = "grpc_rpc"
     EVENT = "event"  # AsyncAPI publish/subscribe or SSE event stream
     WS_MESSAGE = "ws_message"  # documented WebSocket bidirectional message type
+    MCP_TOOL = "mcp_tool"  # a tool an MCP server exposes through tools/list
 
 
 class Operation(BaseModel):
@@ -299,6 +304,14 @@ class Operation(BaseModel):
             # received to sent -- is invisible to the diff.
             channel = self.channel or self.path or ""
             return f"{self.direction or '?'} {channel}#{self.message_name or self.rpc_name}"
+        if self.kind == OperationKind.MCP_TOOL:
+            # The tool name is the whole identity. `tools/call` dispatches on
+            # it, `title` is display-only, and a Tool carries no version and no
+            # namespace. This has to be its own branch rather than falling
+            # through to `service_name.rpc_name` below: `service_name` holds
+            # the manifest label, which is a filename, so two dumps of the same
+            # server would diff as a total replacement.
+            return f"tool {self.rpc_name}"
         return f"{self.service_name}.{self.rpc_name}"
 
 
@@ -325,6 +338,11 @@ class Service(BaseModel):
     lifecycle_state: LifecycleState | None = None
     source_file: str | None = None
     source_location: SourceLocation | None = None
+    #: Protocol-specific facts about the contract as a whole, mirroring
+    #: :attr:`Operation.bindings`. Kept out of the diffable surface on purpose:
+    #: an MCP manifest records here whether it was a truncated page and which
+    #: protocol era it came from, neither of which is a change to the contract.
+    bindings: dict[str, Any] = Field(default_factory=dict)
 
     def operation_keys(self) -> list[str]:
         return [op.key for op in self.operations]
@@ -398,6 +416,12 @@ class ChangeKind(StrEnum):
     FIELD_PRESENCE_CHANGED = "field_presence_changed"
     ONEOF_MEMBERSHIP_CHANGED = "oneof_membership_changed"
     RESERVATION_CHANGED = "reservation_changed"
+    # MCP-specific
+    TOOL_ANNOTATION_CHANGED = "tool_annotation_changed"
+    TOOL_DESCRIPTION_CHANGED = "tool_description_changed"
+    TOOL_OUTPUT_SCHEMA_CHANGED = "tool_output_schema_changed"
+    TOOL_RENAME_SUSPECTED = "tool_rename_suspected"
+    MANIFEST_TRUNCATED = "manifest_truncated"
 
 
 class Change(BaseModel):

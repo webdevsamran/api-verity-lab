@@ -77,6 +77,28 @@ the live catalog at any time with `apiverity rules --json`.
 | `BRK-DEPRECATION-REMOVED` | INFO | The deprecation marker was removed. |
 | `BRK-SECURITY-CHANGED` | ERROR | Security requirements changed; unprepared clients fail auth. |
 
+## MCP tool manifests
+
+The Model Context Protocol defines no breaking-change semantics for a tool manifest: tools carry no version field, and SEP-1575 *Tool Semantic Versioning* is an open, unsponsored proposal. **This taxonomy is api-verity-lab's own and is not blessed by the MCP specification.**
+
+Only changes the shared engine cannot already see are listed here. A removed tool, a newly-required argument or a narrowed enum fires the same `BRK-RPC-REMOVED`, `BRK-PARAM-ADDED-REQUIRED` and `BRK-ENUM-NARROWED-REQUEST` rules as every other protocol, because an MCP manifest compiles into the same contract model.
+
+| Rule | Severity | Fires when |
+|---|---|---|
+| `BRK-MCP-ANNOTATION-DECLARATION-CHANGED` | INFO | An annotation moved between false and undeclared without changing what it asserts. |
+| `BRK-MCP-DESTRUCTIVE-HINT-CLEARED` | WARN | A tool stopped declaring destructiveHint; hosts may stop gating behaviour that nobody re-verified as safe. |
+| `BRK-MCP-DESTRUCTIVE-HINT-SET` | WARN | A tool now declares it may perform irreversible updates. |
+| `BRK-MCP-IDEMPOTENT-HINT-CLEARED` | WARN | A tool stopped claiming idempotentHint; a retry that was safe may now duplicate its effect. |
+| `BRK-MCP-IDEMPOTENT-HINT-SET` | WARN | A tool now claims idempotentHint; hosts may begin retrying a call that was not previously retry-safe. |
+| `BRK-MCP-MANIFEST-TRUNCATED` | ERROR | One side is a single page of a paginated tools/list. Every tool past the page boundary reads as removed, so the whole comparison is unsound. |
+| `BRK-MCP-OPENWORLD-HINT-CHANGED` | INFO | openWorldHint changed. It describes the domain a tool reaches into and constrains no caller. |
+| `BRK-MCP-OUTPUT-SCHEMA-ADDED` | WARN | A tool now declares an outputSchema, so its own results must conform to it from this version on. |
+| `BRK-MCP-OUTPUT-SCHEMA-REMOVED` | ERROR | A tool stopped declaring an outputSchema; consumers parsing its structuredContent lose the guarantee they were written against. |
+| `BRK-MCP-READONLY-HINT-CLEARED` | WARN | A tool stopped claiming readOnlyHint. A host that auto-approved it as safe to call may now be invoking something that writes. |
+| `BRK-MCP-READONLY-HINT-SET` | WARN | A tool now claims readOnlyHint; hosts may stop asking for confirmation on a claim nobody verified. |
+| `BRK-MCP-TOOL-DESCRIPTION-CHANGED` | WARN | A tool description changed. For an MCP tool the description is the routing input the model reads, not documentation for a human, so a silent edit can redirect an agent (OWASP MCP03, tool poisoning). WARN rather than ERROR because copy edits are routine; raise it with --severity-override if you treat a manifest as supply chain. |
+| `BRK-MCP-TOOL-RENAME-SUSPECTED` | INFO | Exactly one tool disappeared and one appeared with an identical schema. Context for the removal, which is still reported: a manifest carries no identity but the name, so a rename cannot be distinguished from remove-plus-add. |
+
 ## Other
 
 | Rule | Severity | Fires when |
@@ -88,4 +110,4 @@ the live catalog at any time with `apiverity rules --json`.
 | `BRK-ONEOF-WIDENED` | INFO | A protobuf field moved out of a oneof; no existing sender can notice. |
 | `BRK-RESERVATION-REMOVED` | WARN | A protobuf field number is no longer reserved and can be reused by mistake. |
 
-_44 rules._
+_57 rules._

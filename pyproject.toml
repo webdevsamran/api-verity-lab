@@ -14,6 +14,7 @@ keywords = [
   "openapi", "graphql", "grpc", "contract-testing", "breaking-changes",
   "api-diff", "fuzzing", "drift-detection", "traffic-replay",
   "performance-regression", "semver", "api-governance",
+  "mcp", "model-context-protocol", "ai-agents",
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -63,6 +64,7 @@ openapi = "apiverity.specs.openapi:OpenApiSpecPlugin"
 graphql = "apiverity.specs.graphql:GraphQlSpecPlugin"
 grpc = "apiverity.specs.grpc:GrpcSpecPlugin"
 asyncapi = "apiverity.specs.asyncapi:AsyncApiSpecPlugin"
+mcp = "apiverity.specs.mcp:McpSpecPlugin"
 
 [project.entry-points."apiverity.rules"]
 core = "apiverity.plugins.builtins:core_rules"

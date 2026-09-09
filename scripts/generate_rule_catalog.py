@@ -32,20 +32,39 @@ the live catalog at any time with `apiverity rules --json`.
 
 """
 
-_GROUPS: list[tuple[str, tuple[str, ...]]] = [
-    ("Operations and RPCs", ("BRK-OP-", "BRK-RPC-")),
-    ("Parameters", ("BRK-PARAM-",)),
-    ("Request bodies and fields", ("BRK-REQ-",)),
-    ("Responses", ("BRK-RESP-", "BRK-HEADER-")),
-    ("Schemas and constraints", ("BRK-CONSTRAINT-", "BRK-ENUM-", "BRK-MEDIA-")),
-    ("Lifecycle and security", ("BRK-DEPRECATION-", "BRK-SECURITY-")),
+#: (title, rule-id prefixes, note). The note renders under the heading.
+#:
+#: The note slot exists for the MCP family. That taxonomy is this project's own
+#: -- upstream MCP defines no breaking-change semantics for a tool manifest --
+#: and saying so only in a source comment would leave the published catalogue
+#: implying a standard that does not exist. Groups with no caveat pass "".
+_GROUPS: list[tuple[str, tuple[str, ...], str]] = [
+    ("Operations and RPCs", ("BRK-OP-", "BRK-RPC-"), ""),
+    ("Parameters", ("BRK-PARAM-",), ""),
+    ("Request bodies and fields", ("BRK-REQ-",), ""),
+    ("Responses", ("BRK-RESP-", "BRK-HEADER-"), ""),
+    ("Schemas and constraints", ("BRK-CONSTRAINT-", "BRK-ENUM-", "BRK-MEDIA-"), ""),
+    ("Lifecycle and security", ("BRK-DEPRECATION-", "BRK-SECURITY-"), ""),
+    (
+        "MCP tool manifests",
+        ("BRK-MCP-",),
+        "The Model Context Protocol defines no breaking-change semantics for a tool "
+        "manifest: tools carry no version field, and SEP-1575 *Tool Semantic "
+        "Versioning* is an open, unsponsored proposal. **This taxonomy is "
+        "api-verity-lab's own and is not blessed by the MCP specification.**\n\n"
+        "Only changes the shared engine cannot already see are listed here. A removed "
+        "tool, a newly-required argument or a narrowed enum fires the same "
+        "`BRK-RPC-REMOVED`, `BRK-PARAM-ADDED-REQUIRED` and `BRK-ENUM-NARROWED-REQUEST` "
+        "rules as every other protocol, because an MCP manifest compiles into the same "
+        "contract model.",
+    ),
 ]
 
 
 def render() -> str:
     remaining = dict(sorted(CATALOG.items()))
     out = [_HEADER]
-    for title, prefixes in _GROUPS:
+    for title, prefixes, note in _GROUPS:
         rows = [
             spec
             for rule_id, spec in list(remaining.items())
@@ -54,6 +73,8 @@ def render() -> str:
         if not rows:
             continue
         out.append(f"## {title}\n")
+        if note:
+            out.append(f"{note}\n")
         out.append("| Rule | Severity | Fires when |")
         out.append("|---|---|---|")
         for spec in rows:

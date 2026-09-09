@@ -28,6 +28,7 @@ from apiverity.core.model import (
     Operation,
     OperationKind,
     Parameter,
+    Protocol,
     SchemaNode,
     Service,
 )
@@ -74,6 +75,32 @@ def _operation_hash(operation_key: str) -> str:
     if not operation_key:
         return "global"
     return hashlib.sha256(operation_key.encode("utf-8")).hexdigest()[:8]
+
+
+def _hint_word(value: object) -> str:
+    """Render a tri-state hint for a human.
+
+    "undeclared" is not the same claim as "false": the specification gives each
+    hint a documented default, but a default is what a client may assume, not
+    what the server said. Collapsing them would report a change that never
+    happened the first time a server started stating a hint explicitly.
+    """
+    if value is True:
+        return "true"
+    if value is False:
+        return "false"
+    return "undeclared"
+
+
+def _tool_shape(op: Operation) -> str:
+    """A stable hash of what a tool accepts and returns.
+
+    Deliberately excludes name, title and description: those are exactly what a
+    rename changes, so including them would mean no rename is ever suspected.
+    """
+    body = op.request_body.model_dump_json() if op.request_body else ""
+    responses = "".join(sorted(r.model_dump_json() for r in op.responses))
+    return hashlib.sha256(f"{body}|{responses}".encode()).hexdigest()
 
 
 class DiffEngine:
@@ -161,6 +188,9 @@ class DiffEngine:
         for key in sorted(set(old_ops) & set(new_ops)):
             self._diff_operation(old_ops[key], new_ops[key])
 
+        if Protocol.MCP in (self.old.protocol, self.new.protocol):
+            self._diff_mcp_manifest()
+
         if self.old.version != self.new.version:
             self._add(
                 ChangeKind.DESCRIPTION_CHANGED,
@@ -213,14 +243,24 @@ class DiffEngine:
             )
 
         if old.description != new.description or old.summary != new.summary:
+            # For an MCP tool the description is not documentation a human
+            # reads -- it is the routing input the model consumes when it picks
+            # a tool. A silent edit is the documented tool-poisoning vector
+            # (OWASP MCP03), so it gets its own kind and its own rule rather
+            # than sharing the INFO-level one every other protocol uses.
             self._add(
-                ChangeKind.DESCRIPTION_CHANGED,
+                ChangeKind.TOOL_DESCRIPTION_CHANGED
+                if old.kind == OperationKind.MCP_TOOL
+                else ChangeKind.DESCRIPTION_CHANGED,
                 key,
                 "meta",
                 f"documentation changed for '{key}'",
                 old_value=old.summary or old.description,
                 new_value=new.summary or new.description,
             )
+
+        if old.kind == OperationKind.MCP_TOOL and new.kind == OperationKind.MCP_TOOL:
+            self._diff_mcp_tool(old, new, key)
 
         old_examples = {e.name: e.value for e in old.examples}
         new_examples = {e.name: e.value for e in new.examples}
@@ -232,6 +272,123 @@ class DiffEngine:
                 f"examples changed for '{key}'",
                 old_value=sorted(old_examples),
                 new_value=sorted(new_examples),
+            )
+
+    def _diff_mcp_manifest(self) -> None:
+        """Facts about the two manifests as documents, not about any one tool.
+
+        Truncation is reported here and not only at load time because
+        `common._pair()` discards load findings, so a page-one capture would
+        otherwise reach `breaking` silently -- and acting on one is a mass
+        false positive: every tool past the page boundary reads as removed.
+
+        A rename is *suspected*, never asserted. A manifest carries no identity
+        but the name, so remove-plus-add and rename are genuinely
+        indistinguishable; the suspicion is raised only for exactly one out and
+        one in, and it never suppresses the removal finding.
+        """
+        old_mcp = self.old.bindings.get("mcp") or {}
+        new_mcp = self.new.bindings.get("mcp") or {}
+        if not isinstance(old_mcp, dict) or not isinstance(new_mcp, dict):
+            return
+
+        for label, meta in (("old", old_mcp), ("new", new_mcp)):
+            if meta.get("truncated"):
+                self._add(
+                    ChangeKind.MANIFEST_TRUNCATED,
+                    "(service)",
+                    "meta",
+                    (
+                        f"the {label} manifest is one page of a paginated tools/list; "
+                        "tools beyond it will read as removed"
+                    ),
+                    old_value=label == "old",
+                    new_value=label == "new",
+                )
+
+        new_keys = {o.key for o in self.new.operations}
+        old_keys = {o.key for o in self.old.operations}
+        removed = sorted(
+            op.rpc_name
+            for op in self.old.operations
+            if op.kind == OperationKind.MCP_TOOL and op.rpc_name and op.key not in new_keys
+        )
+        added = sorted(
+            op.rpc_name
+            for op in self.new.operations
+            if op.kind == OperationKind.MCP_TOOL and op.rpc_name and op.key not in old_keys
+        )
+        if len(removed) == 1 and len(added) == 1:
+            gone = next(o for o in self.old.operations if o.rpc_name == removed[0])
+            fresh = next(o for o in self.new.operations if o.rpc_name == added[0])
+            if _tool_shape(gone) == _tool_shape(fresh):
+                self._add(
+                    ChangeKind.TOOL_RENAME_SUSPECTED,
+                    f"tool {removed[0]}",
+                    "meta",
+                    (
+                        f"tool '{removed[0]}' disappeared and '{added[0]}' appeared with an "
+                        "identical schema; this may be a rename, which agents calling the old "
+                        "name cannot follow"
+                    ),
+                    old_value=removed[0],
+                    new_value=added[0],
+                )
+
+    def _diff_mcp_tool(self, old: Operation, new: Operation, key: str) -> None:
+        """Changes only an MCP tool can have.
+
+        The four `ToolAnnotations` hints and the presence of an `outputSchema`
+        are carried in `Operation.bindings["mcp"]`, deliberately outside the
+        shared schema surface, so nothing else in the engine looks at them.
+
+        Transitions are emitted structurally -- `old_value` and `new_value`
+        carry `{"annotation": ..., "value": ...}` -- rather than being encoded
+        into the message for the rule engine to string-match. Two existing
+        dispatches in `rules/breaking.py` sniff `change.description`, and the
+        code says outright that this is a compromise; there is no reason to add
+        a third.
+        """
+        old_mcp = old.bindings.get("mcp") or {}
+        new_mcp = new.bindings.get("mcp") or {}
+        if not isinstance(old_mcp, dict) or not isinstance(new_mcp, dict):
+            return
+
+        old_ann = old_mcp.get("annotations") or {}
+        new_ann = new_mcp.get("annotations") or {}
+        if isinstance(old_ann, dict) and isinstance(new_ann, dict):
+            for hint in ("readOnlyHint", "destructiveHint", "idempotentHint", "openWorldHint"):
+                before, after = old_ann.get(hint), new_ann.get(hint)
+                if before == after:
+                    continue
+                self._add(
+                    ChangeKind.TOOL_ANNOTATION_CHANGED,
+                    key,
+                    "meta",
+                    f"annotation '{hint}' changed {_hint_word(before)} -> {_hint_word(after)}",
+                    old_value={"annotation": hint, "value": before},
+                    new_value={"annotation": hint, "value": after},
+                    old_location=old.source_location,
+                    new_location=new.source_location,
+                )
+
+        had = bool(old_mcp.get("declares_output_schema"))
+        has = bool(new_mcp.get("declares_output_schema"))
+        if had != has:
+            self._add(
+                ChangeKind.TOOL_OUTPUT_SCHEMA_CHANGED,
+                key,
+                "response",
+                (
+                    "tool now declares an outputSchema, so its results must conform to it"
+                    if has
+                    else "tool no longer declares an outputSchema; consumers reading "
+                    "structuredContent lose their guarantee"
+                ),
+                old_value=had,
+                new_value=has,
+                old_location=old.source_location,
+                new_location=new.source_location,
             )
 
     def _diff_parameters(self, old: Operation, new: Operation, key: str) -> None:

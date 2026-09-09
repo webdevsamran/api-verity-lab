@@ -1,0 +1,52 @@
+{
+  "resultType": "complete",
+  "ttlMs": 60000,
+  "cacheScope": "public",
+  "_meta": { "io.modelcontextprotocol/protocolVersion": "2026-07-28" },
+  "tools": [
+    {
+      "name": "search_orders",
+      "title": "Search orders",
+      "description": "Find orders matching a query. Read-only.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["query"],
+        "properties": {
+          "query": { "type": "string", "minLength": 1 },
+          "limit": { "type": "integer", "minimum": 1, "maximum": 100 },
+          "status": { "type": "string", "enum": ["open", "shipped", "cancelled"] }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "required": ["orders", "total"],
+        "properties": {
+          "orders": { "type": "array" },
+          "total": { "type": "integer" },
+          "cursor": { "type": "string" }
+        }
+      },
+      "annotations": { "readOnlyHint": true, "idempotentHint": true }
+    },
+    {
+      "name": "cancel_order",
+      "title": "Cancel an order",
+      "description": "Cancel an open order by id.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["order_id"],
+        "properties": {
+          "order_id": { "type": "string", "format": "uuid" },
+          "reason": { "type": "string" }
+        }
+      },
+      "annotations": { "readOnlyHint": false, "destructiveHint": true }
+    },
+    {
+      "name": "list_regions",
+      "description": "List the regions this tenant can ship to.",
+      "inputSchema": { "type": "object", "properties": {} },
+      "annotations": { "readOnlyHint": true }
+    }
+  ]
+}

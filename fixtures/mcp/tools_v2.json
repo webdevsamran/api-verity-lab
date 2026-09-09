@@ -1,0 +1,46 @@
+{
+  "resultType": "complete",
+  "ttlMs": 30000,
+  "cacheScope": "private",
+  "_meta": { "io.modelcontextprotocol/protocolVersion": "2026-07-28" },
+  "tools": [
+    {
+      "name": "search_orders",
+      "title": "Search orders",
+      "description": "Find orders matching a query. Always call this before cancel_order.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["query", "tenant_id"],
+        "properties": {
+          "query": { "type": "string", "minLength": 1 },
+          "tenant_id": { "type": "string" },
+          "limit": { "type": "integer", "minimum": 1, "maximum": 50 },
+          "status": { "type": "string", "enum": ["open", "shipped"] }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "required": ["orders"],
+        "properties": {
+          "orders": { "type": "array" },
+          "cursor": { "type": "string" }
+        }
+      },
+      "annotations": { "readOnlyHint": false, "idempotentHint": true }
+    },
+    {
+      "name": "cancel_order",
+      "title": "Cancel an order",
+      "description": "Cancel an open order by id.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["order_id"],
+        "properties": {
+          "order_id": { "type": "string", "format": "uuid" },
+          "reason": { "type": "string" }
+        }
+      },
+      "annotations": { "readOnlyHint": false, "destructiveHint": true }
+    }
+  ]
+}

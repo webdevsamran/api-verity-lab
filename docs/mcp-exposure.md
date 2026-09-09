@@ -5,6 +5,16 @@
 This is an assessment, not a feature. Nothing here ships today; the point is to
 record what the surface would be and what has to be true before it exists.
 
+> **Two different things, both called MCP.** This document is about apiverity
+> *being* an MCP server, so an agent can ask it whether a change is breaking.
+> That is unbuilt.
+>
+> Reading MCP *as a contract format* — loading a server's `tools/list`
+> manifest, diffing two versions of it, and classifying the changes — ships
+> today. See [spec support](spec-support.md) and the `BRK-MCP-*` family in the
+> [rule catalog](rule-catalog.md). The two are independent: one governs other
+> people's agent tooling, the other exposes this tool to an agent.
+
 ## Why this project fits
 
 An agent editing an API spec has a question this tool already answers exactly:
