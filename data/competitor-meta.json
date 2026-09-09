@@ -1,36 +1,36 @@
 {
-  "fetched_utc": "2026-08-23T16:32:35+00:00",
+  "fetched_utc": "2026-09-09T10:09:58+00:00",
   "tool": "gh api (authenticated)",
   "repos": {
     "oasdiff/oasdiff": {
       "repo": "oasdiff/oasdiff",
       "license_spdx": "Apache-2.0",
-      "stars": 1327,
-      "pushed_at": "2026-08-23T15:21:01Z",
+      "stars": 1356,
+      "pushed_at": "2026-09-08T07:56:39Z",
       "archived": false,
       "description": "OpenAPI Diff and Breaking Changes",
       "latest_release": {
-        "tag": "v1.29.1",
-        "published_at": "2026-08-16T11:59:53Z"
+        "tag": "v1.31.0",
+        "published_at": "2026-09-05T07:19:58Z"
       }
     },
     "schemathesis/schemathesis": {
       "repo": "schemathesis/schemathesis",
       "license_spdx": "MIT",
-      "stars": 3554,
-      "pushed_at": "2026-08-23T16:28:19Z",
+      "stars": 3590,
+      "pushed_at": "2026-09-09T08:48:25Z",
       "archived": false,
       "description": "Catch API bugs before your users do",
       "latest_release": {
-        "tag": "v4.25.0",
-        "published_at": "2026-08-20T23:03:13Z"
+        "tag": "v4.26.1",
+        "published_at": "2026-09-08T22:21:52Z"
       }
     },
     "stoplightio/spectral": {
       "repo": "stoplightio/spectral",
       "license_spdx": "Apache-2.0",
-      "stars": 3186,
-      "pushed_at": "2026-08-19T09:56:59Z",
+      "stars": 3205,
+      "pushed_at": "2026-09-06T13:52:15Z",
       "archived": false,
       "description": "A flexible JSON/YAML linter for creating automated style guides, with baked in support for OpenAPI (v3.1, v3.0, and v2.0), Arazzo v1.0, as well as AsyncAPI v2.x.",
       "latest_release": {
@@ -41,19 +41,26 @@
     "pact-foundation/pact-js": {
       "repo": "pact-foundation/pact-js",
       "license_spdx": "NOASSERTION",
-      "stars": 1801,
-      "pushed_at": "2026-08-21T18:15:03Z",
+      "stars": 1813,
+      "pushed_at": "2026-09-07T08:14:25Z",
       "archived": false,
       "description": "JS version of Pact. Pact is a contract testing framework for HTTP APIs and non-HTTP asynchronous messaging systems.",
       "latest_release": {
-        "tag": "v17.1.2",
-        "published_at": "2026-08-11T09:36:26Z"
+        "tag": "v17.1.4",
+        "published_at": "2026-09-07T07:08:51Z"
       }
     },
-    "useoptic/optic": {
-      "repo": "useoptic/optic",
-      "error": "repo-not-found-or-error",
-      "latest_release": null
+    "opticdev/optic": {
+      "repo": "opticdev/optic",
+      "license_spdx": "MIT",
+      "stars": 1534,
+      "pushed_at": "2026-01-08T21:11:15Z",
+      "archived": true,
+      "description": "OpenAPI linting, diffing and testing. Optic helps prevent breaking changes, publish accurate documentation and improve the design of your APIs.",
+      "latest_release": {
+        "tag": "v1.0.9",
+        "published_at": "2025-08-10T23:03:56Z"
+      }
     },
     "apiaryio/dredd": {
       "repo": "apiaryio/dredd",
@@ -70,8 +77,8 @@
     "stoplightio/prism": {
       "repo": "stoplightio/prism",
       "license_spdx": "Apache-2.0",
-      "stars": 5012,
-      "pushed_at": "2026-08-13T09:37:03Z",
+      "stars": 5028,
+      "pushed_at": "2026-09-03T13:12:54Z",
       "archived": false,
       "description": "Turn any OpenAPI2/3 and Postman Collection file into an API server with mocking, transformations and validations.",
       "latest_release": {
@@ -82,8 +89,8 @@
     "wiremock/wiremock": {
       "repo": "wiremock/wiremock",
       "license_spdx": "Apache-2.0",
-      "stars": 7342,
-      "pushed_at": "2026-08-21T10:53:31Z",
+      "stars": 7363,
+      "pushed_at": "2026-09-08T09:35:34Z",
       "archived": false,
       "description": "A tool for mocking HTTP services",
       "latest_release": {
@@ -94,20 +101,20 @@
     "SpectoLabs/hoverfly": {
       "repo": "SpectoLabs/hoverfly",
       "license_spdx": "Apache-2.0",
-      "stars": 2507,
-      "pushed_at": "2026-08-19T22:46:39Z",
+      "stars": 2512,
+      "pushed_at": "2026-09-07T01:47:03Z",
       "archived": false,
       "description": "Lightweight service virtualization/ API simulation / API mocking tool for developers and testers",
       "latest_release": {
-        "tag": "v1.12.11",
-        "published_at": "2026-08-05T21:18:18Z"
+        "tag": "v1.12.13",
+        "published_at": "2026-08-28T20:42:04Z"
       }
     },
     "karatelabs/karate": {
       "repo": "karatelabs/karate",
       "license_spdx": "MIT",
-      "stars": 8925,
-      "pushed_at": "2026-08-23T10:31:56Z",
+      "stars": 8950,
+      "pushed_at": "2026-09-05T17:56:22Z",
       "archived": false,
       "description": "Test Automation Made Simple",
       "latest_release": {
@@ -118,8 +125,8 @@
     "grafana/k6": {
       "repo": "grafana/k6",
       "license_spdx": "AGPL-3.0",
-      "stars": 31299,
-      "pushed_at": "2026-08-23T12:00:30Z",
+      "stars": 31424,
+      "pushed_at": "2026-09-09T09:05:28Z",
       "archived": false,
       "description": "A modern load testing tool, using Go and JavaScript",
       "latest_release": {
@@ -130,7 +137,7 @@
     "postmanlabs/newman": {
       "repo": "postmanlabs/newman",
       "license_spdx": "Apache-2.0",
-      "stars": 7246,
+      "stars": 7251,
       "pushed_at": "2026-08-05T06:42:35Z",
       "archived": false,
       "description": "Newman is a command-line collection runner for Postman",
@@ -139,7 +146,7 @@
     "graphql-hive/graphql-inspector": {
       "repo": "graphql-hive/graphql-inspector",
       "license_spdx": "MIT",
-      "stars": 1759,
+      "stars": 1767,
       "pushed_at": "2026-08-20T14:06:31Z",
       "archived": false,
       "description": "\ud83d\udd75\ufe0f\u200d\u2640\ufe0f Validate schema, get schema change notifications, validate operations, find breaking changes, look for similar types, schema coverage",
@@ -151,8 +158,8 @@
     "bufbuild/buf": {
       "repo": "bufbuild/buf",
       "license_spdx": "Apache-2.0",
-      "stars": 11378,
-      "pushed_at": "2026-08-23T04:32:23Z",
+      "stars": 11424,
+      "pushed_at": "2026-09-09T06:54:43Z",
       "archived": false,
       "description": "The best way of working with Protocol Buffers.",
       "latest_release": {

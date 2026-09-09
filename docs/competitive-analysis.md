@@ -8,24 +8,24 @@ Generated: 2026-08-23 · Evidence: live GitHub API metadata (see `data/competito
 - Qualitative capability claims are labeled VERIFIED (fetched metadata / official docs quotes) or KNOWLEDGE-BASED (documented product understanding).
 - No competitor is claimed to *lack* a feature without verification; unverified areas are `unknown`.
 
-## Landscape snapshot (verified 2026-08-23)
+## Landscape snapshot (verified 2026-09-09)
 
 | Tool | License | Stars | Last push | Latest release | Status |
 |---|---|---|---|---|---|
-| oasdiff | Apache-2.0 | 1,327 | 2026-08-23 | v1.29.1 (2026-08-16) | active |
-| Schemathesis | MIT | 3,554 | 2026-08-23 | v4.25.0 (2026-08-20) | active |
-| Spectral | Apache-2.0 | 3,186 | 2026-08-19 | v6.16.3 (2026-08-03) | active |
-| Pact (pact-js) | MIT-family | 1,801 | 2026-08-21 | v17.1.2 (2026-08-11) | active |
-| Optic | — | — | — | — | repo gone (404) |
-| Dredd | MIT | 4,222 | 2024-05-11 | dredd@14.1.0 (2021) | **archived** |
-| Prism | Apache-2.0 | 5,012 | 2026-08-13 | v5.16.0 (2026-07-17) | active |
-| WireMock | Apache-2.0 | 7,342 | 2026-08-21 | 3.13.2 (2025-11-14) | active |
-| Hoverfly | Apache-2.0 | 2,507 | 2026-08-19 | v1.12.11 (2026-08-05) | active |
-| Karate | MIT | 8,925 | 2026-08-23 | v2.1.2 (2026-08-14) | active |
-| k6 | AGPL-3.0 | 31,299 | 2026-08-23 | v2.2.0 (2026-08-10) | active |
-| Newman | Apache-2.0 | 7,246 | 2026-08-05 | no release object | maintenance mode |
-| GraphQL Inspector | MIT | 1,759 | 2026-08-20 | rolling release | active |
-| Buf | Apache-2.0 | 11,378 | 2026-08-23 | v1.72.0 (2026-07-17) | active |
+| oasdiff | Apache-2.0 | 1,356 | 2026-09-08 | v1.31.0 (2026-09-05) | active |
+| Schemathesis | MIT | 3,590 | 2026-09-09 | v4.26.1 (2026-09-08) | active |
+| Spectral | Apache-2.0 | 3,205 | 2026-09-06 | v6.16.3 (2026-08-03) | active |
+| Pact (pact-js) | NOASSERTION | 1,813 | 2026-09-07 | v17.1.4 (2026-09-07) | active |
+| Optic | MIT | 1,534 | 2026-01-08 | v1.0.9 (2025-08-10) | **archived** |
+| Dredd | MIT | 4,222 | 2024-05-11 | dredd@14.1.0 (2021-11-16) | **archived** |
+| Prism | Apache-2.0 | 5,028 | 2026-09-03 | v5.16.0 (2026-07-17) | active |
+| WireMock | Apache-2.0 | 7,363 | 2026-09-08 | 3.13.2 (2025-11-14) | active |
+| Hoverfly | Apache-2.0 | 2,512 | 2026-09-07 | v1.12.13 (2026-08-28) | active |
+| Karate | MIT | 8,950 | 2026-09-05 | v2.1.2 (2026-08-14) | active |
+| k6 | AGPL-3.0 | 31,424 | 2026-09-09 | v2.2.0 (2026-08-10) | active |
+| Newman | Apache-2.0 | 7,251 | 2026-08-05 | — | active |
+| GraphQL Inspector | MIT | 1,767 | 2026-08-20 | release-1787234790800 (2026-08-20) | active |
+| Buf | Apache-2.0 | 11,424 | 2026-09-09 | v1.72.0 (2026-07-17) | active |
 
 ## What each one owns
 
@@ -40,7 +40,14 @@ Generated: 2026-08-23 · Evidence: live GitHub API metadata (see `data/competito
 - **Newman/Postman** — collection runner; collaboration/mocks/monitors locked to hosted platform.
 - **GraphQL Inspector** — reference GraphQL breaking/dangerous taxonomy, schema coverage. Hive console is the hosted layer.
 - **Buf** — gold-standard protobuf lint/breaking (wire semantics); BSR registry is hosted-first.
-- **Dredd/Optic** — archived/gone; instructive history only.
+- **Dredd** — archived (last push 2024-05-11); instructive history only.
+- **Optic** — archived 2026-01 at 1,534 stars, in precisely this domain. An
+  earlier revision of this file recorded it as "repo gone (404)". It is not
+  gone: `opticdev/optic` is archived and public. The 404 came from this
+  repository's own fetcher asking for `useoptic/optic`, which does not
+  exist, and the null being written into the table as a finding. Fixed at
+  the source -- the fetcher now raises on a failed lookup instead of
+  recording it as data.
 
 ## Capability matrix
 
