@@ -466,6 +466,21 @@ def as_yaml(data: dict[str, Any]) -> str:
     return str(yaml.safe_dump(data, sort_keys=False, allow_unicode=True))
 
 
+def _compliance(key: str) -> Callable[[dict[str, Any]], str]:
+    """A renderer bound to one published framework.
+
+    Named functions rather than `functools.partial` so a traceback says which
+    framework was being rendered.
+    """
+    from apiverity.reports.compliance import FRAMEWORKS, render_markdown
+
+    def render(data: dict[str, Any]) -> str:
+        return render_markdown(FRAMEWORKS[key], data)
+
+    render.__name__ = f"compliance_{key.replace('-', '_')}"
+    return render
+
+
 RENDERERS: dict[str, Callable[[dict[str, Any]], str]] = {
     "terminal": terminal,
     "markdown": markdown,
@@ -474,4 +489,10 @@ RENDERERS: dict[str, Callable[[dict[str, Any]], str]] = {
     "sarif": sarif,
     "json": as_json,
     "yaml": as_yaml,
+    # Every control of the framework appears in these, including the ones this
+    # tool cannot assess. A mapping report that lists only the controls it hit
+    # reads as a clean bill of health for the rest.
+    "owasp-mcp": _compliance("owasp-mcp"),
+    "owasp-asi": _compliance("owasp-asi"),
+    "owasp-api": _compliance("owasp-api"),
 }

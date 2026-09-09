@@ -339,6 +339,7 @@ Browsable at **<https://webdevsamran.github.io/api-verity-lab/>**, or as files h
 | [docs/ci.md](docs/ci.md) | Wiring the contract gate into a pipeline |
 | [SAFETY_MODEL.md](SAFETY_MODEL.md) · [docs/privacy.md](docs/privacy.md) | What this tool will and will not do to a target |
 | [docs/mcp-drift.md](docs/mcp-drift.md) · [docs/mcp-poisoning.md](docs/mcp-poisoning.md) · [docs/mcp-lock.md](docs/mcp-lock.md) · [docs/mcp-exposure.md](docs/mcp-exposure.md) | Governing MCP servers: drift against a live one, a tool description read as executable text, a reviewed baseline, and exposing this one to agents |
+| [docs/compliance-mapping.md](docs/compliance-mapping.md) | Findings mapped onto the OWASP MCP, Agentic and API Top 10s, including what this tool cannot assess |
 | [AGENTS.md](AGENTS.md) | Constraints that are correctness rather than style, for anyone changing the code |
 
 ## Contributing
