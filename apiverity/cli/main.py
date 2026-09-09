@@ -186,6 +186,14 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     p.add_argument(
+        "--suggest-fix",
+        action="store_true",
+        help=(
+            "attach the non-breaking alternative to each finding: the way to make the same "
+            "change additively. A gate that only says no gets switched off"
+        ),
+    )
+    p.add_argument(
         "--consumers",
         metavar="FILE",
         help=(

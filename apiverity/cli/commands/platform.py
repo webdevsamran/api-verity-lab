@@ -151,12 +151,33 @@ def _did_you_mean(rule_id: str, known: list[str]) -> list[str]:
 
 def cmd_explain(args: argparse.Namespace) -> int:
     """Explain one rule: what it means, why, and how to change its severity."""
+    from apiverity.rules.alternatives import ALTERNATIVES
     from apiverity.rules.breaking import CATALOG
 
     rule_id = str(args.rule_id).strip().upper()
     spec = CATALOG.get(rule_id)
     if spec is None:
-        suggestions = _did_you_mean(rule_id, sorted(CATALOG))
+        # The semver rules live in `rules/semver.py` rather than the breaking
+        # catalogue, and a reader looking one up does not care which module it
+        # came from. Answering with the alternative alone beats "no such rule"
+        # for an id the tool really does emit.
+        alternative = ALTERNATIVES.get(rule_id)
+        if alternative is not None:
+            _emit(
+                {
+                    "tool": "apiverity",
+                    "command": "explain",
+                    "rule_id": rule_id,
+                    "severity": "ERROR",
+                    "group": "Semantic versioning",
+                    "description": "The declared version does not match the changes.",
+                    "instead": alternative,
+                    "documentation": "docs/rule-catalog.md",
+                },
+                args.json,
+            )
+            return EXIT_OK
+        suggestions = _did_you_mean(rule_id, sorted(CATALOG) + sorted(ALTERNATIVES))
         print(f"error: no rule with id {rule_id!r}", file=sys.stderr)
         if suggestions:
             print("did you mean:", file=sys.stderr)
@@ -175,6 +196,9 @@ def cmd_explain(args: argparse.Namespace) -> int:
             "severity": spec.severity.value,
             "group": group,
             "description": spec.description,
+            # What to ship instead. A gate that only says no gets switched off,
+            # and the reader still wants the change they came here to make.
+            "instead": ALTERNATIVES.get(rule_id, ""),
             "documentation": where,
             "override": f"apiverity breaking old new --severity-override {spec.rule_id}=WARN",
             "suppress": (

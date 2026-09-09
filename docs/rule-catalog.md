@@ -11,71 +11,71 @@ the live catalog at any time with `apiverity rules --json`.
 
 ## Operations and RPCs
 
-| Rule | Severity | Fires when |
-|---|---|---|
-| `BRK-OP-ADDED` | INFO | A new operation was added (additive, non-breaking). |
-| `BRK-OP-REMOVED` | ERROR | An operation was removed; existing callers will fail. |
-| `BRK-RPC-ADDED` | INFO | A new gRPC RPC was added (additive, non-breaking). |
-| `BRK-RPC-REMOVED` | ERROR | A gRPC RPC was removed; existing callers will fail. |
-| `BRK-RPC-STREAMING-CHANGED` | ERROR | An RPC changed streaming cardinality; generated clients call it wrongly. |
+| Rule | Severity | Fires when | Instead |
+|---|---|---|---|
+| `BRK-OP-ADDED` | INFO | A new operation was added (additive, non-breaking). | Nothing to do: adding an operation cannot break an existing caller. |
+| `BRK-OP-REMOVED` | ERROR | An operation was removed; existing callers will fail. | Keep the operation and mark it deprecated, with a `Sunset` header giving the date it goes away (RFC 8594). Remove it in the next major. Callers get a warning window instead of a 404. |
+| `BRK-RPC-ADDED` | INFO | A new gRPC RPC was added (additive, non-breaking). | Nothing to do: adding an RPC cannot break an existing caller. |
+| `BRK-RPC-REMOVED` | ERROR | A gRPC RPC was removed; existing callers will fail. | Keep the RPC and have it return an explicit error naming its replacement. A removed RPC is an UNIMPLEMENTED status with no explanation in it. |
+| `BRK-RPC-STREAMING-CHANGED` | ERROR | An RPC changed streaming cardinality; generated clients call it wrongly. | Add a new RPC with the new cardinality and deprecate the old one. Generated clients bind the streaming shape at compile time, so there is no in-place version of this. |
 
 ## Parameters
 
-| Rule | Severity | Fires when |
-|---|---|---|
-| `BRK-PARAM-ADDED-OPTIONAL` | INFO | A new optional request parameter was added. |
-| `BRK-PARAM-ADDED-REQUIRED` | ERROR | A new required request parameter was added. |
-| `BRK-PARAM-OPTIONALIZED` | INFO | A required request parameter became optional. |
-| `BRK-PARAM-REMOVED` | ERROR | A request parameter was removed. |
-| `BRK-PARAM-REQUIRED` | ERROR | An optional request parameter became required. |
-| `BRK-PARAM-TYPE-CHANGED` | ERROR | A request parameter's type/format changed. |
+| Rule | Severity | Fires when | Instead |
+|---|---|---|---|
+| `BRK-PARAM-ADDED-OPTIONAL` | INFO | A new optional request parameter was added. | Nothing to do: an optional parameter is additive. |
+| `BRK-PARAM-ADDED-REQUIRED` | ERROR | A new required request parameter was added. | Add it optional with a server-side default, and make it required in the next major. Existing callers keep working while new ones start sending it. |
+| `BRK-PARAM-OPTIONALIZED` | INFO | A required request parameter became optional. | Nothing to do: senders that still supply it are unaffected. |
+| `BRK-PARAM-REMOVED` | ERROR | A request parameter was removed. | Keep accepting the parameter and ignore it, or map it onto its replacement. Removing it turns an existing request into a rejected one, or worse, a silently different one. |
+| `BRK-PARAM-REQUIRED` | ERROR | An optional request parameter became required. | Keep it optional and default it server-side. If the default is genuinely impossible to choose, that is a new operation rather than a stricter version of this one. |
+| `BRK-PARAM-TYPE-CHANGED` | ERROR | A request parameter's type/format changed. | Add a new parameter with the new type and accept both for one release, preferring the new one when both arrive. A type change in place has no compatible form. |
 
 ## Request bodies and fields
 
-| Rule | Severity | Fires when |
-|---|---|---|
-| `BRK-REQ-BODY-ADDED-OPTIONAL` | INFO | An optional request body was added. |
-| `BRK-REQ-BODY-ADDED-REQUIRED` | ERROR | A required request body was added. |
-| `BRK-REQ-BODY-REMOVED` | ERROR | The request body was removed. |
-| `BRK-REQ-BODY-REQUIRED` | ERROR | The request body became required. |
-| `BRK-REQ-FIELD-ADDED-OPTIONAL` | INFO | An optional field was added to a request body. |
-| `BRK-REQ-FIELD-ADDED-REQUIRED` | ERROR | A required field was added to a request body. |
-| `BRK-REQ-FIELD-BECAME-REQUIRED` | ERROR | A request body field became required. |
-| `BRK-REQ-FIELD-OPTIONALIZED` | INFO | A request body field became optional; senders are unaffected. |
-| `BRK-REQ-FIELD-REMOVED` | ERROR | A request body field was removed. |
+| Rule | Severity | Fires when | Instead |
+|---|---|---|---|
+| `BRK-REQ-BODY-ADDED-OPTIONAL` | INFO | An optional request body was added. | Nothing to do: an optional body is additive. |
+| `BRK-REQ-BODY-ADDED-REQUIRED` | ERROR | A required request body was added. | Accept an empty body and apply defaults, then require it in the next major. |
+| `BRK-REQ-BODY-REMOVED` | ERROR | The request body was removed. | Keep accepting a body and ignore it, so existing callers are not rejected for sending one. |
+| `BRK-REQ-BODY-REQUIRED` | ERROR | The request body became required. | Accept an empty body and default its contents. A caller that sends none today gets a 400 the moment this ships. |
+| `BRK-REQ-FIELD-ADDED-OPTIONAL` | INFO | An optional field was added to a request body. | Nothing to do: an optional request field is additive. |
+| `BRK-REQ-FIELD-ADDED-REQUIRED` | ERROR | A required field was added to a request body. | Add it optional with a default, then require it in the next major. |
+| `BRK-REQ-FIELD-BECAME-REQUIRED` | ERROR | A request body field became required. | Default it server-side instead. If there is no sensible default, the operation is doing something new and deserves a new version rather than a stricter schema. |
+| `BRK-REQ-FIELD-OPTIONALIZED` | INFO | A request body field became optional; senders are unaffected. | Nothing to do: senders that still supply it are unaffected. |
+| `BRK-REQ-FIELD-REMOVED` | ERROR | A request body field was removed. | Keep accepting the field and ignore it. Removing it from the schema turns a request that used to work into one that fails validation. |
 
 ## Responses
 
-| Rule | Severity | Fires when |
-|---|---|---|
-| `BRK-HEADER-ADDED` | INFO | A new response header was declared. |
-| `BRK-HEADER-REMOVED` | WARN | A declared response header was removed. |
-| `BRK-RESP-CONSTRAINT-TIGHTENED` | WARN | A response constraint was tightened; returned values may fall outside what clients expect. |
-| `BRK-RESP-FIELD-ADDED` | INFO | A response body field was added (consumers ignore unknown fields). |
-| `BRK-RESP-FIELD-OPTIONALIZED` | ERROR | A response field is no longer guaranteed; consumers reading it unconditionally will break. |
-| `BRK-RESP-FIELD-REMOVED` | ERROR | A response body field was removed; readers of it break. |
-| `BRK-RESP-STATUS-ADDED` | INFO | A new response status was declared. |
-| `BRK-RESP-STATUS-REMOVED` | ERROR | A declared response status was removed. |
-| `BRK-RESP-TYPE-CHANGED` | WARN | A response field's type changed; consumers may misparse values. |
+| Rule | Severity | Fires when | Instead |
+|---|---|---|---|
+| `BRK-HEADER-ADDED` | INFO | A new response header was declared. | Nothing to do: a new response header is additive. |
+| `BRK-HEADER-REMOVED` | WARN | A declared response header was removed. | Keep sending the header until consumers stop reading it. A missing header is usually an empty string on the other side, which is a bug that looks like data. |
+| `BRK-RESP-CONSTRAINT-TIGHTENED` | WARN | A response constraint was tightened; returned values may fall outside what clients expect. | Leave the declared bound alone unless you are certain no consumer validates the response against it. Narrowing what you promise to return breaks a strict client without breaking a request. |
+| `BRK-RESP-FIELD-ADDED` | INFO | A response body field was added (consumers ignore unknown fields). | Nothing to do: consumers ignore fields they do not know. |
+| `BRK-RESP-FIELD-OPTIONALIZED` | ERROR | A response field is no longer guaranteed; consumers reading it unconditionally will break. | Keep returning it unconditionally. Consumers written against a guarantee do not check for absence, so the first missing value is a crash rather than a fallback. |
+| `BRK-RESP-FIELD-REMOVED` | ERROR | A response body field was removed; readers of it break. | Keep returning the field until consumers stop reading it -- empty, null or a frozen value -- and mark it deprecated in the schema. Then remove it in the next major. |
+| `BRK-RESP-STATUS-ADDED` | INFO | A new response status was declared. | Nothing to do, though a client with an exhaustive status handler will meet the new one before it has a branch for it. |
+| `BRK-RESP-STATUS-REMOVED` | ERROR | A declared response status was removed. | Keep declaring the status while the service can still return it. Removing it from the contract does not stop it happening; it stops clients being told it can. |
+| `BRK-RESP-TYPE-CHANGED` | WARN | A response field's type changed; consumers may misparse values. | Add a new field with the new type and keep the old one for a release. Changing a type in place misparses on every strongly-typed client. |
 
 ## Schemas and constraints
 
-| Rule | Severity | Fires when |
-|---|---|---|
-| `BRK-CONSTRAINT-LOOSENED` | INFO | A request constraint was loosened (previously invalid inputs pass). |
-| `BRK-CONSTRAINT-TIGHTENED` | ERROR | A request constraint was tightened; previously valid inputs fail. |
-| `BRK-ENUM-NARROWED-REQUEST` | ERROR | Request enum values were removed; clients sending old values fail. |
-| `BRK-ENUM-NARROWED-RESPONSE` | WARN | Response enum values were removed; clients may encounter undeclared values at runtime. |
-| `BRK-ENUM-WIDENED` | INFO | Enum values were added (additive). |
-| `BRK-MEDIA-TYPE-CHANGED` | ERROR | A request/response media type was added or removed. |
+| Rule | Severity | Fires when | Instead |
+|---|---|---|---|
+| `BRK-CONSTRAINT-LOOSENED` | INFO | A request constraint was loosened (previously invalid inputs pass). | Nothing to do: inputs that were valid before are still valid. |
+| `BRK-CONSTRAINT-TIGHTENED` | ERROR | A request constraint was tightened; previously valid inputs fail. | Tighten in two steps: keep accepting the out-of-range value and log or warn on it first, then reject in the next major. Alternatively, keep the declared bound and enforce the tighter one behind a feature flag until callers have moved. |
+| `BRK-ENUM-NARROWED-REQUEST` | ERROR | Request enum values were removed; clients sending old values fail. | Keep accepting the removed value and map it internally to its replacement. Drop it from the declared enum in the next major, once no caller is sending it. |
+| `BRK-ENUM-NARROWED-RESPONSE` | WARN | Response enum values were removed; clients may encounter undeclared values at runtime. | Keep emitting the value until consumers stop reading it. A narrowed response enum breaks an exhaustive switch on the other side, which fails at the point of parse rather than at the point of use. |
+| `BRK-ENUM-WIDENED` | INFO | Enum values were added (additive). | Nothing to do for senders. Worth telling consumers, because a new response value reaches a client that was written when the set was closed. |
+| `BRK-MEDIA-TYPE-CHANGED` | ERROR | A request/response media type was added or removed. | Keep serving the old media type behind content negotiation and add the new one alongside it. A client sending the old `Content-Type` gets a 415 otherwise. |
 
 ## Lifecycle and security
 
-| Rule | Severity | Fires when |
-|---|---|---|
-| `BRK-DEPRECATION-ADDED` | WARN | The operation is now deprecated; plan migration. |
-| `BRK-DEPRECATION-REMOVED` | INFO | The deprecation marker was removed. |
-| `BRK-SECURITY-CHANGED` | ERROR | Security requirements changed; unprepared clients fail auth. |
+| Rule | Severity | Fires when | Instead |
+|---|---|---|---|
+| `BRK-DEPRECATION-ADDED` | WARN | The operation is now deprecated; plan migration. | Nothing to fix -- this is the recommended path. Add a `Sunset` header with the removal date (RFC 8594) so the deprecation carries a deadline rather than a mood. |
+| `BRK-DEPRECATION-REMOVED` | INFO | The deprecation marker was removed. | Nothing to do, but say so: consumers who started migrating on the deprecation should be told it was withdrawn. |
+| `BRK-SECURITY-CHANGED` | ERROR | Security requirements changed; unprepared clients fail auth. | Accept both the old and the new scheme for one release, then drop the old one. An authentication change is the one break a client cannot retry its way out of. |
 
 ## MCP tool manifests
 
@@ -83,31 +83,31 @@ The Model Context Protocol defines no breaking-change semantics for a tool manif
 
 Only changes the shared engine cannot already see are listed here. A removed tool, a newly-required argument or a narrowed enum fires the same `BRK-RPC-REMOVED`, `BRK-PARAM-ADDED-REQUIRED` and `BRK-ENUM-NARROWED-REQUEST` rules as every other protocol, because an MCP manifest compiles into the same contract model.
 
-| Rule | Severity | Fires when |
-|---|---|---|
-| `BRK-MCP-ANNOTATION-DECLARATION-CHANGED` | INFO | An annotation moved between false and undeclared without changing what it asserts. |
-| `BRK-MCP-DESTRUCTIVE-HINT-CLEARED` | WARN | A tool stopped declaring destructiveHint; hosts may stop gating behaviour that nobody re-verified as safe. |
-| `BRK-MCP-DESTRUCTIVE-HINT-SET` | WARN | A tool now declares it may perform irreversible updates. |
-| `BRK-MCP-IDEMPOTENT-HINT-CLEARED` | WARN | A tool stopped claiming idempotentHint; a retry that was safe may now duplicate its effect. |
-| `BRK-MCP-IDEMPOTENT-HINT-SET` | WARN | A tool now claims idempotentHint; hosts may begin retrying a call that was not previously retry-safe. |
-| `BRK-MCP-MANIFEST-TRUNCATED` | ERROR | One side is a single page of a paginated tools/list. Every tool past the page boundary reads as removed, so the whole comparison is unsound. |
-| `BRK-MCP-OPENWORLD-HINT-CHANGED` | INFO | openWorldHint changed. It describes the domain a tool reaches into and constrains no caller. |
-| `BRK-MCP-OUTPUT-SCHEMA-ADDED` | WARN | A tool now declares an outputSchema, so its own results must conform to it from this version on. |
-| `BRK-MCP-OUTPUT-SCHEMA-REMOVED` | ERROR | A tool stopped declaring an outputSchema; consumers parsing its structuredContent lose the guarantee they were written against. |
-| `BRK-MCP-READONLY-HINT-CLEARED` | WARN | A tool stopped claiming readOnlyHint. A host that auto-approved it as safe to call may now be invoking something that writes. |
-| `BRK-MCP-READONLY-HINT-SET` | WARN | A tool now claims readOnlyHint; hosts may stop asking for confirmation on a claim nobody verified. |
-| `BRK-MCP-TOOL-DESCRIPTION-CHANGED` | WARN | A tool description changed. For an MCP tool the description is the routing input the model reads, not documentation for a human, so a silent edit can redirect an agent (OWASP MCP03, tool poisoning). WARN rather than ERROR because copy edits are routine; raise it with --severity-override if you treat a manifest as supply chain. |
-| `BRK-MCP-TOOL-RENAME-SUSPECTED` | INFO | Exactly one tool disappeared and one appeared with an identical schema. Context for the removal, which is still reported: a manifest carries no identity but the name, so a rename cannot be distinguished from remove-plus-add. |
+| Rule | Severity | Fires when | Instead |
+|---|---|---|---|
+| `BRK-MCP-ANNOTATION-DECLARATION-CHANGED` | INFO | An annotation moved between false and undeclared without changing what it asserts. | Nothing to do: the assertion did not change, only whether it was written down. Declaring it explicitly is the better form. |
+| `BRK-MCP-DESTRUCTIVE-HINT-CLEARED` | WARN | A tool stopped declaring destructiveHint; hosts may stop gating behaviour that nobody re-verified as safe. | Put it back unless the tool genuinely stopped performing irreversible updates. Clearing it removes a gate on the host side that nobody re-verified. |
+| `BRK-MCP-DESTRUCTIVE-HINT-SET` | WARN | A tool now declares it may perform irreversible updates. | Nothing to undo: declaring destructiveness is the safe direction. Tell hosts, because some will begin gating the call. |
+| `BRK-MCP-IDEMPOTENT-HINT-CLEARED` | WARN | A tool stopped claiming idempotentHint; a retry that was safe may now duplicate its effect. | Nothing to undo if the tool really is not retry-safe -- this is the honest direction. Hosts that were retrying will stop. |
+| `BRK-MCP-IDEMPOTENT-HINT-SET` | WARN | A tool now claims idempotentHint; hosts may begin retrying a call that was not previously retry-safe. | Only claim it if a repeated call with the same arguments has the same effect. Hosts retry on this claim, and a duplicated write is the failure mode. |
+| `BRK-MCP-MANIFEST-TRUNCATED` | ERROR | One side is a single page of a paginated tools/list. Every tool past the page boundary reads as removed, so the whole comparison is unsound. | Nothing about the change: fix the *capture*. Follow `nextCursor` to the end of tools/list and compare complete manifests, because every tool past the page boundary currently reads as removed. |
+| `BRK-MCP-OPENWORLD-HINT-CHANGED` | INFO | openWorldHint changed. It describes the domain a tool reaches into and constrains no caller. | Nothing to do: openWorldHint describes the domain a tool reaches into and constrains no caller. |
+| `BRK-MCP-OUTPUT-SCHEMA-ADDED` | WARN | A tool now declares an outputSchema, so its own results must conform to it from this version on. | Nothing to undo, but check the tool's own results conform to it from now on: declaring a schema makes every future result answerable to it. |
+| `BRK-MCP-OUTPUT-SCHEMA-REMOVED` | ERROR | A tool stopped declaring an outputSchema; consumers parsing its structuredContent lose the guarantee they were written against. | Keep declaring the outputSchema. A consumer parsing `structuredContent` was written against that guarantee, and withdrawing it does not change what the tool returns -- only what a caller is allowed to assume. |
+| `BRK-MCP-READONLY-HINT-CLEARED` | WARN | A tool stopped claiming readOnlyHint. A host that auto-approved it as safe to call may now be invoking something that writes. | If the tool now writes, the rename is the honest change -- a host that auto-approved it as read-only will keep calling it without asking. If it does not write, put the hint back. |
+| `BRK-MCP-READONLY-HINT-SET` | WARN | A tool now claims readOnlyHint; hosts may stop asking for confirmation on a claim nobody verified. | Only claim it if the tool truly performs no writes. Hosts stop asking for confirmation on this claim, and nothing verifies it. |
+| `BRK-MCP-TOOL-DESCRIPTION-CHANGED` | WARN | A tool description changed. For an MCP tool the description is the routing input the model reads, not documentation for a human, so a silent edit can redirect an agent (OWASP MCP03, tool poisoning). WARN rather than ERROR because copy edits are routine; raise it with --severity-override if you treat a manifest as supply chain. | If the wording changed, ship it. If the *behaviour* changed, rename the tool instead: an agent routes on the description, so an edited description silently changes what every existing plan does, with no version anywhere to pin against. |
+| `BRK-MCP-TOOL-RENAME-SUSPECTED` | INFO | Exactly one tool disappeared and one appeared with an identical schema. Context for the removal, which is still reported: a manifest carries no identity but the name, so a rename cannot be distinguished from remove-plus-add. | If this was a rename, keep the old name as an alias for one release: a manifest carries no identity but the name, so an agent holding a plan against the old one has nothing to fall back to. |
 
 ## Other
 
-| Rule | Severity | Fires when |
-|---|---|---|
-| `BRK-FIELD-NUMBER-REUSED` | ERROR | A protobuf field number now names a different field; stored data misdecodes. |
-| `BRK-FIELD-NUMBER-UNRESERVED` | WARN | A protobuf field was removed without reserving its number. |
-| `BRK-FIELD-PRESENCE-LOST` | ERROR | A protobuf field lost explicit presence; unset and default are now the same. |
-| `BRK-ONEOF-NARROWED` | ERROR | A protobuf field moved into a oneof; it is now exclusive with the others. |
-| `BRK-ONEOF-WIDENED` | INFO | A protobuf field moved out of a oneof; no existing sender can notice. |
-| `BRK-RESERVATION-REMOVED` | WARN | A protobuf field number is no longer reserved and can be reused by mistake. |
+| Rule | Severity | Fires when | Instead |
+|---|---|---|---|
+| `BRK-FIELD-NUMBER-REUSED` | ERROR | A protobuf field number now names a different field; stored data misdecodes. | Use the next unused field number and add the old one to `reserved`. Stored messages written before this change decode the old number into the new field. |
+| `BRK-FIELD-NUMBER-UNRESERVED` | WARN | A protobuf field was removed without reserving its number. | Add `reserved <number>;` and `reserved "<name>";` in the same commit that removes the field. It costs one line and stops the number being handed out again. |
+| `BRK-FIELD-PRESENCE-LOST` | ERROR | A protobuf field lost explicit presence; unset and default are now the same. | Keep the field `optional` (proto3 explicit presence) so an unset value stays distinguishable from a zero. Removing presence silently merges the two for every reader. |
+| `BRK-ONEOF-NARROWED` | ERROR | A protobuf field moved into a oneof; it is now exclusive with the others. | Add a new field to the oneof rather than moving an existing one in. Moving one in makes it mutually exclusive with fields senders already set together. |
+| `BRK-ONEOF-WIDENED` | INFO | A protobuf field moved out of a oneof; no existing sender can notice. | Nothing to do: no existing sender can observe the difference. |
+| `BRK-RESERVATION-REMOVED` | WARN | A protobuf field number is no longer reserved and can be reused by mistake. | Put the reservation back. It exists to stop a retired number being reused, and removing it re-opens exactly that. |
 
-_57 rules._
+_57 rules, each with a non-breaking alternative._

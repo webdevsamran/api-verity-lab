@@ -181,7 +181,8 @@ def summarize(
         )
     if errors or warnings:
         what_to_do.append(
-            "Run `apiverity explain <rule-id>` for any finding you want the reasoning behind."
+            "Run `apiverity explain <rule-id>` for the reasoning behind any finding, and what "
+            "to ship instead."
         )
 
     return Summary(

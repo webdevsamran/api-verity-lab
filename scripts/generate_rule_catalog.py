@@ -17,7 +17,8 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
-from apiverity.rules.breaking import CATALOG
+from apiverity.rules.alternatives import ALTERNATIVES
+from apiverity.rules.breaking import CATALOG, RuleSpec
 
 _HEADER = """\
 # Breaking-Rule Catalog
@@ -61,6 +62,18 @@ _GROUPS: list[tuple[str, tuple[str, ...], str]] = [
 ]
 
 
+def _row(spec: RuleSpec) -> str:
+    """One rule, with what to ship instead.
+
+    The `Instead` column is why this table is worth reading twice. A catalogue
+    of objections tells a reader what will be refused; one that also says how
+    to make the change additively tells them what to do next, and a gate that
+    only ever says no is a gate somebody switches off.
+    """
+    instead = ALTERNATIVES.get(spec.rule_id, "")
+    return f"| `{spec.rule_id}` | {spec.severity.value.upper()} | {spec.description} | {instead} |"
+
+
 def render() -> str:
     remaining = dict(sorted(CATALOG.items()))
     out = [_HEADER]
@@ -75,19 +88,17 @@ def render() -> str:
         out.append(f"## {title}\n")
         if note:
             out.append(f"{note}\n")
-        out.append("| Rule | Severity | Fires when |")
-        out.append("|---|---|---|")
-        for spec in rows:
-            out.append(f"| `{spec.rule_id}` | {spec.severity.value.upper()} | {spec.description} |")
+        out.append("| Rule | Severity | Fires when | Instead |")
+        out.append("|---|---|---|---|")
+        out.extend(_row(spec) for spec in rows)
         out.append("")
     if remaining:
         out.append("## Other\n")
-        out.append("| Rule | Severity | Fires when |")
-        out.append("|---|---|---|")
-        for spec in remaining.values():
-            out.append(f"| `{spec.rule_id}` | {spec.severity.value.upper()} | {spec.description} |")
+        out.append("| Rule | Severity | Fires when | Instead |")
+        out.append("|---|---|---|---|")
+        out.extend(_row(spec) for spec in remaining.values())
         out.append("")
-    out.append(f"_{len(CATALOG)} rules._\n")
+    out.append(f"_{len(CATALOG)} rules, each with a non-breaking alternative._\n")
     return "\n".join(out)
 
 

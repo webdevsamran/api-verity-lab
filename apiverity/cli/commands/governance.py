@@ -83,6 +83,24 @@ def cmd_breaking(args: argparse.Namespace) -> int:
 
     findings = findings + analyze_compat(old, new) + analyze_protocol_compat(old, new)
 
+    if getattr(args, "suggest_fix", False):
+        # The non-breaking route to the same destination, attached to the
+        # finding that objected. A gate that only says no gets switched off,
+        # and the reader still wants the change they came here to make.
+        from apiverity.rules.alternatives import contextual
+
+        by_change = {change.id: change for change in changes}
+        annotated: list[Any] = []
+        for finding in findings:
+            instead = contextual(finding.rule_id, by_change.get(finding.change_id or ""))
+            if instead is None:
+                annotated.append(finding)
+                continue
+            updated = finding.model_copy(deep=True)
+            updated.metadata = {**updated.metadata, "instead": instead}
+            annotated.append(updated)
+        findings = annotated
+
     # Who breaks, not just what. Annotation only, unless the registry declares
     # itself complete *and* the caller asks: "no consumer listed" and "no
     # consumer exists" are different statements, and softening a finding on the
