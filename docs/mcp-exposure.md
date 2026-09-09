@@ -1,19 +1,31 @@
-# Should api-verity-lab expose an MCP server?
+# api-verity-lab as an MCP server
 
-**Verdict: yes, for a deliberately small read-only subset. Not yet built.**
+**Shipped, as the deliberately small read-only subset this document specified.**
 
-This is an assessment, not a feature. Nothing here ships today; the point is to
-record what the surface would be and what has to be true before it exists.
+```bash
+apiverity-mcp --root .
+```
 
-> **Two different things, both called MCP.** This document is about apiverity
-> *being* an MCP server, so an agent can ask it whether a change is breaking.
-> That is unbuilt.
+Newline-delimited JSON-RPC over stdio. Seven tools, every one a pure function
+of files beneath `--root`; nothing contacts a network target, starts a
+listener, or writes to disk. No new dependency: the framing is about fifty
+lines and the package already has everything it needs.
+
+This began as an assessment of whether the surface was worth building. The
+assessment is kept below because the reasoning is the specification -- what is
+exposed, what deliberately is not, and why -- and the three prerequisites it
+named are now met rather than deleted.
+
+> **Two different things, both called MCP, and both now shipped.** This
+> document is about apiverity *being* an MCP server, so an agent can ask it
+> whether a change is breaking.
 >
-> Reading MCP *as a contract format* — loading a server's `tools/list`
-> manifest, diffing two versions of it, and classifying the changes — ships
-> today. See [spec support](spec-support.md) and the `BRK-MCP-*` family in the
-> [rule catalog](rule-catalog.md). The two are independent: one governs other
-> people's agent tooling, the other exposes this tool to an agent.
+> The other direction — reading MCP *as a contract format*, loading a server's
+> `tools/list` manifest, diffing two versions and detecting drift against a
+> live server — is [spec support](spec-support.md), the `BRK-MCP-*` family in
+> the [rule catalog](rule-catalog.md), and [MCP drift](mcp-drift.md). The two
+> are independent: one governs other people's agent tooling, the other exposes
+> this tool to an agent.
 
 ## Why this project fits
 
@@ -29,7 +41,10 @@ rule id behind it that the agent can quote and a human can check.
 
 ## What would be exposed
 
-Nine of the nineteen commands are pure functions of files on disk:
+Seven of the nineteen commands are pure functions of files on disk. (This
+document said "nine" above a table of seven for its whole life;
+`tests/unit/test_mcp_server.py` now binds the number to `len(TOOLS)` and to the
+table's own row count, so it cannot drift again.)
 
 | Tool | Answers |
 |---|---|
@@ -59,7 +74,7 @@ The split is not arbitrary: it is the same boundary
 [SAFETY_MODEL.md](safety-model.md) already draws between commands that read and
 commands that reach out.
 
-## What has to be true first
+## The three prerequisites, and how they were met
 
 1. **A stable tool schema.** `result-v1` is versioned, but the MCP tool
    *inputs* would be a new public contract with the same
@@ -71,6 +86,30 @@ commands that reach out.
 3. **A decision about who ships it.** An `apiverity-mcp` extra keeps the core
    dependency-free, which matters more here than convenience.
 
-None of these is hard. They are simply not free, and the honest position is
-that this is a good idea that has not been built rather than a capability the
-project has.
+All three are now in place, and each carries a test that fails if it regresses:
+
+**The stable tool schema** is versioned by `MCP_TOOLS_SCHEMA_VERSION`,
+independently of the package version, which moves for unrelated reasons.
+Removing a tool or changing what an argument means increments it.
+
+**Path confinement** resolves every path argument beneath `--root` and refuses
+anything outside it, including a sibling directory that merely shares a name
+prefix. The subtlety is that the *resolved* path is what reaches the loader:
+`detect_and_load` reads the caller's string twice, so validating a candidate
+and then passing the original string onward would not be confinement at all.
+`http(s)://` sources are refused outright, because `specs.read_source` accepts
+them and would fetch them -- server-side request forgery through an argument a
+model chooses, in a server documented as making no network calls.
+
+**Who ships it** turned out to need no answer: writing the JSON-RPC framing
+directly costs about fifty lines and no dependency, so the core stays as it
+was. The console script is `apiverity-mcp`.
+
+One thing this document did not anticipate. The CLI keeps artifact provenance
+in four process globals (`_LAST_SPEC`, `_LAST_PROTOCOL`, and two more) set as a
+side effect of loading a contract, and `_load` calls `sys.exit` on a bad path.
+Both are correct for one command per process and wrong for a server: a `rules`
+call, which loads nothing, would have reported the previous caller's spec as
+its own provenance, and one bad path would have ended the session. Handlers
+call `core.artifact.enrich` directly with per-call arguments instead, and never
+touch `_emit` -- which also prints to stdout, and stdout is the frame stream.

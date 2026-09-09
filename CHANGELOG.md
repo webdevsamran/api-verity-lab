@@ -4,6 +4,58 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — apiverity as an MCP server
+
+- **`apiverity-mcp --root .`** exposes the read-only subset
+  `docs/mcp-exposure.md` specified: `validate`, `diff`, `breaking`,
+  `changelog`, `coverage`, `rules`, `plugins`. An agent editing a spec can ask
+  whether the change is breaking and get an answer with a rule id behind it,
+  rather than a plausible one.
+
+  Newline-delimited JSON-RPC over stdio, and **no new dependency**: the framing
+  is about fifty lines, and adding an SDK to a package whose entire runtime is
+  httpx, flask, pydantic, PyYAML and packaging would cost more than it saves.
+  The document's third prerequisite — "a decision about who ships it" —
+  dissolved rather than being answered.
+
+- **What is not exposed is the point**, and the boundary is the one
+  `SAFETY_MODEL.md` already draws: `drift`, `replay`, `baseline` and
+  `regression` contact a target, and a model must not be able to send traffic
+  to an arbitrary base URL because a prompt told it to; `mock`, `serve` and
+  `server-db` hold state, and a tool call that leaves a process running is not
+  a tool call; `export` writes to disk. A parametrised test asserts each stays
+  absent.
+
+- **Three server-shaped hazards the CLI does not have**, each with a test:
+
+  * *Provenance leaking between calls.* `cli/commands/common.py` keeps
+    `_LAST_SPEC` and `_LAST_PROTOCOL` in process globals set as a side effect of
+    `_load`. A `rules` call, which loads no contract, would have reported the
+    previous caller's spec as its own. Handlers call `core.artifact.enrich`
+    directly with per-call arguments and never touch `_emit` — which also
+    prints to stdout, and stdout *is* the frame stream.
+  * *Confinement that stops at the check.* `detect_and_load` reads the caller's
+    string twice, so the **resolved** path is what reaches it. `http(s)://` is
+    refused outright: `specs.read_source` would fetch it, which is SSRF through
+    an argument a model chooses, in a server documented as making no network
+    calls.
+  * *Errors disclosing the filesystem.* Loader failures embed the full resolved
+    path, so nothing echoes `str(exc)`; messages name paths relative to the root.
+
+- `MCP_TOOLS_SCHEMA_VERSION` versions the tool surface independently of the
+  package, which moves for unrelated reasons.
+
+- The server's own `tools/list` is parsed by this project's MCP manifest
+  loader in a test — the cheapest possible check that what it advertises is
+  well-formed, and it emits the `ttlMs`/`cacheScope` its own drift checker
+  reports other servers for omitting.
+
+### Fixed
+
+- `docs/mcp-exposure.md` said "Nine of the nineteen commands" directly above a
+  table of seven, for its whole life, in a repository whose rule is that counts
+  are derived. Bound to `len(TOOLS)` and the table's own row count.
+
 ### Added — MCP tool invocation, behind a gate
 
 - **`--invoke-tool NAME` calls a tool and checks the result against its

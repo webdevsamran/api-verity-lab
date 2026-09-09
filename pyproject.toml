@@ -58,6 +58,9 @@ dev = [
 
 [project.scripts]
 apiverity = "apiverity.cli.main:main"
+# No extra required: the framing is newline-delimited JSON-RPC over stdio,
+# which needs nothing the package does not already have.
+apiverity-mcp = "apiverity.mcp.server:main"
 
 [project.entry-points."apiverity.specs"]
 openapi = "apiverity.specs.openapi:OpenApiSpecPlugin"
