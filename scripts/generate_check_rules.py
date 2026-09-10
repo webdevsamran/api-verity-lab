@@ -88,6 +88,15 @@ _GROUPS: list[tuple[str, tuple[str, ...], str]] = [
         "",
     ),
     (
+        "Behaviour",
+        ("SEMANTIC-",),
+        "Behaviour that changed while the contract stayed valid. Every case here is "
+        "schema-legal -- an optional field that stopped being populated, an enum value "
+        "that stopped appearing, a null rate that jumped -- which is exactly why no other "
+        "check reports it. None is a defect on its own, so each finding carries the sample "
+        "sizes behind it and the comparison declines to speak when they are too small.",
+    ),
+    (
         "Lifecycle",
         ("LIFECYCLE-",),
         "Deprecation with a date attached, or without one. `deprecated: true` is the "

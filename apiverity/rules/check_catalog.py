@@ -57,11 +57,13 @@ def catalog() -> dict[str, CheckRuleSpec]:
     `spec` without a cycle.
     """
     from apiverity.rules.lifecycle_catalog import LIFECYCLE_CATALOG
+    from apiverity.runtime.semantic_catalog import SEMANTIC_CATALOG
     from apiverity.security.catalog import SECURITY_CATALOG
 
     merged: dict[str, CheckRuleSpec] = {}
     merged.update(SECURITY_CATALOG)
     merged.update(LIFECYCLE_CATALOG)
+    merged.update(SEMANTIC_CATALOG)
     return merged
 
 

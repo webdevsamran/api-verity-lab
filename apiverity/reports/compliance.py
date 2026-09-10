@@ -96,6 +96,7 @@ _PRODUCED_BY: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("SEMVER-", ("breaking",)),
     ("SEC-", ("validate",)),
     ("LIFECYCLE-", ("validate",)),
+    ("SEMANTIC-", ("drift",)),
     ("DRIFT-", ("drift",)),
     ("SCHEMA-", ("validate",)),
     ("BUDGET-", ("budget",)),

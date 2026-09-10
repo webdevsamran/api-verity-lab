@@ -73,6 +73,19 @@ Limits the contract does not declare. Unbounded *strings* are deliberately not c
 | `SEC-CORS-WILDCARD` | WARN | `validate` | A wildcard CORS origin is declared. | Name the origins. `*` cannot be combined with credentials, and where it is combined anyway the browser is the only thing enforcing the difference. |
 | `SEC-HTTPS-POLICY` | WARN | `validate` | A server URL uses plain HTTP. | Use HTTPS. A localhost URL is exempt; anything else puts the credential and the payload on the wire in the clear. |
 
+## Behaviour
+
+Behaviour that changed while the contract stayed valid. Every case here is schema-legal -- an optional field that stopped being populated, an enum value that stopped appearing, a null rate that jumped -- which is exactly why no other check reports it. None is a defect on its own, so each finding carries the sample sizes behind it and the comparison declines to speak when they are too small.
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `SEMANTIC-FIELD-ABANDONED` | ERROR | `drift --corpus --against-corpus` | An optional field was populated in almost every response and is now populated in none. | Find out whether the service stopped setting it or the data went away. The schema still declares it, so nothing else reports this -- and every consumer reading it now gets nothing. If it is deliberate, remove it from the contract so the removal is a breaking change somebody reviews. |
+| `SEMANTIC-FIELD-APPEARED` | INFO | `drift --corpus --against-corpus` | A field that was never present is now present in almost every response. | Nothing, unless the contract does not declare it -- in which case declare it. Additive, and recorded because an undeclared field consumers start relying on is the next breaking change. |
+| `SEMANTIC-FIELD-INTERMITTENT` | WARN | `drift --corpus --against-corpus` | A field that was almost always present is now present much less often. | Check whether it is now conditional on something. A consumer that treated it as always-there is reading it sometimes, and will not notice until the branch that needed it runs. |
+| `SEMANTIC-NULL-RATE-ROSE` | WARN | `drift --corpus --against-corpus` | A field is null far more often than it used to be. | Find out what stopped populating it. Nullable is nullable, so no schema check objects -- and the meaning of the response changed anyway. |
+| `SEMANTIC-VALUE-GONE` | WARN | `drift --corpus --against-corpus` | A value the field used to return no longer appears. | Check whether that state is still reachable. The schema still permits the value, so a consumer with a branch for it has dead code and no way to find out; if the state is gone for good, narrow the enum so the removal is reviewed. |
+| `SEMANTIC-VALUE-NEW` | WARN | `drift --corpus --against-corpus` | A field started returning a value it never returned before. | Check the contract declares it. A consumer that switched exhaustively on the old set now falls through, and a value absent from the enum is a contract violation nobody is validating. |
+
 ## Lifecycle
 
 Deprecation with a date attached, or without one. `deprecated: true` is the whole of what OpenAPI says about retiring an operation -- no date, no migration target, no obligation -- so a contract can be deprecating something for six years and look identical on the day it is switched off. Dates and header shapes are checked against [RFC 9745](https://www.rfc-editor.org/rfc/rfc9745.html) (`Deprecation`, Standards Track, March 2025) and [RFC 8594](https://www.rfc-editor.org/rfc/rfc8594.html) (`Sunset`, Informational, May 2019), which use different date formats -- which is itself one of the checks.
@@ -92,4 +105,4 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 |---|---|---|---|---|
 | `SEC-UNAUTH-WRITE` | WARN | `validate` | A mutating operation has no authentication declaration. | Same edit as SEC-AUTH-MISSING, and more urgent: a POST or DELETE that a reader cannot tell is protected is one nobody will audit. |
 
-_28 check rules._
+_34 check rules._

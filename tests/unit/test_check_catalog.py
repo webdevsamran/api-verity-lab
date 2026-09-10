@@ -35,13 +35,18 @@ _DOC = _ROOT / "docs" / "check-rules.md"
 #: is constructed. Read from the source rather than by running every check,
 #: because a check that needs a live server to fire would otherwise be invisible
 #: to this test and its rule would be the one that goes missing.
-_EMITTED = re.compile(r'rule_id=(?:")((?:SEC|LIFECYCLE)-[A-Z0-9-]+)(?:")')
+_EMITTED = re.compile(r'rule_id=(?:")((?:SEC|LIFECYCLE|SEMANTIC)-[A-Z0-9-]+)(?:")')
 
 
 def _emitted_ids() -> set[str]:
     found: set[str] = set()
     for path in _PACKAGE.rglob("*.py"):
-        if path.name in {"catalog.py", "check_catalog.py", "lifecycle_catalog.py"}:
+        if path.name in {
+            "catalog.py",
+            "check_catalog.py",
+            "lifecycle_catalog.py",
+            "semantic_catalog.py",
+        }:
             continue
         found.update(_EMITTED.findall(path.read_text(encoding="utf-8")))
     return found

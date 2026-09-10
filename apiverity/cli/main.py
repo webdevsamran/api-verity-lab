@@ -393,6 +393,27 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     p.add_argument(
+        "--against-corpus",
+        metavar="FILE",
+        help=(
+            "an earlier corpus to compare behaviour against. Reports what the service "
+            "stopped doing while the contract stayed valid: an optional field that is no "
+            "longer populated, an enum value that no longer appears, a null rate that "
+            "jumped. Requires --corpus"
+        ),
+    )
+    p.add_argument(
+        "--min-samples",
+        type=int,
+        default=None,
+        metavar="N",
+        help=(
+            "how many responses an operation needs on each side before behaviour is "
+            "compared (default 20). Below it the comparison says nothing, because three "
+            "responses then two is not evidence of anything"
+        ),
+    )
+    p.add_argument(
         "--baseline",
         metavar="FILE",
         help=(

@@ -76,6 +76,11 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
 ## Runtime: drift, replay, performance
 - Drift monitor, field-frequency analysis, HAR normalization with redaction DSL,
   replay manifests/dry-run/destructive gate — EXISTING
+- Behavioural drift: one corpus against another, for the changes a schema check
+  cannot see -- an optional field that stopped being populated, a value that
+  stopped appearing, a null rate that jumped (`drift --against-corpus`) — NEW.
+  Every finding carries its sample sizes and the comparison declines to speak
+  below twenty responses a side; see [behavioural drift](behavioural-drift.md)
 - Drift baselines reachable from the CLI (`drift --baseline` /
   `--save-baseline`) — NEW. `drift_trend.py` had the comparison from the first
   version and nothing called it. Known findings stay in the artifact and stop

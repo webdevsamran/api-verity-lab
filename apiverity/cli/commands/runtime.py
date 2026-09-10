@@ -257,15 +257,47 @@ def _drift_corpus(
     from apiverity.runtime.corpus_drift import analyze_corpus
     from apiverity.traffic.redact import RedactionConfig, import_har
 
-    try:
-        entries = import_har(
-            corpus,
-            RedactionConfig(),
-            include_response_bodies=getattr(args, "include_response_bodies", False),
+    def read(path: str) -> list[Any] | int:
+        try:
+            return import_har(
+                path,
+                RedactionConfig(),
+                include_response_bodies=getattr(args, "include_response_bodies", False),
+            )
+        except (OSError, ValueError) as exc:
+            print(f"error: could not read corpus '{path}': {exc}", file=sys.stderr)
+            return EXIT_USAGE
+
+    loaded = read(corpus)
+    if isinstance(loaded, int):
+        return loaded
+    entries = loaded
+
+    # Behaviour against behaviour, rather than behaviour against the document.
+    # Needs response bodies on both sides: a corpus imported without them has
+    # no fields to profile, and comparing two empty profiles would report a
+    # confident "nothing changed".
+    semantic = None
+    against = getattr(args, "against_corpus", None)
+    if against:
+        if not getattr(args, "include_response_bodies", False):
+            print(
+                "error: --against-corpus compares response *contents*, which "
+                "--include-response-bodies is what reads. Pass it, and read "
+                "docs/safety-model.md first: a HAR of a real service holds real user data",
+                file=sys.stderr,
+            )
+            return EXIT_USAGE
+        earlier = read(against)
+        if isinstance(earlier, int):
+            return earlier
+        from apiverity.runtime.semantic import MIN_SAMPLES, compare_profiles, profile_corpus
+
+        semantic = compare_profiles(
+            profile_corpus(service, earlier, source=against),
+            profile_corpus(service, entries, source=corpus),
+            min_samples=int(getattr(args, "min_samples", None) or MIN_SAMPLES),
         )
-    except (OSError, ValueError) as exc:
-        print(f"error: could not read corpus '{corpus}': {exc}", file=sys.stderr)
-        return EXIT_USAGE
 
     report = analyze_corpus(
         service,
@@ -277,7 +309,8 @@ def _drift_corpus(
     # through to its own `_gate(report.findings)`, so `--baseline` silenced
     # nothing unless `--json` was also passed -- a flag that worked in one
     # output mode and quietly did not in the other.
-    findings, trend, code = _with_baseline(args, report.findings, corpus)
+    all_findings = list(report.findings) + list(semantic.findings if semantic else [])
+    findings, trend, code = _with_baseline(args, all_findings, corpus)
 
     if args.json:
         _emit(
@@ -285,6 +318,7 @@ def _drift_corpus(
                 "tool": "apiverity",
                 "command": "drift",
                 "report": report,
+                **({"semantic": semantic} if semantic else {}),
                 "findings": findings,
                 **({"trend": trend} if trend else {}),
             },
@@ -325,12 +359,40 @@ def _drift_corpus(
     if trend.get("saved"):
         print(f"  baseline written to {trend['saved']}")
 
-    if not report.findings:
+    if semantic is not None:
+        print()
+        print(f"behaviour vs {semantic.before}:")
+        print(f"  {semantic.compared} field(s) compared")
+        if semantic.skipped_for_samples:
+            # Said out loud. "Nothing changed" and "we could not tell" are
+            # different answers, and only one of them is reassuring.
+            print(
+                f"  {semantic.skipped_for_samples} field(s) not compared: "
+                "too few responses on one side"
+            )
+        for change in semantic.findings:
+            evidence = (
+                f"{change.before.get('present', 0)}/{change.before.get('observations', 0)}"
+                f" -> {change.after.get('present', 0)}/{change.after.get('observations', 0)}"
+            )
+            print(
+                f"  [{change.severity}] {change.rule_id} {change.operation_key} "
+                f"{change.field_path}: {change.message} ({evidence})"
+            )
+        if not semantic.findings:
+            print("  no behavioural change found")
+
+    if not all_findings:
         print("no drift found")
         return EXIT_OK
 
+    if not report.findings:
+        return code
+
     print(f"{NL}findings ({len(report.findings)} distinct):")
-    for finding, unified in zip(report.findings, findings, strict=True):
+    # `findings` now carries the semantic ones after the corpus ones, so the
+    # zip takes the prefix rather than asserting equal length.
+    for finding, unified in zip(report.findings, findings, strict=False):
         kind = "systematic" if finding.systematic else ("one-off" if finding.one_off else "")
         share = f"{finding.occurrences}/{finding.observations}"
         suffix = f" [{kind}]" if kind else ""
