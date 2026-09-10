@@ -10,15 +10,15 @@ Status legend, verified against this repository's code and tests:
 |---|---|---|---|---|---|---|---|---|
 | Load + normalize | VERIFIED | VERIFIED | VERIFIED | VERIFIED | PARTIAL | PARTIAL | VERIFIED | VERIFIED |
 | Source locations | VERIFIED | VERIFIED | VERIFIED | VERIFIED | PARTIAL | n/a | PARTIAL (JSON pointer, no line numbers) | VERIFIED (line numbers, from a paired expat pass) |
-| Semantic diff | VERIFIED | via v2 normalization | VERIFIED | VERIFIED | PARTIAL | PARTIAL | VERIFIED | VERIFIED |
-| Breaking rules | VERIFIED | via v2 normalization | VERIFIED | VERIFIED | BLOCKED* | BLOCKED* | VERIFIED | VERIFIED |
+| Semantic diff | VERIFIED | as OpenAPI | VERIFIED | VERIFIED | PARTIAL | PARTIAL | VERIFIED | VERIFIED |
+| Breaking rules | VERIFIED | as OpenAPI | VERIFIED | VERIFIED | BLOCKED* | BLOCKED* | VERIFIED | VERIFIED |
 | Dangerous-change category | n/a | n/a | VERIFIED | PARTIAL (width changes) | n/a | n/a | VERIFIED (hints, description edits) | VERIFIED (`BRK-SOAP-*`: action, style, version) |
-| Lint / governance packs | VERIFIED | via v2 normalization | VERIFIED (protocol-filtered) | VERIFIED (protocol-filtered) | PARTIAL | PARTIAL | PARTIAL | PARTIAL (security lint applies; the adapter reads no security requirements) |
-| Case generation (pos/neg) | VERIFIED | via v2 normalization | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED (generators emit JSON, not SOAP envelopes) |
-| Conformance testing vs runtime | VERIFIED | via v2 normalization | PARTIAL | BLOCKED* | BLOCKED* | BLOCKED* | VERIFIED (`MCP-CONF-*`) | BLOCKED |
-| Mock / virtualization | VERIFIED | via v2 normalization | BLOCKED | BLOCKED | BLOCKED | BLOCKED | BLOCKED | BLOCKED |
-| Drift detection | VERIFIED | via v2 normalization | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* | VERIFIED (Streamable HTTP; stdio out of scope, see docs/mcp-drift.md) | BLOCKED |
-| Performance budgets/regressions | VERIFIED | via v2 normalization | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED |
+| Lint / governance packs | VERIFIED | as OpenAPI | VERIFIED (protocol-filtered) | VERIFIED (protocol-filtered) | PARTIAL | PARTIAL | PARTIAL | PARTIAL (security lint applies; the adapter reads no security requirements) |
+| Case generation (pos/neg) | VERIFIED | as OpenAPI | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED (generators emit JSON, not SOAP envelopes) |
+| Conformance testing vs runtime | VERIFIED | as OpenAPI | PARTIAL | BLOCKED* | BLOCKED* | BLOCKED* | VERIFIED (`MCP-CONF-*`) | BLOCKED |
+| Mock / virtualization | VERIFIED | as OpenAPI | BLOCKED | BLOCKED | BLOCKED | BLOCKED | BLOCKED | BLOCKED |
+| Drift detection | VERIFIED | as OpenAPI | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* | VERIFIED (Streamable HTTP; stdio out of scope, see docs/mcp-drift.md) | BLOCKED |
+| Performance budgets/regressions | VERIFIED | as OpenAPI | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED* | BLOCKED |
 
 \* *Interface and fixtures exist or are planned; live validation requires a real GraphQL server / gRPC
 server / broker, which this project does not ship or impersonate. Nothing here fakes a passing run.*
@@ -27,8 +27,23 @@ server / broker, which this project does not ship or impersonate. Nothing here f
 
 - **OpenAPI** is the strongest lane: full pipeline from diff through testing,
   drift, replay gating, mock/virtualization and performance budgets.
-- **Swagger 2.0** imports are normalized into the protocol-v2 model with
-  explicit loss/ambiguity findings; analysis quality then matches OpenAPI.
+- **Swagger 2.0** compiles into the *same* normalized model as OpenAPI 3 --
+  `host`/`basePath`/`schemes` folded into servers, a `body` parameter into a
+  request body, `definitions` into schemas -- so every capability in that
+  column is whatever the OpenAPI column is, minus what the adapter reports as
+  lost at load: `SWAGGER2-SERVER-SYNTHESIZED` when one server URL is
+  synthesised from three fields, `SWAGGER2-OAUTH-FLOW-LOSSY` when 2.0's
+  one-flow-per-definition model is flattened, `SWAGGER2-PARAM-IN` for an `in:`
+  value 2.0 does not define.
+
+  This table said "via v2 normalization" in eight cells and the paragraph here
+  said the same. There is a `core/model_v2.py`, and it is about stable entity
+  ids, canonical hashes, artifact migration and contract bundles -- nothing to
+  do with Swagger, and `specs/swagger2.py` does not import it. The mechanism
+  named was not the mechanism involved.
+
+  `fixtures/apis/swagger2/petstore.yaml` is the document these cells are now
+  measured against; there was no Swagger 2.0 fixture at all before it.
 - **GraphQL**: root-type fields become operations; arguments become typed
   parameters; return types are captured so nullability evolution
   (`String! -> String`, `String -> String!`) is analyzed with a distinct

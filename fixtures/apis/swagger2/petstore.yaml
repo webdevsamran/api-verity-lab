@@ -1,0 +1,125 @@
+swagger: "2.0"
+info:
+  title: Verity Swagger 2.0 Fixture
+  version: 1.0.0
+  description: >-
+    A Swagger 2.0 document, carried here because the adapter had none. Every
+    construct below is one the 2.0 model expresses differently from OpenAPI 3,
+    and each one the adapter reports a loss or an assumption for.
+host: petstore.example.com
+basePath: /v1
+schemes:
+  - https
+consumes:
+  - application/json
+produces:
+  - application/json
+securityDefinitions:
+  apiKey:
+    type: apiKey
+    in: header
+    name: X-API-Key
+  # 2.0 declares one flow per definition; OpenAPI 3 nests flows under one
+  # scheme. The adapter reports SWAGGER2-OAUTH-FLOW-LOSSY for this.
+  petstoreOauth:
+    type: oauth2
+    flow: implicit
+    authorizationUrl: https://petstore.example.com/oauth/authorize
+    scopes:
+      read:pets: read your pets
+      write:pets: modify pets in your account
+security:
+  - apiKey: []
+paths:
+  /pets:
+    get:
+      operationId: listPets
+      summary: Every pet, paged
+      parameters:
+        - name: limit
+          in: query
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 100
+        - name: status
+          in: query
+          type: string
+          enum: [available, pending, sold]
+      responses:
+        "200":
+          description: a list of pets
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Pet"
+        "429":
+          description: too many requests
+          headers:
+            Retry-After:
+              type: integer
+    post:
+      operationId: addPet
+      summary: A body parameter, which OpenAPI 3 calls a requestBody
+      security:
+        - petstoreOauth: [write:pets]
+      parameters:
+        # `in: body` has no OpenAPI 3 equivalent as a parameter: it becomes a
+        # requestBody. The adapter reports SWAGGER2-PARAM-IN.
+        - name: pet
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/NewPet"
+      responses:
+        "201":
+          description: the created pet
+          schema:
+            $ref: "#/definitions/Pet"
+        "429":
+          description: too many requests
+          headers:
+            Retry-After:
+              type: integer
+  /pets/{petId}:
+    get:
+      operationId: getPet
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          type: string
+      responses:
+        "200":
+          description: one pet
+          schema:
+            $ref: "#/definitions/Pet"
+        "404":
+          description: no such pet
+        "429":
+          description: too many requests
+          headers:
+            Retry-After:
+              type: integer
+definitions:
+  Pet:
+    type: object
+    required: [id, name]
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+        enum: [available, pending, sold]
+      tag:
+        type: string
+  NewPet:
+    type: object
+    required: [name]
+    properties:
+      name:
+        type: string
+      tag:
+        type: string
