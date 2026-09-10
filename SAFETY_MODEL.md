@@ -3,6 +3,12 @@
 How API Verity Lab prevents an analysis tool from becoming an attack tool.
 These controls are implemented in code and enforced by default.
 
+Every numbered control below has a test in
+`tests/unit/test_safety_model_claims.py`, and a numbered control with no test
+fails the build. That is not decoration: controls 2, 4 and 5 lived in
+`traffic/safety.py` and `apiverity replay` called none of them for as long as
+both existed, so this page described a gate no command went through.
+
 ## Target authorization
 
 1. **Explicit targets only.** No command sends traffic anywhere unless a base
@@ -10,23 +16,42 @@ These controls are implemented in code and enforced by default.
    replay manifest `target`, environment registry entry).
 2. **Host allowlists.** Replay requires `--allow-host` entries; the safety
    gate rejects targets outside them (`traffic/safety.py`).
-3. **Production opt-in.** Non-local targets require an explicit
-   `--i-know-this-is-production` acknowledgment for destructive-capable runs;
-   environment records carry `safety_class` (`dev|staging|prod`) and
-   `allowed_modes` (`read-only` default).
+3. **Production opt-in for writes.** A corpus containing POST/PUT/PATCH/DELETE
+   is refused against a target that classifies as `production` -- or as
+   `unknown`, because a host this cannot classify is not one it should assume
+   is safe to write to -- unless `--i-know-this-is-production` is given. A
+   read-only corpus replays anywhere in the allowlist: GET, HEAD and OPTIONS
+   change nothing, and refusing them is what made the earlier version of this
+   gate unadoptable.
+
+   Classification is a heuristic over the hostname (`traffic/safety.py`), which
+   is why `unknown` fails closed.
+
+   Self-hosted environment records additionally carry `safety_class`
+   (`dev|staging|prod`) and `allowed_modes` (`read-only` default). **These are
+   stored and returned; no run consults them.** They are metadata for the
+   people reading the registry, not a control, and this page used to imply
+   otherwise.
 
 ## Replay & load protections
 
 4. **Dry-run first.** `apiverity replay` defaults to dry-run: it reports
    exactly which methods/URLs *would* be sent without sending anything.
-5. **Destructive-method gate.** POST/PUT/PATCH/DELETE replay requires both an
-   allowlist and explicit confirmation; GET-only corpora replay safely by default.
-6. **Rate ceilings.** Constant/ramp/spike/soak/Poisson profiles are bounded
-   by manifest-declared rates; capacity search runs only against targets
-   classified as test/dev.
-7. **No transparent interception.** Local capture mode is an explicitly
-   configured reverse proxy for development services — never silent traffic
-   redirection.
+5. **Destructive-method gate.** A corpus containing POST/PUT/PATCH/DELETE needs
+   each method named (`--allow-method DELETE`) *and* the confirmation token the
+   dry run prints — derived from the target, the methods and the corpus size,
+   so it cannot be reused for a different run. GET-only corpora replay without
+   either.
+6. **Declared rates only.** A load shape states its own rate and duration
+   (`regression --shape 'ramp:60s@1..20'`) and sends nothing beyond the
+   schedule that spec produces; a shape it cannot read is refused rather than
+   defaulted. There is no rate this tool picks for you.
+7. **No traffic interception, of any kind.** There is no capture proxy, no
+   sidecar and no transparent redirection in this project — the only traffic it
+   reads is a corpus you exported and passed it. This entry used to describe a
+   "local capture mode" that does not exist; if one is ever added, it will be
+   an explicitly configured reverse proxy for development services and this
+   line will say so about something real.
 
 ## MCP tool invocation
 

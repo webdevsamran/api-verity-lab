@@ -42,14 +42,54 @@ class TestSafetyGate:
         )
         assert not decision.approved
 
-    def test_production_refused(self) -> None:
+    def test_a_read_only_corpus_replays_against_production(self) -> None:
+        """It was refused, before the corpus was even looked at.
+
+        A read-only replay against production is a normal thing to want, and
+        refusing it is a good reason for a command never to have called this
+        gate -- which is what happened: `apiverity replay` had a weaker check
+        of its own for as long as this one existed.
+        """
         decision = check_replay_safety(
             base_url="https://api.example.com",
             allowed_hosts=["https://api.example.com"],
             entries=self._entries("GET"),
         )
+        assert decision.approved
+
+    def test_a_destructive_corpus_against_production_is_refused(self) -> None:
+        decision = check_replay_safety(
+            base_url="https://api.example.com",
+            allowed_hosts=["https://api.example.com"],
+            entries=self._entries("DELETE"),
+            destructive_allowlist={"DELETE"},
+        )
         assert not decision.approved
         assert "production" in decision.reason
+
+    def test_an_unclassifiable_host_counts_as_production(self) -> None:
+        """A host this cannot classify is not a host it should assume is safe
+        to write to."""
+        decision = check_replay_safety(
+            base_url="https://internal-7",
+            allowed_hosts=["https://internal-7"],
+            entries=self._entries("POST"),
+            destructive_allowlist={"POST"},
+        )
+        assert not decision.approved
+        assert "unknown" in decision.reason
+
+    def test_the_acknowledgement_unlocks_it_and_nothing_else_does(self) -> None:
+        entries = self._entries("DELETE")
+        approved = check_replay_safety(
+            base_url="https://api.example.com",
+            allowed_hosts=["https://api.example.com"],
+            entries=entries,
+            destructive_allowlist={"DELETE"},
+            confirmation=confirmation_token("https://api.example.com", {"DELETE"}, len(entries)),
+            production_acknowledged=True,
+        )
+        assert approved.approved
 
     def test_local_get_approved(self) -> None:
         decision = check_replay_safety(

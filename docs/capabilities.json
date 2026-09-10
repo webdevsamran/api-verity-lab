@@ -317,9 +317,11 @@
       "summary": "replay a sanitized traffic corpus, dry-run by default",
       "options": [
         "--allow-host",
+        "--allow-method",
         "--auth-profile",
         "--auth-profiles",
         "--base-url",
+        "--confirm",
         "--execute",
         "--header",
         "--i-know-this-is-production",

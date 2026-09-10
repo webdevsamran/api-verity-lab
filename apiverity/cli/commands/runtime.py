@@ -413,6 +413,65 @@ def _drift_corpus(
     return code
 
 
+def _replay_gate(args: argparse.Namespace, entries: list[Any]) -> int | None:
+    """The four controls `SAFETY_MODEL.md` numbers, applied.
+
+    None means the run may proceed. `apiverity/traffic/safety.py` held all of
+    this and no command called it: `replay_corpus` had a weaker check of its
+    own, whose production branch keyed off a flag on corpus entries that
+    nothing ever set.
+
+    A dry run -- the default -- is not gated. Printing which requests *would*
+    be sent is the thing an operator does to decide, and requiring the
+    confirmation token to see the token would be a loop.
+    """
+    from apiverity.traffic.safety import (
+        DESTRUCTIVE_METHODS,
+        build_dry_run_plan,
+        check_replay_safety,
+        classify_target,
+        confirmation_token,
+    )
+
+    methods = {e.method.upper() for e in entries}
+    writes = sorted(methods & DESTRUCTIVE_METHODS)
+    if not getattr(args, "execute", False):
+        plan = build_dry_run_plan(entries, args.base_url)
+        target = classify_target(args.base_url).classification
+        print(f"dry run: {len(plan)} request(s) would be sent to a {target} target")
+        for planned in plan[:20]:
+            print(f"  {planned.method:7} {planned.url}")
+        if len(plan) > 20:
+            print(f"  ... and {len(plan) - 20} more")
+        if writes:
+            token = confirmation_token(args.base_url, set(writes), len(entries))
+            unlock = [f"--allow-method {m}" for m in writes] + [f"--confirm {token}"]
+            if target in ("production", "unknown"):
+                # Printed here rather than discovered on the next run: telling
+                # somebody a command that will then be refused is worse than
+                # not telling them one.
+                unlock.append("--i-know-this-is-production")
+            print()
+            print(
+                f"this corpus writes ({', '.join(writes)}) to a {target} target. "
+                "To send it: " + " ".join([*unlock, "--execute"])
+            )
+        return None
+
+    outcome = check_replay_safety(
+        base_url=args.base_url,
+        allowed_hosts=list(getattr(args, "allow_host", None) or []),
+        entries=entries,
+        destructive_allowlist={m.upper() for m in (getattr(args, "allow_method", None) or [])},
+        confirmation=getattr(args, "confirm", None),
+        production_acknowledged=bool(getattr(args, "i_know_this_is_production", False)),
+    )
+    if not outcome.approved:
+        print(f"error: {outcome.reason}", file=sys.stderr)
+        return EXIT_USAGE
+    return None
+
+
 def cmd_replay(args: argparse.Namespace) -> int:
     from urllib.parse import urlparse
 
@@ -433,6 +492,10 @@ def cmd_replay(args: argparse.Namespace) -> int:
                 body=e["request_body"],
             )
         )
+    decision = _replay_gate(args, entries)
+    if decision is not None:
+        return decision
+
     try:
         replay_headers, replay_cert = auth_material(args)
         report = replay_corpus(

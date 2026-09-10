@@ -748,6 +748,23 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--base-url", required=True)
     p.add_argument("--allow-host", action="append", required=True)
     p.add_argument("--execute", action="store_true")
+    p.add_argument(
+        "--allow-method",
+        action="append",
+        metavar="METHOD",
+        help=(
+            "a write method this corpus may replay, repeatable. GET, HEAD and OPTIONS "
+            "need no permission; anything that changes state has to be named"
+        ),
+    )
+    p.add_argument(
+        "--confirm",
+        metavar="TOKEN",
+        help=(
+            "the token the dry run prints. Derived from the target, the methods and "
+            "the corpus size, so it cannot be reused for a different run"
+        ),
+    )
     p.add_argument("--rate", type=float, default=10.0)
     p.add_argument("--i-know-this-is-production", action="store_true")
     p.add_argument("--json", action="store_true")
