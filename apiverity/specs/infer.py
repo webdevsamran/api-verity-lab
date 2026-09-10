@@ -287,8 +287,17 @@ def infer(
     title: str = "Inferred API",
     version: str = "0.0.0-inferred",
     infer_enums: bool = False,
+    request_noun: str = "recorded",
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    """An OpenAPI 3.1 document, and a record of how it was derived."""
+    """An OpenAPI 3.1 document, and a record of how it was derived.
+
+    `request_noun` is the word the document uses for where its requests came
+    from. "recorded" is a claim about a HAR: those requests happened, in that
+    order. A Postman collection's requests were *saved* by somebody, possibly
+    years ago and possibly by hand, and calling them recorded would assert an
+    observation nobody made -- in the one sentence of the draft a reader is
+    most likely to quote.
+    """
     from urllib.parse import urlparse
 
     usable = [
@@ -341,6 +350,7 @@ def infer(
         requests=len(usable),
         window=(min(stamps), max(stamps)) if stamps else None,
         bodies_seen=bodies_seen,
+        request_noun=request_noun,
     )
     provenance = {
         "requests_read": len(entries),
@@ -366,6 +376,7 @@ def _document(
     requests: int,
     window: tuple[str, str] | None,
     bodies_seen: int,
+    request_noun: str,
 ) -> dict[str, Any]:
     paths: dict[str, dict[str, Any]] = defaultdict(dict)
     for (method, template), operation in sorted(operations.items()):
@@ -385,7 +396,7 @@ def _document(
         paths[template][method.lower()] = {
             "summary": f"{method} {template}",
             "description": (
-                f"Inferred from {operation.requests} recorded request(s). "
+                f"Inferred from {operation.requests} {request_noun} request(s). "
                 f"Path templating: {operation.templating_reason}."
             ),
             "responses": responses or {"default": {"description": "No status was recorded."}},
@@ -399,7 +410,7 @@ def _document(
             "title": f"{title} (inferred draft)",
             "version": version,
             "description": (
-                f"Inferred by apiverity from {requests} recorded request(s){span}. "
+                f"Inferred by apiverity from {requests} {request_noun} request(s){span}. "
                 f"{bodies_seen} response body/bodies were available to describe.\n\n"
                 "This describes what was observed, which is not what the API supports. "
                 "Absent operations were not exercised; a property marked required was "

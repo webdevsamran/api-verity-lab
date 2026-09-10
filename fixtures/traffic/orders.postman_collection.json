@@ -1,0 +1,122 @@
+{
+  "info": {
+    "_postman_id": "0f5f1f2c-4a2b-4b4f-9c1e-9b5a1d2e3f40",
+    "name": "Orders API",
+    "description": "A collection shaped the way real ones are: nested folders, a base-url variable, both URL forms, a disabled query parameter, requests with and without saved responses, and two body modes this tool does not read.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://orders.example.com" }
+  ],
+  "item": [
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "List orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Debug", "value": "1", "disabled": true }
+            ],
+            "url": {
+              "raw": "{{base_url}}/orders?status=open&page=1",
+              "host": ["{{base_url}}"],
+              "path": ["orders"],
+              "query": [
+                { "key": "status", "value": "open" },
+                { "key": "page", "value": "1" },
+                { "key": "verbose", "value": "true", "disabled": true }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200",
+              "code": 200,
+              "status": "OK",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\"items\":[{\"id\":\"ORD-1\",\"status\":\"open\",\"total\":12.5}],\"next\":null}"
+            }
+          ]
+        },
+        {
+          "name": "Get one order",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/orders/ORD-1"
+          },
+          "response": [
+            {
+              "name": "200",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\"id\":\"ORD-1\",\"status\":\"open\",\"total\":12.5}"
+            }
+          ]
+        },
+        {
+          "name": "Place an order",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"sku\":\"ABC-1\",\"quantity\":2}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/orders",
+              "host": ["{{base_url}}"],
+              "path": ["orders"]
+            }
+          },
+          "response": [
+            {
+              "name": "201",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\"id\":\"ORD-2\",\"status\":\"open\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Export orders (no saved response)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "protocol": "https",
+              "host": ["orders", "example", "com"],
+              "path": ["admin", "exports"]
+            },
+            "body": { "mode": "raw", "raw": "{\"format\":\"csv\"}" }
+          }
+        },
+        {
+          "name": "Upload a manifest (form body, not read)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/admin/manifests",
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "file", "type": "file", "src": "manifest.csv" }]
+            }
+          }
+        },
+        {
+          "name": "Fetch a user by an unresolved variable",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/users/{{userId}}"
+          }
+        }
+      ]
+    }
+  ]
+}

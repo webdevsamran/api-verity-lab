@@ -196,7 +196,13 @@ def build_parser() -> argparse.ArgumentParser:
         "infer",
         help="draft a contract from recorded traffic, labelled as a draft",
     )
-    p.add_argument("corpus", help="a HAR of recorded requests and responses")
+    p.add_argument(
+        "corpus",
+        help=(
+            "a HAR of recorded traffic, or a Postman collection. Detected on content "
+            "rather than on the extension, because both are .json"
+        ),
+    )
     p.add_argument("-o", "--output", help="write the document here (.yaml or .json)")
     p.add_argument("--title", help="what to call the API in the drafted document")
     p.add_argument(

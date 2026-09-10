@@ -299,6 +299,46 @@ def cmd_changelog(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _looks_like_a_collection(path: str) -> bool:
+    """Is this corpus a Postman collection rather than a HAR?
+
+    Sniffed on content, not on the extension: both are `.json`, and a HAR
+    named `collection.json` is a file somebody will hand this.
+    """
+    import json
+
+    from apiverity.traffic import postman
+
+    try:
+        document = json.loads(Path(path).read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError):
+        return False
+    return postman.is_collection(document)
+
+
+def _note_the_collection(
+    document: dict[str, Any], provenance: dict[str, Any], collection: Any
+) -> None:
+    """Record where the draft came from, and everything that did not survive.
+
+    A draft missing a third of an API because those requests used form bodies
+    looks like an API with a third fewer endpoints. The counts go in the
+    artifact and the sentence goes in the document, because the two are read
+    by different people.
+    """
+    info = document.setdefault("info", {})
+    existing = str(info.get("description") or "").rstrip()
+    info["description"] = f"{existing}\n\n{collection.note}".strip()
+    info["x-apiverity-source"] = "postman-collection"
+    provenance["source"] = "postman-collection"
+    provenance["collection"] = collection.name
+    provenance["requests_without_a_saved_response"] = collection.without_response
+    if collection.skipped:
+        provenance["skipped"] = collection.skipped
+    if collection.unresolved:
+        provenance["unresolved_variables"] = collection.unresolved
+
+
 def cmd_infer(args: argparse.Namespace) -> int:
     """Draft a contract from recorded traffic, labelled as a draft."""
     import json
@@ -306,10 +346,21 @@ def cmd_infer(args: argparse.Namespace) -> int:
     import yaml
 
     from apiverity.specs.infer import infer
+    from apiverity.traffic import postman
     from apiverity.traffic.redact import RedactionConfig, import_har
 
+    # A Postman collection is the second most common answer to "we have no
+    # contract", after "we have nothing". It is read into the same entries a
+    # HAR produces so `infer` drafts from it with the same thresholds -- a
+    # second inference path would be a second set of decisions about when a
+    # field is required, and the two would disagree.
+    collection: postman.Import | None = None
     try:
-        entries = import_har(args.corpus, RedactionConfig(), include_response_bodies=True)
+        if _looks_like_a_collection(args.corpus):
+            collection = postman.read(args.corpus)
+            entries = collection.entries
+        else:
+            entries = import_har(args.corpus, RedactionConfig(), include_response_bodies=True)
     except (OSError, ValueError) as exc:
         print(f"error: could not read corpus '{args.corpus}': {exc}", file=sys.stderr)
         return EXIT_USAGE
@@ -325,9 +376,16 @@ def cmd_infer(args: argparse.Namespace) -> int:
 
     document, provenance = infer(
         entries,
-        title=getattr(args, "title", None) or "Inferred API",
+        title=getattr(args, "title", None) or (collection.name if collection else "Inferred API"),
         infer_enums=bool(getattr(args, "infer_enums", False)),
+        request_noun="saved" if collection else "recorded",
     )
+    if collection is not None:
+        # The draft has to say what it came from. A collection is a set of
+        # requests somebody saved, not traffic anybody observed -- and every
+        # threshold `infer` applies means something weaker about examples than
+        # about observations.
+        _note_the_collection(document, provenance, collection)
 
     output = getattr(args, "output", None)
     if output:
