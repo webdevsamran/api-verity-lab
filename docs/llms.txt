@@ -31,6 +31,7 @@ thing they count by a test.
 - [MCP lockfile](https://webdevsamran.github.io/api-verity-lab/mcp-lock/): A reviewed baseline for an agent's tool surface
 - [MCP inventory](https://webdevsamran.github.io/api-verity-lab/mcp-inventory/): Shadow MCP servers, found by reading client configs
 - [Call budgets](https://webdevsamran.github.io/api-verity-lab/call-budgets/): How often an agent may call each tool
+- [Declared objectives](https://webdevsamran.github.io/api-verity-lab/objectives/): `x-slo` in the contract, and why a run is a sample rather than a verdict
 - [Blast radius](https://webdevsamran.github.io/api-verity-lab/blast-radius/): Which consumers a breaking change affects
 - [Ghost routes](https://webdevsamran.github.io/api-verity-lab/ghost-routes/): Routes the contract deleted that the deployment kept
 - [Inferred contracts](https://webdevsamran.github.io/api-verity-lab/inferred-contracts/): Drafting a contract from recorded traffic

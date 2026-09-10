@@ -109,5 +109,11 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 |---|---|---|---|---|
 | `SEC-ABUSE-UNBOUNDED-PAGE-SIZE` | WARN | `validate` | A page-size query parameter declares no `maximum`. | Declare `maximum` on the parameter. If the server already caps it, the contract still says otherwise, and a client written against the contract will ask for the number it says is allowed. |
 | `SEC-UNAUTH-WRITE` | WARN | `validate` | A mutating operation has no authentication declaration. | Same edit as SEC-AUTH-MISSING, and more urgent: a POST or DELETE that a reader cannot tell is protected is one nobody will audit. |
+| `SLO-MALFORMED` | WARN | `validate` | A declared objective is not a number, so nothing can be compared against it. | Write it as a bare number: `p95_ms: 250`, not `p95_ms: 250ms`. This is worse than a missing objective, because it looks declared and reads as declared in a review. |
+| `SLO-NOT-MEASURABLE` | INFO | `validate` | An objective is understood and deliberately not evaluated by any run. | Nothing. `availability` and `uptime_pct` are promises over a window, and a run measures the requests it made and cannot see the ones it did not -- a figure computed here would be a fabrication with a decimal point on it. Reported so silence about it is not mistaken for a pass. |
+| `SLO-NOT-MEASURED` | WARN | `regression` | An operation declares an objective and the run measured nothing for it. | Check the operation is reachable at the target. A declared objective with no measurement beside it reads as a pass, and a p95 of a connection timeout is not a latency. |
+| `SLO-RUN-EXCEEDS-OBJECTIVE` | ERROR | `regression` | This run measured a value past the objective the contract declares. | Look at the operation -- and read the sample count first. An objective is a promise over a window and a run is a sample of it, so this is a reason to investigate rather than a judgement that the objective was missed. |
+| `SLO-UNDECLARED` | INFO | `validate` | An operation states no objective, in a contract where others do. | Nothing, unless you meant to. An operation with no stated objective is not a defect -- it is an operation nobody promised anything about. |
+| `SLO-UNKNOWN-OBJECTIVE` | WARN | `validate` | An operation declares an objective this tool does not measure. | Rename it to one of the measured objectives, or accept that nothing checks it. An objective nothing compares against is a promise nobody checks. |
 
-_39 check rules._
+_45 check rules._

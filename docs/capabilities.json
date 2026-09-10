@@ -65,6 +65,7 @@
         "--base-url",
         "--iterations",
         "--json",
+        "--slo",
         "--warmup",
         "-o"
       ]

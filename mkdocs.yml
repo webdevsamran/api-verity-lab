@@ -46,6 +46,7 @@ nav:
       - MCP lockfile: mcp-lock.md
       - MCP inventory: mcp-inventory.md
       - Call budgets: call-budgets.md
+      - Declared objectives: objectives.md
       - Blast radius: blast-radius.md
       - Ghost routes: ghost-routes.md
       - Inferred contracts: inferred-contracts.md

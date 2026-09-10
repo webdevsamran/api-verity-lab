@@ -1,0 +1,106 @@
+openapi: 3.0.3
+info:
+  title: Verity SLO Fixture
+  version: 1.0.0
+  description: >-
+    A contract that states its own objectives. Three operations declare an
+    `x-slo` block and one does not, and between them they carry every case the
+    checks distinguish: an objective that is measured, one that is understood
+    and deliberately not measured, one this tool has never heard of, and one
+    written in a way nothing can compare against.
+servers:
+  - url: http://127.0.0.1:8099
+paths:
+  /users:
+    get:
+      operationId: listUsers
+      summary: Objectives this tool measures
+      x-slo:
+        p95_ms: 250
+        error_rate_pct: 1
+        bytes_p95: 262144
+        # Declared, understood, and not evaluated by any run -- a run measures
+        # the requests it made and cannot see the ones it did not.
+        availability: 99.9
+        window: 30d
+      responses:
+        "200":
+          description: users
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 100
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+  /users/{id}:
+    get:
+      operationId: getUser
+      summary: An objective nothing compares against
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      x-slo:
+        # A number with a unit stuck on it. Looks declared, reads as declared
+        # in a review, is compared against nothing.
+        p95_ms: "250ms"
+        # Not an objective this tool measures.
+        time_to_first_byte_ms: 40
+      responses:
+        "200":
+          description: a user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+  /reports:
+    post:
+      operationId: createReport
+      summary: An objective this run will exceed
+      x-slo:
+        p95_ms: 0
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+      responses:
+        "202":
+          description: accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+  /health:
+    get:
+      operationId: health
+      summary: No objective at all, which is not a defect
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string

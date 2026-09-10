@@ -23,9 +23,15 @@ from apiverity.cli.commands.common import (
 
 def cmd_validate(args: argparse.Namespace) -> int:
     service, findings, plugin = _load(args.spec)
+    from apiverity.performance.slo import validate as validate_objectives
     from apiverity.security import run_security_checks
 
     sec = run_security_checks(service)
+    # A malformed objective is worse than a missing one: `p95_ms: "250ms"`
+    # looks declared, reads as declared in a review, and is compared against
+    # nothing. Checked here because `validate` is where a contract gets read,
+    # and a check nobody invokes is a check nobody has.
+    sec.extend(validate_objectives(service))
     all_findings, suppressed = apply_project_suppressions(findings + sec)
     errors = sum(1 for f in all_findings if f.severity.value == "ERROR")
     data = {

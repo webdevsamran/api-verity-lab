@@ -68,6 +68,11 @@ _GUIDE: tuple[tuple[str, str, str], ...] = (
     ("MCP lockfile", "mcp-lock.md", "A reviewed baseline for an agent's tool surface"),
     ("MCP inventory", "mcp-inventory.md", "Shadow MCP servers, found by reading client configs"),
     ("Call budgets", "call-budgets.md", "How often an agent may call each tool"),
+    (
+        "Declared objectives",
+        "objectives.md",
+        "`x-slo` in the contract, and why a run is a sample rather than a verdict",
+    ),
     ("Blast radius", "blast-radius.md", "Which consumers a breaking change affects"),
     ("Ghost routes", "ghost-routes.md", "Routes the contract deleted that the deployment kept"),
     ("Inferred contracts", "inferred-contracts.md", "Drafting a contract from recorded traffic"),

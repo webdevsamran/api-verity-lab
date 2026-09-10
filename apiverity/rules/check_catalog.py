@@ -56,6 +56,7 @@ def catalog() -> dict[str, CheckRuleSpec]:
     Imported inside the function so a family module can import this one for
     `spec` without a cycle.
     """
+    from apiverity.performance.slo_catalog import SLO_CATALOG
     from apiverity.rules.lifecycle_catalog import LIFECYCLE_CATALOG
     from apiverity.runtime.semantic_catalog import SEMANTIC_CATALOG
     from apiverity.security.catalog import SECURITY_CATALOG
@@ -64,6 +65,7 @@ def catalog() -> dict[str, CheckRuleSpec]:
     merged.update(SECURITY_CATALOG)
     merged.update(LIFECYCLE_CATALOG)
     merged.update(SEMANTIC_CATALOG)
+    merged.update(SLO_CATALOG)
     return merged
 
 

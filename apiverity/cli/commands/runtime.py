@@ -24,7 +24,7 @@ from apiverity.cli.commands.common import (
     set_last_seed,
     set_last_target,
 )
-from apiverity.core.model import Service
+from apiverity.core.model import Finding, Service
 from apiverity.runtime.findings import unify_all
 
 #: Severities that make a gate fail. INFO is excluded on purpose.
@@ -560,6 +560,15 @@ def cmd_regression(args: argparse.Namespace) -> int:
         print(f"error: target unreachable: nothing answered at {args.base_url}", file=sys.stderr)
         return EXIT_UNREACHABLE
     violations = evaluate_policies(report, args.policy or [])
+    # Objectives the contract declared, rather than a number in somebody's CI
+    # file. Off by default: measuring against a promise the caller did not ask
+    # to be measured against would fail builds for a `x-slo` block somebody
+    # added as documentation.
+    objective_findings: list[Finding] = []
+    if getattr(args, "slo", False):
+        from apiverity.performance.slo import evaluate as evaluate_objectives
+
+        objective_findings = evaluate_objectives(service, report)
     inconclusive: list[str] = []
     if args.baseline:
         baseline = json.loads(Path(args.baseline).read_text(encoding="utf-8"))
@@ -573,6 +582,11 @@ def cmd_regression(args: argparse.Namespace) -> int:
             "tool": "apiverity",
             "command": "regression",
             "violations": violations,
+            # Kept out of `violations`, which is a list of strings a gate
+            # counts. These are findings with a severity and a hint, and the
+            # hint is the part that matters: one run is not a judgement about
+            # an objective promised over a window.
+            **({"findings": objective_findings} if objective_findings else {}),
             # Printed, but not fatal: "the run was too short to tell" is not a
             # regression, and failing a build on it is how a gate gets turned
             # off. The count is what tells you to raise --iterations.
@@ -581,7 +595,8 @@ def cmd_regression(args: argparse.Namespace) -> int:
         },
         args.json,
     )
-    return EXIT_FINDINGS if violations else EXIT_OK
+    exceeded = [f for f in objective_findings if f.severity.value == "ERROR"]
+    return EXIT_FINDINGS if violations or exceeded else EXIT_OK
 
 
 def _drift_graphql(args: argparse.Namespace) -> int:

@@ -640,6 +640,16 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("spec")
     p.add_argument("--base-url", required=True)
     p.add_argument("-o", "--output", default="perf-baseline.json")
+    p.add_argument(
+        "--slo",
+        action="store_true",
+        help=(
+            "measure against the `x-slo` block each operation declares, instead of "
+            "against a --policy somebody typed. A run is a sample and an objective is a "
+            "promise over a window, so a finding says this run exceeded it -- not that "
+            "the objective was breached"
+        ),
+    )
     p.add_argument("--iterations", type=int, default=20)
     p.add_argument(
         "--warmup",

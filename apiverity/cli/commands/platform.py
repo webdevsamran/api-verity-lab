@@ -449,6 +449,7 @@ _RULE_GUIDE: tuple[tuple[str, str, str], ...] = (
     ("SEC-ABUSE-", "Security: resource consumption", "docs/check-rules.md"),
     ("SEC-", "Security: shape and transport", "docs/check-rules.md"),
     ("SEMANTIC-", "Behaviour", "docs/check-rules.md"),
+    ("SLO-", "Objectives", "docs/check-rules.md"),
     ("LIFECYCLE-", "Lifecycle", "docs/check-rules.md"),
     ("SEMVER-", "Semantic versioning", "docs/rule-catalog.md"),
     ("MCP-DRIFT-", "MCP runtime drift", "docs/mcp-drift.md"),
