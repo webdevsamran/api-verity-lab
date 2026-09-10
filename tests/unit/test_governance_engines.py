@@ -23,7 +23,7 @@ from apiverity.core.model import (
 )
 from apiverity.diff.compat import analyze_compat
 from apiverity.rules.lint import lint_service
-from apiverity.rules.policy import PolicyEngine
+from apiverity.rules.policy import DEFAULT_PACK, PolicyEngine
 from apiverity.rules.suppressions import (
     Suppression,
     apply_suppressions,
@@ -98,22 +98,45 @@ class TestLint:
 
 class TestPolicy:
     def test_default_pack_runs(self) -> None:
-        engine = PolicyEngine()
-        findings = engine.evaluate(_svc(servers=[Server(url="http://insecure.example.com")]))
-        ids = {f.rule_id for f in findings}
-        assert "GOV-INSECURE-SERVER" in ids
-
-    def test_deprecation_metadata_rule(self) -> None:
-        op = _op(deprecated=True)
-        svc = _svc(operations=[op])
+        svc = _svc(security_schemes={"dead": SecurityScheme(name="dead", type="apiKey")})
         ids = {f.rule_id for f in PolicyEngine().evaluate(svc)}
-        assert "GOV-DEPRECATION-METADATA" in ids
-        # with metadata but no sunset date -> GOV-SUNSET-MISSING
-        op2 = _op(
-            path="/c", deprecated=True, deprecation=DeprecationInfo(announced_date="2026-01-01")
+        assert "GOV-UNUSED-SECURITY-SCHEME" in ids
+
+    def test_the_pack_carries_no_rule_another_family_already_covers(self) -> None:
+        """`GOV-INSECURE-SERVER` and `GOV-DEPRECATION-METADATA` were removed
+        rather than renamed, and this test used to assert both.
+
+        Nothing executed this engine, so those two duplicated
+        `SEC-HTTPS-POLICY` and `LIFECYCLE-DEPRECATED-NO-SUNSET` harmlessly.
+        `run_security_checks` runs the packs now, and keeping them would have
+        made one plaintext server URL produce two findings for one fact.
+
+        `GOV-SUNSET-MISSING` went with them and is worth naming: it was emitted
+        by the check attached to the `GOV-DEPRECATION-METADATA` *definition*, so
+        the pack emitted an id it never declared and `rule_ids()` did not list
+        it.
+        """
+        ids = set(DEFAULT_PACK.rule_ids())
+        assert ids == {"GOV-UNUSED-SECURITY-SCHEME", "GOV-MISSING-OPERATION-ID"}
+
+        insecure = _svc(servers=[Server(url="http://insecure.example.com")])
+        deprecated = _svc(operations=[_op(deprecated=True)])
+        with_metadata = _svc(
+            operations=[
+                _op(
+                    path="/c",
+                    deprecated=True,
+                    deprecation=DeprecationInfo(announced_date="2026-01-01"),
+                )
+            ]
         )
-        ids2 = {f.rule_id for f in PolicyEngine().evaluate(_svc(operations=[op2]))}
-        assert "GOV-SUNSET-MISSING" in ids2
+        for svc in (insecure, deprecated, with_metadata):
+            produced = {f.rule_id for f in PolicyEngine().evaluate(svc)}
+            assert not produced & {
+                "GOV-INSECURE-SERVER",
+                "GOV-DEPRECATION-METADATA",
+                "GOV-SUNSET-MISSING",
+            }
 
     def test_unused_security_scheme(self) -> None:
         svc = _svc(security_schemes={"dead": SecurityScheme(name="dead", type="apiKey")})

@@ -35,7 +35,7 @@ _DOC = _ROOT / "docs" / "check-rules.md"
 #: is constructed. Read from the source rather than by running every check,
 #: because a check that needs a live server to fire would otherwise be invisible
 #: to this test and its rule would be the one that goes missing.
-_EMITTED = re.compile(r'rule_id=(?:")((?:SEC|LIFECYCLE|SEMANTIC|SLO)-[A-Z0-9-]+)(?:")')
+_EMITTED = re.compile(r'rule_id=(?:")((?:SEC|LIFECYCLE|SEMANTIC|SLO|GOV)-[A-Z0-9-]+)(?:")')
 
 
 def _emitted_ids() -> set[str]:
@@ -45,6 +45,7 @@ def _emitted_ids() -> set[str]:
             "catalog.py",
             "check_catalog.py",
             "lifecycle_catalog.py",
+            "policy_catalog.py",
             "semantic_catalog.py",
             "slo_catalog.py",
         }:
@@ -80,6 +81,111 @@ def test_every_catalogued_security_rule_is_emitted_by_something() -> None:
         f"these rules are catalogued and emitted by nothing: {orphaned}. "
         "A rule nobody can produce still gets configured, waited for, and trusted."
     )
+
+
+# ------------------------------------------------ emitted *and* reachable
+
+
+def _reachable_modules() -> set[str]:
+    """Every `apiverity.*` module reachable by import from the CLI.
+
+    Walks `import` statements from `apiverity.cli.main` transitively. Static,
+    like the scan above, and deliberately so: importing the world to find out
+    what imports the world is a test that passes by having side effects.
+
+    It over-approximates -- a module imported inside a function that is never
+    called still counts -- which is the right direction for a guard. What it
+    catches is the case that actually happened: a module nothing imports at
+    all.
+    """
+    import ast
+
+    seen: set[str] = set()
+    queue = ["apiverity.cli.main", "apiverity.mcp.server"]
+    while queue:
+        name = queue.pop()
+        if name in seen or not name.startswith("apiverity"):
+            continue
+        seen.add(name)
+        path = _PACKAGE.parent / (name.replace(".", "/") + ".py")
+        if not path.is_file():
+            path = _PACKAGE.parent / name.replace(".", "/") / "__init__.py"
+        if not path.is_file():
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                queue.extend(alias.name for alias in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                if node.level:  # a relative import, resolved against this module
+                    parent = name.rsplit(".", node.level)[0]
+                    queue.append(f"{parent}.{node.module}")
+                else:
+                    queue.append(node.module)
+                    queue.extend(f"{node.module}.{a.name}" for a in node.names)
+    return seen
+
+
+def _module_name(path: Path) -> str:
+    relative = path.relative_to(_PACKAGE.parent).with_suffix("")
+    parts = list(relative.parts)
+    if parts[-1] == "__init__":
+        parts.pop()
+    return ".".join(parts)
+
+
+def test_every_catalogued_rule_is_emitted_from_reachable_code() -> None:
+    """The scan above cannot tell live code from dead code, and that gap was
+    not hypothetical.
+
+    `SEC-NO-AUTH-DECLARED`, `SEC-SECRET-IN-CONTRACT`, `SEC-SENSITIVE-FIELD`
+    and `SEC-CORS-WILDCARD` were in the published catalogue, in
+    `docs/check-rules.md`, and answerable by `apiverity explain` -- and the
+    only code emitting them was `apiverity/security/packs.py`, a rule pack no
+    command ever executed. So this tool said it checked for a credential
+    committed into a contract, and could not produce that finding.
+
+    `test_every_catalogued_security_rule_is_emitted_by_something` passed the
+    whole time, because it greps the package for `rule_id="SEC-..."` and the
+    dead module is in the package. This one asks the other half of the
+    question: is the module that emits it reachable from an entry point?
+    """
+    reachable = _reachable_modules()
+    orphaned: dict[str, str] = {}
+    for path in _PACKAGE.rglob("*.py"):
+        if path.name in {
+            "catalog.py",
+            "check_catalog.py",
+            "lifecycle_catalog.py",
+            "policy_catalog.py",
+            "semantic_catalog.py",
+            "slo_catalog.py",
+        }:
+            continue
+        emitted = set(_EMITTED.findall(path.read_text(encoding="utf-8")))
+        if not emitted:
+            continue
+        module = _module_name(path)
+        if module in reachable:
+            continue
+        for rule in emitted:
+            orphaned[rule] = module
+
+    assert orphaned == {}, (
+        "these rules are catalogued and emitted only from a module nothing imports: "
+        f"{orphaned}. A rule that cannot run is a rule people configure, wait for, "
+        "and trust."
+    )
+
+
+def test_the_reachability_walk_finds_something() -> None:
+    """A walk that returned an empty set would make the test above pass for
+    every module, including the dead ones -- which is the failure it exists to
+    catch, in a new place."""
+    reachable = _reachable_modules()
+    assert "apiverity.security.checks" in reachable
+    assert "apiverity.rules.breaking" in reachable
+    assert len(reachable) > 20
 
 
 def test_every_entry_says_what_to_do() -> None:

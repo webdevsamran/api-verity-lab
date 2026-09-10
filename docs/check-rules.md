@@ -107,6 +107,8 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 
 | Rule | Severity | Produced by | Fires when | Instead |
 |---|---|---|---|---|
+| `GOV-MISSING-OPERATION-ID` | INFO | `validate` | An operation has no `operationId`. | Give it one, unique across the document. Generated SDKs name methods from it, and without one the name is derived from the path -- so it changes whenever the path does. |
+| `GOV-UNUSED-SECURITY-SCHEME` | INFO | `validate` | A security scheme is declared and required by no operation. | Remove it, or require it where it applies. A scheme in the document that nothing uses tells a reader the API supports an authentication method it does not, and that reader is often the one writing a client. |
 | `SEC-ABUSE-UNBOUNDED-PAGE-SIZE` | WARN | `validate` | A page-size query parameter declares no `maximum`. | Declare `maximum` on the parameter. If the server already caps it, the contract still says otherwise, and a client written against the contract will ask for the number it says is allowed. |
 | `SEC-UNAUTH-WRITE` | WARN | `validate` | A mutating operation has no authentication declaration. | Same edit as SEC-AUTH-MISSING, and more urgent: a POST or DELETE that a reader cannot tell is protected is one nobody will audit. |
 | `SLO-MALFORMED` | WARN | `validate` | A declared objective is not a number, so nothing can be compared against it. | Write it as a bare number: `p95_ms: 250`, not `p95_ms: 250ms`. This is worse than a missing objective, because it looks declared and reads as declared in a review. |
@@ -116,4 +118,4 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 | `SLO-UNDECLARED` | INFO | `validate` | An operation states no objective, in a contract where others do. | Nothing, unless you meant to. An operation with no stated objective is not a defect -- it is an operation nobody promised anything about. |
 | `SLO-UNKNOWN-OBJECTIVE` | WARN | `validate` | An operation declares an objective this tool does not measure. | Rename it to one of the measured objectives, or accept that nothing checks it. An objective nothing compares against is a promise nobody checks. |
 
-_45 check rules._
+_47 check rules._

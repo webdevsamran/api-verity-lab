@@ -1,0 +1,78 @@
+openapi: 3.0.3
+info:
+  title: Verity Governance Fixture
+  version: 1.0.0
+  description: >-
+    Every defect here is deliberate, and each one is a rule that was published,
+    documented, answerable by `apiverity explain`, and could not fire — because
+    the only code emitting it was a rule pack no command ran. This contract is
+    what makes them real.
+servers:
+  - url: https://governance.example.com
+paths:
+  /sessions:
+    post:
+      operationId: createSession
+      summary: A secret in an example, and a sensitive field with no classification
+      security:
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                # `password` is a sensitive-looking name with no
+                # x-data-classification: SEC-SENSITIVE-FIELD.
+                password:
+                  type: string
+              example:
+                username: sam
+                # A committed credential: SEC-SECRET-IN-CONTRACT.
+                password: "hunter2-not-a-real-password"
+      responses:
+        "201":
+          description: a session
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+  /public:
+    get:
+      # No operationId at all: GOV-MISSING-OPERATION-ID.
+      summary: An operation with no operationId, and a wildcard CORS example
+      security:
+        - apiKey: []
+      responses:
+        "200":
+          description: ok
+          headers:
+            Access-Control-Allow-Origin:
+              description: A documented wildcard origin - SEC-CORS-WILDCARD.
+              schema:
+                type: string
+                example: "*"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    # Declared and required by nothing: GOV-UNUSED-SECURITY-SCHEME.
+    legacyBasic:
+      type: http
+      scheme: basic

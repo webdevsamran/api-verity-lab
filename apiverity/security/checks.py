@@ -179,8 +179,10 @@ def run_security_checks(
     forbid_additional_properties: bool = False,
 ) -> list[Finding]:
     from apiverity.rules.lifecycle import run_lifecycle_checks
+    from apiverity.rules.policy import DEFAULT_PACK, PolicyEngine
     from apiverity.security.abuse import run_abuse_checks
     from apiverity.security.hardening import run_hardening_checks
+    from apiverity.security.packs import SECURITY_PACK
 
     # What the document *declares* that is a problem on its own -- a credential
     # in a query string, an unbounded request array, an OAuth requirement with
@@ -195,6 +197,18 @@ def run_security_checks(
     # a contract that mentions no limit anywhere; these report the shape of one
     # that does.
     findings.extend(run_abuse_checks(service))
+    # The rule packs. `PolicyEngine`, `SECURITY_PACK` and `DEFAULT_PACK` were
+    # written, tested, and executed by nothing -- and four of the ids in
+    # SECURITY_PACK are in the published check catalogue, in
+    # `docs/check-rules.md`, and answerable by `apiverity explain`. So this
+    # tool told people it checked for a credential committed into a contract
+    # and could not produce that finding.
+    #
+    # The completeness test that exists to catch exactly this passed, because
+    # it is a static scan of the package for `rule_id="SEC-..."` and the dead
+    # module is in the package. `tests/unit/test_check_catalog.py` now also
+    # asserts the emitting module is reachable by import from the CLI.
+    findings.extend(PolicyEngine(packs=[SECURITY_PACK, DEFAULT_PACK]).evaluate(service))
 
     for url in service.servers:
         if (

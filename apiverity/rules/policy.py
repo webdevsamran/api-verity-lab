@@ -1,9 +1,24 @@
-"""Style/policy rules engine — governance findings, not breaking changes.
+"""Style/policy rules engine -- governance findings, not breaking changes.
 
 A :class:`RulePack` bundles versioned rule definitions (rationale,
 remediation, protocol applicability). The :class:`PolicyEngine` executes
 packs against a contract revision. Policy findings are a separate category
 from compatibility findings and must never be reported as breaking changes.
+
+## Two rules were removed from the default pack, not renamed
+
+`GOV-DEPRECATION-METADATA` and `GOV-SUNSET-MISSING` said what
+`LIFECYCLE-DEPRECATED-NO-SUNSET` says, and `GOV-INSECURE-SERVER` said what
+`SEC-HTTPS-POLICY` says. Both live rules are catalogued, explainable and
+reachable; the pack's versions were neither, because nothing ran this engine
+at all. Wiring the pack up without removing them would have made every
+plaintext server URL produce two findings for one fact.
+
+`GOV-SUNSET-MISSING` is worth naming separately: it was emitted by the check
+attached to the `GOV-DEPRECATION-METADATA` definition, so the pack emitted a
+rule id it never declared, and `RulePack.rule_ids()` did not list it. A pack
+whose declared ids and emitted ids differ cannot be checked against a
+catalogue by either one.
 """
 
 from __future__ import annotations
@@ -40,51 +55,6 @@ class RulePack:
 
 
 # -- built-in governance rules -------------------------------------------------
-
-
-def _deprecated_without_sunset(svc: Service) -> list[Finding]:
-    out: list[Finding] = []
-    for op in svc.operations:
-        if op.deprecated and op.deprecation is None:
-            out.append(
-                Finding(
-                    rule_id="GOV-DEPRECATION-METADATA",
-                    severity=Severity.WARN,
-                    message=(
-                        f"operation '{op.key}' is deprecated without deprecation "
-                        "metadata (announced/sunset dates)"
-                    ),
-                    operation_key=op.key,
-                    location=op.source_location,
-                    hint="add x-deprecation with announcedDate and sunsetDate",
-                )
-            )
-        elif op.deprecation is not None and not op.deprecation.sunset_date:
-            out.append(
-                Finding(
-                    rule_id="GOV-SUNSET-MISSING",
-                    severity=Severity.WARN,
-                    message=f"deprecation on '{op.key}' has no sunset date",
-                    operation_key=op.key,
-                    location=op.source_location,
-                )
-            )
-    return out
-
-
-def _insecure_server_urls(svc: Service) -> list[Finding]:
-    out: list[Finding] = []
-    for server in svc.servers:
-        if server.url.startswith("http://"):
-            out.append(
-                Finding(
-                    rule_id="GOV-INSECURE-SERVER",
-                    severity=Severity.WARN,
-                    message=f"server URL '{server.url}' uses plaintext HTTP",
-                    hint="use https:// for any non-local environment",
-                )
-            )
-    return out
 
 
 def _unused_security_schemes(svc: Service) -> list[Finding]:
@@ -127,22 +97,8 @@ def _missing_operation_ids(svc: Service) -> list[Finding]:
 DEFAULT_PACK = RulePack(
     name="apiverity-governance",
     version="1.0.0",
-    description="Baseline API governance rules (lifecycle, security hygiene, metadata)",
+    description="Baseline API governance rules the other families do not cover",
     rules=(
-        RuleDefinition(
-            rule_id="GOV-DEPRECATION-METADATA",
-            severity=Severity.WARN,
-            rationale="Consumers need announced/sunset dates to plan migrations.",
-            remediation="Add deprecation metadata with announced and sunset dates.",
-            check=_deprecated_without_sunset,
-        ),
-        RuleDefinition(
-            rule_id="GOV-INSECURE-SERVER",
-            severity=Severity.WARN,
-            rationale="Plaintext HTTP exposes credentials and payloads in transit.",
-            remediation="Serve non-local environments over HTTPS.",
-            check=_insecure_server_urls,
-        ),
         RuleDefinition(
             rule_id="GOV-UNUSED-SECURITY-SCHEME",
             severity=Severity.INFO,
