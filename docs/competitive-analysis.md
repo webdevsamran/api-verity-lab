@@ -11,6 +11,15 @@ Generated: 2026-09-09 · Evidence: live GitHub API metadata (see `data/competito
 <!-- /generated:method -->
 - Qualitative capability claims are labeled VERIFIED (fetched metadata / official docs quotes) or KNOWLEDGE-BASED (documented product understanding).
 - No competitor is claimed to *lack* a feature without verification; unverified areas are `unknown`.
+- The numbers above are what these projects looked like **on the date named**,
+  and that stays true however old it gets. What decays is usefulness: a rival's
+  star count and last release from eighteen months ago are accurate history and
+  a misleading comparison, and this page cannot tell you which you are reading.
+  So a scheduled job re-fetches monthly and opens a pull request when anything
+  moved, `generate_competitive_table.py` prints the evidence's age on every run,
+  and `--max-age-days` fails when it passes a quarter. That check is not in the
+  pull-request gate on purpose: blocking an unrelated contributor because a
+  quarter rolled over punishes the wrong person and gets the check deleted.
 
 <!-- generated:landscape -->
 ## Landscape snapshot (verified 2026-09-09)

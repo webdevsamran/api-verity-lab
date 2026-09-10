@@ -40,6 +40,7 @@ import argparse
 import json
 import sys
 from collections.abc import Callable
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -94,6 +95,31 @@ def fetch_date(meta: dict[str, Any]) -> str:
     if not isinstance(stamp, str) or len(stamp) < 10:
         raise RenderError("competitor-meta.json has no usable `fetched_utc`")
     return stamp[:10]
+
+
+#: A quarter, in days. The claim this document makes is not "these are the
+#: numbers" -- it is "these were the numbers on this date", and that claim
+#: stays true forever. What decays is its usefulness: a competitor's star count
+#: and last release from eighteen months ago are accurate history and a
+#: misleading comparison, and the reader cannot tell the difference from the
+#: table alone.
+DEFAULT_MAX_AGE_DAYS = 92
+
+
+def evidence_age_days(meta: dict[str, Any], *, today: date | None = None) -> int:
+    """How old the committed evidence is, in whole days."""
+    gathered = date.fromisoformat(fetch_date(meta))
+    return ((today or date.today()) - gathered).days
+
+
+def freshness_message(meta: dict[str, Any], max_age: int, *, today: date | None = None) -> str:
+    age = evidence_age_days(meta, today=today)
+    return (
+        f"data/competitor-meta.json was gathered {age} days ago "
+        f"({fetch_date(meta)}), over the {max_age}-day refresh interval. "
+        "Run: python scripts/fetch_competitor_meta.py && "
+        "python scripts/generate_competitive_table.py"
+    )
 
 
 def _release_cell(entry: dict[str, Any]) -> str:
@@ -198,6 +224,24 @@ def main() -> int:
         action="store_true",
         help="verify the committed document matches the committed data; exit 1 if not",
     )
+    parser.add_argument(
+        "--max-age-days",
+        type=int,
+        default=None,
+        metavar="N",
+        help=(
+            "fail when the evidence is older than N days. Off by default on purpose: "
+            "blocking an unrelated pull request because a quarter rolled over punishes "
+            "the wrong person. The scheduled refresh job passes it"
+        ),
+    )
+    parser.add_argument(
+        "--warn-age-days",
+        type=int,
+        default=DEFAULT_MAX_AGE_DAYS,
+        metavar="N",
+        help="print a notice when the evidence is older than N days (default: a quarter)",
+    )
     args = parser.parse_args()
 
     meta = load_meta()
@@ -205,9 +249,22 @@ def main() -> int:
     updated = splice(current, meta)
     count = len(meta["repos"])
 
+    # Age is reported on every run, `--check` or not. A number nobody prints is
+    # a number nobody notices, and the whole point of the dated evidence is
+    # that its date is visible.
+    if args.max_age_days is not None and evidence_age_days(meta) > args.max_age_days:
+        print(f"error: {freshness_message(meta, args.max_age_days)}", file=sys.stderr)
+        return 1
+    if evidence_age_days(meta) > args.warn_age_days:
+        print(f"notice: {freshness_message(meta, args.warn_age_days)}", file=sys.stderr)
+
     if args.check:
         if current == updated:
-            print(f"ok     competitive-analysis.md matches competitor-meta.json ({count} projects)")
+            print(
+                f"ok     competitive-analysis.md matches competitor-meta.json "
+                f"({count} projects, gathered {fetch_date(meta)}, "
+                f"{evidence_age_days(meta)}d old)"
+            )
             return 0
         print(
             "docs/competitive-analysis.md no longer matches data/competitor-meta.json.\n"

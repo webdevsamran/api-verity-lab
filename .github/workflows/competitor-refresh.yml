@@ -1,0 +1,91 @@
+name: Competitor refresh
+
+# The competitive table's claim is "these were the numbers on this date", and
+# that claim never expires. What decays is its usefulness: a rival's star count
+# and last release from eighteen months ago are accurate history and a
+# misleading comparison, and a reader cannot tell those apart from the table.
+#
+# So the age is checked here rather than in the pull-request gate. Blocking an
+# unrelated contributor's merge because a quarter rolled over punishes the
+# wrong person and gets the check deleted; `ci.yml` still verifies that the
+# committed table matches the committed data, which is the part a contributor
+# can actually break.
+#
+# The job refreshes the evidence and opens a pull request with the diff. It
+# does not push to main: the table is a claim this project makes about other
+# people's projects, and a claim nobody read should not appear on a branch
+# anyone is trusting.
+
+on:
+  schedule:
+    # 07:00 UTC on the first of every month. Monthly rather than quarterly so a
+    # refresh that fails -- a rate limit, a repository that moved -- has three
+    # more attempts before the data is actually stale.
+    - cron: '0 7 1 * *'
+  workflow_dispatch:
+    inputs:
+      max_age_days:
+        description: Fail when the committed evidence is older than this many days.
+        required: false
+        default: '92'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: competitor-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Report the age of the committed evidence
+        run: |
+          set -euo pipefail
+          python scripts/generate_competitive_table.py --check \
+            --max-age-days "${{ github.event.inputs.max_age_days || 92 }}" || true
+
+      - name: Fetch live metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # No `|| true`. A fetch that half-succeeded and wrote a partial file
+          # would publish a table asserting a competitor has no releases when
+          # the truth is that we could not ask.
+          python scripts/fetch_competitor_meta.py
+          python scripts/generate_competitive_table.py
+
+      - name: Open a pull request if anything moved
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- data/competitor-meta.json docs/competitive-analysis.md; then
+            echo "::notice::Competitor metadata is unchanged; nothing to open."
+            exit 0
+          fi
+
+          BRANCH="chore/competitor-refresh-$(date -u +%Y-%m-%d)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add data/competitor-meta.json docs/competitive-analysis.md
+          git commit -m "chore(docs): refresh the competitive landscape from live data"
+          git push --set-upstream origin "$BRANCH"
+
+          gh pr create \
+            --title "chore(docs): refresh the competitive landscape" \
+            --body "Automated quarterly refresh. \`data/competitor-meta.json\` was re-fetched with the authenticated \`gh\` CLI and \`docs/competitive-analysis.md\` regenerated from it.
+
+          Review what moved before merging: this table is a claim this project makes about other people's projects, and a number nobody read is the one that turns out to be wrong."
