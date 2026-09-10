@@ -48,7 +48,6 @@ LIBRARY_ONLY = {
     "apiverity.core.model_v2",
     "apiverity.fuzz.boundary",
     "apiverity.stateful.model_based",
-    "apiverity.traffic.auth",
 }
 
 

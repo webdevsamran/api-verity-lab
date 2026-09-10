@@ -14,6 +14,7 @@ from apiverity.cli.commands.common import (
     NL,
     _emit,
     _load,
+    auth_material,
     set_last_contract,
     set_last_seed,
     set_last_target,
@@ -56,7 +57,10 @@ def cmd_test(args: argparse.Namespace) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_USAGE
     try:
-        results = run_cases(service, args.base_url, cases, timeout=args.timeout)
+        headers, cert = auth_material(args)
+        results = run_cases(
+            service, args.base_url, cases, timeout=args.timeout, headers=headers, cert=cert
+        )
     except Exception as exc:
         print(f"error: target unreachable: {exc}", file=sys.stderr)
         return EXIT_UNREACHABLE
@@ -117,7 +121,8 @@ def cmd_workflow(args: argparse.Namespace) -> int:
         return EXIT_USAGE
 
     try:
-        result = WorkflowEngine(wf, base_url, inputs).run()
+        headers, cert = auth_material(args)
+        result = WorkflowEngine(wf, base_url, inputs, headers=headers, cert=cert).run()
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_USAGE

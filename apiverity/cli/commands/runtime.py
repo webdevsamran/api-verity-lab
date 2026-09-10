@@ -18,6 +18,7 @@ from apiverity.cli.commands.common import (
     _emit,
     _load,
     active_profile,
+    auth_material,
     config_setting,
     fail_on_threshold,
     set_last_contract,
@@ -88,12 +89,15 @@ def cmd_drift(args: argparse.Namespace) -> int:
         return _drift_mcp(args, service)
 
     set_last_target(args.base_url)
+    headers, cert = auth_material(args)
     try:
         report = detect_drift(
             service,
             args.base_url,
             timeout=args.timeout,
             forbid_undeclared_fields=forbid,
+            headers=headers,
+            cert=cert,
         )
     except Exception as exc:
         print(f"error: target unreachable: {exc}", file=sys.stderr)
@@ -430,6 +434,7 @@ def cmd_replay(args: argparse.Namespace) -> int:
             )
         )
     try:
+        replay_headers, replay_cert = auth_material(args)
         report = replay_corpus(
             entries,
             args.base_url,
@@ -437,6 +442,8 @@ def cmd_replay(args: argparse.Namespace) -> int:
             dry_run=not args.execute,
             rate_per_second=args.rate,
             allow_production=args.i_know_this_is_production,
+            headers=replay_headers,
+            cert=replay_cert,
         )
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -453,11 +460,14 @@ def cmd_baseline(args: argparse.Namespace) -> int:
         # Warmup matters here as much as in the comparison run: a cold
         # baseline compared against a warm one measures the connection pool,
         # not the service.
+        headers, cert = auth_material(args)
         report = measure(
             service,
             args.base_url,
             iterations=args.iterations,
             warmup=getattr(args, "warmup", 0) or 0,
+            headers=headers,
+            cert=cert,
         )
     except Exception as exc:
         print(f"error: target unreachable: {exc}", file=sys.stderr)
@@ -492,12 +502,15 @@ def _regression_curve(args: argparse.Namespace, service: Service) -> int:
         return EXIT_USAGE
 
     try:
+        headers, cert = auth_material(args)
         report = measure_curve(
             service,
             args.base_url,
             levels=levels,
             iterations=args.iterations,
             warmup=getattr(args, "warmup", 0) or 0,
+            headers=headers,
+            cert=cert,
         )
     except Exception as exc:
         print(f"error: target unreachable: {exc}", file=sys.stderr)
@@ -576,6 +589,7 @@ def _regression_shape(args: argparse.Namespace, service: Service) -> int:
         )
         return EXIT_USAGE
 
+    headers, cert = auth_material(args)
     path = str(getattr(args, "path", None) or operation.path)
     if "{" in path:
         print(
@@ -590,6 +604,8 @@ def _regression_shape(args: argparse.Namespace, service: Service) -> int:
         base_url=str(args.base_url).rstrip("/"),
         timeout=float(getattr(args, "timeout", 10.0) or 10.0),
         limits=httpx.Limits(max_connections=256, max_keepalive_connections=256),
+        headers=headers or None,
+        cert=cert,
     ) as client:
 
         def transport(verb: str, target: str) -> tuple[int, float]:
@@ -680,12 +696,15 @@ def cmd_regression(args: argparse.Namespace) -> int:
         return _regression_shape(args, service)
 
     try:
+        headers, cert = auth_material(args)
         report = measure(
             service,
             args.base_url,
             iterations=args.iterations,
             warmup=getattr(args, "warmup", 0) or 0,
             concurrency=max(1, int(getattr(args, "concurrency", 1) or 1)),
+            headers=headers,
+            cert=cert,
         )
     except Exception as exc:
         print(f"error: target unreachable: {exc}", file=sys.stderr)
@@ -1153,11 +1172,14 @@ def cmd_ghosts(args: argparse.Namespace) -> int:
         seen.setdefault(candidate.key, candidate)
 
     try:
+        headers, cert = auth_material(args)
         report = audit(
             list(seen.values()),
             args.base_url,
             old=previous,
             timeout=args.timeout,
+            headers=headers,
+            cert=cert,
         )
     except Exception as exc:  # pragma: no cover - defensive
         print(f"error: target unreachable: {exc}", file=sys.stderr)

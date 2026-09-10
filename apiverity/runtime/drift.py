@@ -55,10 +55,17 @@ def detect_drift(
     *,
     timeout: float = 10.0,
     forbid_undeclared_fields: bool = True,
+    #: Resolved credentials for this run: `headers` from an auth profile
+    #: and any `--header`, `cert` a client certificate pair for mTLS.
+    #: Neither is written to an artifact -- see apiverity/traffic/auth.py.
+    headers: dict[str, str] | None = None,
+    cert: Any = None,
 ) -> DriftReport:
     started = time.monotonic()
     report = DriftReport(target=base_url)
-    with httpx.Client(base_url=base_url, timeout=timeout) as client:
+    with httpx.Client(
+        base_url=base_url, timeout=timeout, headers=headers or None, cert=cert
+    ) as client:
         for op in service.operations:
             if not op.method or not op.path:
                 continue

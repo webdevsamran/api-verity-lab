@@ -178,13 +178,26 @@ def run_cases(
     *,
     timeout: float = 10.0,
     max_cases: int | None = None,
+    headers: dict[str, str] | None = None,
+    cert: Any = None,
 ) -> list[TestResult]:
-    """Run cases sequentially against ``base_url``."""
+    """Run cases sequentially against ``base_url``.
+
+    `headers` and `cert` carry whatever `--auth-profiles` resolved. They are
+    applied to the client rather than to each request so a case that sets its
+    own headers cannot drop the credential by replacing the dict.
+    """
     ops = {op.key: op for op in service.operations}
     results: list[TestResult] = []
     selected = cases if max_cases is None else cases[:max_cases]
 
-    with httpx.Client(base_url=base_url, timeout=timeout, follow_redirects=False) as client:
+    with httpx.Client(
+        base_url=base_url,
+        timeout=timeout,
+        follow_redirects=False,
+        headers=headers or None,
+        cert=cert,
+    ) as client:
         for case in selected:
             op = ops.get(case.operation_key)
             started = time.monotonic()

@@ -143,6 +143,11 @@ def audit(
     *,
     old: Service | None = None,
     timeout: float = 10.0,
+    #: Resolved credentials for this run: `headers` from an auth profile and
+    #: any `--header`, `cert` a client certificate pair for mTLS. Neither is
+    #: written to an artifact -- see apiverity/traffic/auth.py.
+    headers: dict[str, str] | None = None,
+    cert: Any = None,
     client: Any = None,
 ) -> GhostReport:
     """Ask a live service about routes its contract no longer declares."""
@@ -170,7 +175,13 @@ def audit(
         return report
 
     owns_client = client is None
-    http = client or httpx.Client(base_url=base_url, timeout=timeout, follow_redirects=False)
+    http = client or httpx.Client(
+        base_url=base_url,
+        timeout=timeout,
+        follow_redirects=False,
+        headers=headers or None,
+        cert=cert,
+    )
     try:
         for candidate in probeable:
             path = _concrete(candidate, old)

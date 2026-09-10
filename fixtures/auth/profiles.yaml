@@ -1,0 +1,32 @@
+# Credential *references*. Every value below names where a credential lives --
+# an environment variable, or a file on disk -- and none of them is one.
+#
+#   export STAGING_TOKEN=...
+#   apiverity test openapi.yaml --base-url https://staging.example.com \
+#     --auth-profiles fixtures/auth/profiles.yaml --auth-profile staging
+#
+# A result bundle from that run records `token_env: STAGING_TOKEN` and nothing
+# anybody who finds the bundle could replay. See docs/auth-profiles.md.
+profiles:
+  - name: staging
+    kind: bearer
+    token_env: STAGING_TOKEN
+
+  - name: partner-api
+    kind: api_key
+    key_env: PARTNER_API_KEY
+    # The header the API expects. `X-Api-Key` is the default and is wrong often
+    # enough to be worth writing down.
+    header_name: X-Partner-Key
+
+  - name: legacy-basic
+    kind: basic
+    username_env: LEGACY_USER
+    password_env: LEGACY_PASSWORD
+
+  - name: internal-mtls
+    kind: mtls
+    # httpx's `cert=`, which is the client certificate. Not `verify=`, which is
+    # the server one -- see the note in apiverity/traffic/auth.py.
+    cert_file: /etc/apiverity/client.pem
+    key_file: /etc/apiverity/client.key

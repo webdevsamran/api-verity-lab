@@ -155,6 +155,8 @@ def measure_curve(
     iterations: int = 40,
     warmup: int = 5,
     timeout: float = 10.0,
+    headers: dict[str, str] | None = None,
+    cert: Any = None,
     measurer: Any = None,
 ) -> CurveReport:
     """Sweep concurrency levels, measuring every operation at each.
@@ -188,6 +190,8 @@ def measure_curve(
             warmup=warmup,
             concurrency=level,
             timeout=timeout,
+            headers=headers,
+            cert=cert,
         )
         for stats in measurement.operations:
             curve = by_operation.setdefault(

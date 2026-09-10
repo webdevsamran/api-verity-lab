@@ -31,7 +31,7 @@ fuzzing, drift detection, mocking and performance budgets. Each has its own
 result format, its own CI wiring and its own mental model — so findings never
 compose: you can't ask "which endpoints are both under-tested *and* drifting?"
 
-api-verity-lab answers thirty-five questions from one place:
+api-verity-lab answers thirty-six questions from one place:
 
 | Question | Command |
 |---|---|
@@ -64,6 +64,7 @@ api-verity-lab answers thirty-five questions from one place:
 | Can I run the whole stack of mocks reproducibly? | `apiverity mock --workspace stack.yaml` |
 | Is our workflow file portable, or locked to this tool? | `apiverity workflow wf.yaml --to-arazzo --spec openapi.yaml` |
 | Can sanitized traffic be replayed safely? | `apiverity replay` |
+| How do I check an API that needs a token? | `--auth-profiles profiles.yaml --auth-profile staging` |
 | Did latency/error rate regress? | `apiverity regression` |
 | Which endpoints lack coverage? | `apiverity coverage` |
 | Can CI block breaking changes before release? | [GitHub Action](action.yml) (included) |
@@ -381,6 +382,7 @@ Browsable at **<https://webdevsamran.github.io/api-verity-lab/>**, or as files h
 | [docs/ci.md](docs/ci.md) | Wiring the contract gate into a pipeline |
 | [docs/load-shapes.md](docs/load-shapes.md) · [docs/objectives.md](docs/objectives.md) | Driving one operation at a declared arrival rate; objectives a contract states |
 | [docs/virtualization.md](docs/virtualization.md) | Serving several contracts together, under one seed |
+| [docs/auth-profiles.md](docs/auth-profiles.md) | Authenticating a run without writing a credential down |
 | [SAFETY_MODEL.md](SAFETY_MODEL.md) · [docs/privacy.md](docs/privacy.md) | What this tool will and will not do to a target |
 | [docs/mcp-drift.md](docs/mcp-drift.md) · [docs/mcp-poisoning.md](docs/mcp-poisoning.md) · [docs/mcp-lock.md](docs/mcp-lock.md) · [docs/mcp-inventory.md](docs/mcp-inventory.md) · [docs/call-budgets.md](docs/call-budgets.md) · [docs/blast-radius.md](docs/blast-radius.md) · [docs/ghost-routes.md](docs/ghost-routes.md) · [docs/inferred-contracts.md](docs/inferred-contracts.md) · [docs/monorepo-sweep.md](docs/monorepo-sweep.md) · [docs/mcp-exposure.md](docs/mcp-exposure.md) | Governing MCP servers: drift against a live one, a tool description read as executable text, a reviewed baseline, and exposing this one to agents |
 | [docs/compliance-mapping.md](docs/compliance-mapping.md) · [docs/evidence.md](docs/evidence.md) | Findings mapped onto the OWASP MCP, Agentic and API Top 10s, and packaged as dated evidence for SOC 2, ISO 42001, DORA and the EU AI Act -- including what neither can assess |

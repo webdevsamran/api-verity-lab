@@ -111,6 +111,43 @@ __all__ = [
 ]
 
 
+def _add_auth_flags(p: argparse.ArgumentParser) -> None:
+    """Credentials, on every command that sends a request somewhere.
+
+    `apiverity/traffic/auth.py` has held the whole mechanism since the
+    beginning -- profiles that name an environment variable rather than
+    carrying a token, so a result bundle records `token_env: STAGING_TOKEN` and
+    nothing anybody could replay -- and no flag reached it. A tool for checking
+    APIs that could only check unauthenticated ones is most of a tool.
+    """
+    p.add_argument(
+        "--auth-profiles",
+        metavar="FILE",
+        help=(
+            "a file of credential *references* -- environment variable names and "
+            "certificate paths, never values. See docs/auth-profiles.md"
+        ),
+    )
+    p.add_argument(
+        "--auth-profile",
+        metavar="NAME",
+        help="which profile in that file to use (needed only when it declares several)",
+    )
+    if not any("--header" in action.option_strings for action in p._actions):
+        # `drift` and `mcp-lock` already declare it with their own wording.
+        # Everything else gets it here, because a credential and the tenant id
+        # or trace header somebody needs beside it are not alternatives.
+        p.add_argument(
+            "--header",
+            action="append",
+            metavar="NAME=VALUE",
+            help=(
+                "an extra header on every request, repeatable. Applied on top of "
+                "--auth-profile, not instead of it; values never reach the artifact"
+            ),
+        )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="apiverity", description=__doc__)
     parser.add_argument("--version", action="version", version=f"apiverity {__version__}")
@@ -341,6 +378,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--timeout", type=float, default=10.0)
     p.add_argument("--minimize", action="store_true")
     p.add_argument("--json", action="store_true")
+    _add_auth_flags(p)
     p.set_defaults(func=cmd_test)
     p = sub.add_parser(
         "workflow",
@@ -404,6 +442,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("-o", "--output", help="write the draft to a file instead of stdout")
     p.add_argument("--json", action="store_true")
+    _add_auth_flags(p)
     p.set_defaults(func=cmd_workflow)
     p = sub.add_parser(
         "mock",
@@ -570,6 +609,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--timeout", type=float, default=10.0)
     p.add_argument("--json", action="store_true")
+    _add_auth_flags(p)
     p.set_defaults(func=cmd_drift)
     p = sub.add_parser(
         "budget",
@@ -653,6 +693,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--max-list-pages", type=int, default=50)
     p.add_argument("--timeout", type=float, default=10.0)
     p.add_argument("--json", action="store_true")
+    _add_auth_flags(p)
     p.set_defaults(func=cmd_mcp_lock)
     p = sub.add_parser(
         "ghosts",
@@ -672,6 +713,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--timeout", type=float, default=10.0)
     p.add_argument("--json", action="store_true")
+    _add_auth_flags(p)
     p.set_defaults(func=cmd_ghosts)
 
     p = sub.add_parser(
@@ -685,6 +727,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--rate", type=float, default=10.0)
     p.add_argument("--i-know-this-is-production", action="store_true")
     p.add_argument("--json", action="store_true")
+    _add_auth_flags(p)
     p.set_defaults(func=cmd_replay)
     p = sub.add_parser(
         "baseline",
@@ -715,6 +758,7 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     p.add_argument("--json", action="store_true")
+    _add_auth_flags(p)
     p.set_defaults(func=cmd_baseline)
     p = sub.add_parser(
         "regression",
@@ -805,6 +849,7 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     p.add_argument("--json", action="store_true")
+    _add_auth_flags(p)
     p.set_defaults(func=cmd_regression)
     p = sub.add_parser(
         "report",

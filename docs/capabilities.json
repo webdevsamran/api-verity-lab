@@ -62,7 +62,10 @@
       "name": "baseline",
       "summary": "measure latency percentiles and store them for later comparison",
       "options": [
+        "--auth-profile",
+        "--auth-profiles",
         "--base-url",
+        "--header",
         "--iterations",
         "--json",
         "--slo",
@@ -134,6 +137,8 @@
       "options": [
         "--against-corpus",
         "--allow-undeclared-fields",
+        "--auth-profile",
+        "--auth-profiles",
         "--base-url",
         "--baseline",
         "--corpus",
@@ -196,8 +201,11 @@
       "name": "ghosts",
       "summary": "find routes the contract no longer declares that the server still answers",
       "options": [
+        "--auth-profile",
+        "--auth-profiles",
         "--base-url",
         "--corpus",
+        "--header",
         "--json",
         "--timeout",
         "--was"
@@ -236,6 +244,8 @@
       "name": "mcp-lock",
       "summary": "write or check mcp.lock, a reviewed baseline for an MCP tool surface",
       "options": [
+        "--auth-profile",
+        "--auth-profiles",
         "--base-url",
         "--force",
         "--header",
@@ -284,10 +294,13 @@
       "name": "regression",
       "summary": "measure again and fail when latency or error rate regressed past a tolerance",
       "options": [
+        "--auth-profile",
+        "--auth-profiles",
         "--base-url",
         "--baseline",
         "--concurrency",
         "--curve",
+        "--header",
         "--include-mutations",
         "--iterations",
         "--json",
@@ -304,8 +317,11 @@
       "summary": "replay a sanitized traffic corpus, dry-run by default",
       "options": [
         "--allow-host",
+        "--auth-profile",
+        "--auth-profiles",
         "--base-url",
         "--execute",
+        "--header",
         "--i-know-this-is-production",
         "--json",
         "--rate"
@@ -365,8 +381,11 @@
       "name": "test",
       "summary": "generate cases from the schema and run them against a live service",
       "options": [
+        "--auth-profile",
+        "--auth-profiles",
         "--base-url",
         "--generator",
+        "--header",
         "--include-mutations",
         "--json",
         "--list-generators",
@@ -402,7 +421,10 @@
       "name": "workflow",
       "summary": "run a multi-step workflow manifest, or infer a draft from a contract",
       "options": [
+        "--auth-profile",
+        "--auth-profiles",
         "--base-url",
+        "--header",
         "--infer",
         "--input",
         "--json",

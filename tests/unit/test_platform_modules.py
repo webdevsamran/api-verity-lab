@@ -21,8 +21,8 @@ from apiverity.traffic.auth import (
     AuthKind,
     AuthProfile,
     AuthProfileSet,
+    resolve_client_cert,
     resolve_headers,
-    resolve_verify,
 )
 
 SAMPLE = {
@@ -147,7 +147,10 @@ def test_auth_mtls(tmp_path: Path) -> None:
     cert.write_text("cert")
     prof = AuthProfile(name="m", kind=AuthKind.mtls, cert_file=str(cert), key_file=str(cert))
     assert resolve_headers(prof) == {}
-    assert resolve_verify(prof) == (str(cert), str(cert))
+    # `cert=`, which is httpx's client certificate. It used to be returned
+    # as `verify=` -- the server setting -- which httpx stores without
+    # complaint and never presents. See tests/unit/test_auth_profiles.py.
+    assert resolve_client_cert(prof) == (str(cert), str(cert))
     with pytest.raises(ValueError, match="not found"):
         resolve_headers(
             AuthProfile(name="m2", kind=AuthKind.mtls, cert_file="nope.pem", key_file="nope.pem")

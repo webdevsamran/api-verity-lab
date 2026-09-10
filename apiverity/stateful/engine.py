@@ -141,11 +141,21 @@ class WorkflowEngine:
     """Executes an authored workflow against an allowlisted base URL."""
 
     def __init__(
-        self, workflow: Workflow, base_url: str, inputs: dict[str, Any] | None = None
+        self,
+        workflow: Workflow,
+        base_url: str,
+        inputs: dict[str, Any] | None = None,
+        *,
+        headers: dict[str, str] | None = None,
+        cert: Any = None,
     ) -> None:
         self.workflow = workflow
         self.base_url = base_url.rstrip("/")
         self.inputs = dict(inputs or {})
+        # Applied to every request. A step's own headers are merged on top, so
+        # a manifest can add a trace id without dropping the credential.
+        self.headers = dict(headers or {})
+        self.cert = cert
         self._check_host(base_url)
         self._check_inputs()
 
@@ -234,7 +244,11 @@ class WorkflowEngine:
 
         started = time.monotonic()
         try:
-            with httpx.Client(timeout=step.timeout_seconds) as client:
+            with httpx.Client(
+                timeout=step.timeout_seconds,
+                headers=self.headers or None,
+                cert=self.cert,
+            ) as client:
                 response = client.request(
                     request.method,
                     self.base_url + path,

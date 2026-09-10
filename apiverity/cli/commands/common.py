@@ -265,6 +265,56 @@ def apply_project_suppressions(findings: list[Any]) -> tuple[list[Any], dict[str
     return active, record
 
 
+def auth_material(args: Any) -> tuple[dict[str, str], Any]:
+    """Headers and client certificate for a run, from the flags that name them.
+
+    `--header NAME=VALUE` is applied on top of the profile, not instead of it:
+    a profile carries the credential and a header carries the tenant id or the
+    trace header somebody needs beside it, and making them exclusive would
+    force a choice nobody wants to make.
+
+    Exits with a usage error rather than raising, because every caller is a
+    command and the alternative is a traceback with an environment variable
+    name in it.
+    """
+    headers: dict[str, str] = {}
+    cert: Any = None
+
+    name = getattr(args, "auth_profile", None)
+    path = getattr(args, "auth_profiles", None)
+    if name and not path:
+        print("error: --auth-profile needs --auth-profiles FILE", file=sys.stderr)
+        sys.exit(EXIT_USAGE)
+    if path:
+        from apiverity.traffic.auth import AuthProfileSet, material
+
+        try:
+            profiles = AuthProfileSet.load(str(path))
+            chosen = profiles.get(str(name)) if name else _only(profiles, str(path))
+            headers, cert = material(chosen)
+        except (OSError, KeyError, ValueError) as exc:
+            print(f"error: {str(exc).strip(chr(34) + chr(39))}", file=sys.stderr)
+            sys.exit(EXIT_USAGE)
+
+    for raw in getattr(args, "header", None) or []:
+        key, sep, value = str(raw).partition("=")
+        if not sep or not key:
+            print(f"error: --header {raw!r} is not NAME=VALUE", file=sys.stderr)
+            sys.exit(EXIT_USAGE)
+        headers[key] = value
+    return headers, cert
+
+
+def _only(profiles: Any, path: str) -> Any:
+    """The single profile in a file, or a refusal to guess between several."""
+    if len(profiles.profiles) == 1:
+        return profiles.profiles[0]
+    known = ", ".join(sorted(p.name for p in profiles.profiles)) or "none"
+    raise KeyError(
+        f"{path} declares {len(profiles.profiles)} profiles ({known}); name one with --auth-profile"
+    )
+
+
 def set_last_target(target: str | None) -> None:
     """Record the most recent base URL for artifact enrichment."""
     global _LAST_TARGET

@@ -157,7 +157,7 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
 ## Library-only capabilities
 
 Every entry above is graded EXISTING when the capability is implemented and
-tested. Four of them are implemented, tested, and **reachable from no
+tested. Three of them are implemented, tested, and **reachable from no
 command** -- importable from Python, absent from the CLI. That is a different
 thing from EXISTING and a reader will not distinguish them unless told, so
 they are listed here.
@@ -172,13 +172,12 @@ cannot join or leave it quietly.
 | `apiverity.core.model_v2` | Stable entity ids, canonical entity hashes, `result-v1` -> `2.0` artifact migration, and `ContractBundle` -- several services combined into one versioned surface | import only |
 | `apiverity.fuzz.boundary` | Explicit boundary values for numeric, string and array constraints, beyond the random generator | import only |
 | `apiverity.stateful.model_based` | A CRUD transition model executed against an authorized target | import only |
-| `apiverity.traffic.auth` | Auth profiles resolved from environment variables or files at request time, never persisted | import only |
 
 Two notes on how to read that.
 
 **"Import only" is not "broken".** Each has tests that run in CI, and the SDK
 is a supported surface. What it means is that no flag on any command reaches
-them: there is no `--auth-profile`.
+them.
 
 **It is also not a plan.** Some of these should probably be wired up and some
 should probably be deleted, and deciding which is a judgement about the
@@ -195,7 +194,8 @@ looking.
   caveat is on [the page itself](supply-chain.md): these steps are on the
   tag-push path and no tag has been cut since they were added, so they are
   configured and unexercised
-- Defensive security packs, OAuth scope coverage, sensitive-field redaction, auth profiles — EXISTING
+- Defensive security packs, OAuth scope coverage, sensitive-field redaction — EXISTING
+- Auth profiles on every command that takes `--base-url` (`--auth-profiles FILE --auth-profile NAME`): bearer, API key, basic and mTLS, each naming an environment variable or a file rather than carrying a credential, so a bundle records `token_env: STAGING_TOKEN` and nothing replayable — EXISTING (`traffic/auth.py`). See [Auth profiles](auth-profiles.md)
 - OTLP trace export with attribute redaction — EXISTING (`exporters/otel.py`),
   reachable from the CLI since 2026-09-10 (`drift --otlp-endpoint`) and following the
   OpenTelemetry GenAI conventions for MCP (`exporters/semconv.py`). Before that the

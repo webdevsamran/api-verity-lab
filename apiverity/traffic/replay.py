@@ -40,6 +40,11 @@ def replay_corpus(
     rate_per_second: float = 10.0,
     allow_production: bool = False,
     timeout: float = 10.0,
+    #: Resolved credentials for this run: `headers` from an auth profile
+    #: and any `--header`, `cert` a client certificate pair for mTLS.
+    #: Neither is written to an artifact -- see apiverity/traffic/auth.py.
+    headers: dict[str, str] | None = None,
+    cert: Any = None,
 ) -> ReplayReport:
     from urllib.parse import urlparse
 
@@ -55,7 +60,9 @@ def replay_corpus(
     report = ReplayReport(target=base_url, dry_run=dry_run)
     delay = 1.0 / max(rate_per_second, 0.01)
     if not dry_run:
-        with httpx.Client(base_url=base_url, timeout=timeout) as client:
+        with httpx.Client(
+            base_url=base_url, timeout=timeout, headers=headers or None, cert=cert
+        ) as client:
             for entry in entries:
                 try:
                     resp = client.request(

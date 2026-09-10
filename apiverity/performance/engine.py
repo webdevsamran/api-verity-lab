@@ -242,6 +242,8 @@ def measure(
     warmup: int = 0,
     concurrency: int = 1,
     timeout: float = 10.0,
+    headers: dict[str, str] | None = None,
+    cert: Any = None,
 ) -> PerformanceReport:
     """Measure each operation, optionally discarding a warmup phase.
 
@@ -263,7 +265,9 @@ def measure(
         max_connections=max(concurrency * 2, 10),
         max_keepalive_connections=max(concurrency, 10),
     )
-    with httpx.Client(base_url=base_url, timeout=timeout, limits=limits) as client:
+    with httpx.Client(
+        base_url=base_url, timeout=timeout, limits=limits, headers=headers or None, cert=cert
+    ) as client:
         for op in service.operations:
             if not op.method or not op.path:
                 continue
