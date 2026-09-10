@@ -23,7 +23,12 @@ from apiverity.cli.commands.artifacts import (
     cmd_serve,
     cmd_verify,
 )
-from apiverity.cli.commands.common import EXIT_INTERNAL, EXIT_OK, set_allow_remote_refs
+from apiverity.cli.commands.common import (
+    EXIT_INTERNAL,
+    EXIT_OK,
+    set_allow_remote_refs,
+    set_spec_format,
+)
 from apiverity.cli.commands.governance import (
     cmd_breaking,
     cmd_changelog,
@@ -57,6 +62,7 @@ from apiverity.cli.commands.testing import (
     cmd_workflow,
 )
 from apiverity.runtime.mcp_lock import DEFAULT_KEY_ENV, DEFAULT_LOCK_NAME
+from apiverity.specs.loader import SPEC_FORMATS
 
 __all__ = [
     "build_parser",
@@ -97,6 +103,16 @@ __all__ = [
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="apiverity", description=__doc__)
     parser.add_argument("--version", action="version", version=f"apiverity {__version__}")
+    parser.add_argument(
+        "--spec-format",
+        choices=list(SPEC_FORMATS),
+        help=(
+            "load every contract as this format instead of sniffing its content. "
+            "Detection matches substrings, so a GraphQL schema that discusses OpenAPI, "
+            "or a tool manifest whose description mentions a service, is otherwise "
+            "unloadable by any means"
+        ),
+    )
     parser.add_argument(
         "--allow-remote-refs",
         action="store_true",
@@ -740,6 +756,7 @@ def main(argv: list[str] | None = None) -> int:
     # earlier `main()` call in the same process -- which the test suite makes
     # routine.
     set_allow_remote_refs(bool(getattr(args, "allow_remote_refs", False)))
+    set_spec_format(getattr(args, "spec_format", None))
     try:
         result: Any = args.func(args)
         return int(result)

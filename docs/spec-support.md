@@ -11,6 +11,29 @@
 | Drift detection | ✅ live + recorded | 📋 | 📋 reflection-based | 📋 |
 | Coverage | ✅ | 📋 | 📋 | 📋 |
 
+## Naming the format
+
+Detection is content sniffing: `openapi:` makes a document OpenAPI, `type Query`
+makes it GraphQL, a `service` declaration makes it gRPC. A document that merely
+*mentions* the wrong word — a GraphQL schema whose comment discusses the OpenAPI
+gateway in front of it — was unloadable by any means, and failed as a parse
+error about a format nobody asked for.
+
+`--spec-format {openapi,swagger2,asyncapi,graphql,grpc,mcp}` skips detection.
+It is keyed on the format rather than the protocol, because OpenAPI and Swagger
+2.0 share one protocol and are exactly the pair a caller needs to disambiguate.
+
+Detection is skipped, not reordered: an override that only moved a plugin to
+the front would still fall through when that plugin declined, which is the
+misdetection being overridden, reached a second time and now silently. So a
+document named as a format that cannot read it fails *as that format*.
+
+When the override contradicts detection the load is honoured and a
+`SPEC-FORMAT-OVERRIDDEN` WARN says so — the caller may know something the
+sniffer does not, and the other explanation is a typo in the flag. An override
+that agrees with detection is silent, because a warning on every correct use is
+a warning people learn to ignore.
+
 ## Multi-file contracts
 
 An entry document with a `schemas/` directory beside it, and often a

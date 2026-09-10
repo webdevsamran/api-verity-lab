@@ -27,6 +27,11 @@ if TYPE_CHECKING:
 #: another run in the same process.
 _ALLOW_REMOTE_REFS = False
 
+#: Format name from `--spec-format`, or None to sniff. Same reasoning as
+#: `_ALLOW_REMOTE_REFS`: set once from the parsed arguments, read by every
+#: call site that loads a contract.
+_SPEC_FORMAT: str | None = None
+
 _LAST_SPEC: str | None = None
 _LAST_TARGET: str | None = None
 _LAST_SEED: int | None = None
@@ -39,6 +44,11 @@ _LAST_PROTOCOL: str | None = None
 def set_allow_remote_refs(allowed: bool) -> None:
     global _ALLOW_REMOTE_REFS
     _ALLOW_REMOTE_REFS = bool(allowed)
+
+
+def set_spec_format(name: str | None) -> None:
+    global _SPEC_FORMAT
+    _SPEC_FORMAT = name or None
 
 
 def set_last_target(target: str | None) -> None:
@@ -69,16 +79,21 @@ def set_last_contract(path: str | None, protocol: str | None) -> None:
 
 def _load(path: str) -> tuple[Service, list[Finding], SpecPlugin]:
     from apiverity.specs import UnrecognizedSpecError
-    from apiverity.specs.loader import detect_and_load
+    from apiverity.specs.loader import UnknownSpecFormatError, detect_and_load
 
     global _LAST_SPEC, _LAST_PROTOCOL
     _LAST_SPEC = path
     try:
-        loaded = detect_and_load(path, allow_remote_refs=_ALLOW_REMOTE_REFS)
+        loaded = detect_and_load(
+            path, allow_remote_refs=_ALLOW_REMOTE_REFS, spec_format=_SPEC_FORMAT
+        )
         _LAST_PROTOCOL = getattr(loaded[0].protocol, "value", None)
         return loaded
     except FileNotFoundError:
         print(f"error: file not found: {path}", file=sys.stderr)
+        sys.exit(EXIT_USAGE)
+    except UnknownSpecFormatError as exc:
+        print(f"error: {exc}", file=sys.stderr)
         sys.exit(EXIT_USAGE)
     except UnrecognizedSpecError as exc:
         # Not a contract at all -- distinct from a contract that fails to parse.
