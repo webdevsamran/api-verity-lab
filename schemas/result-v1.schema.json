@@ -193,6 +193,20 @@
             ],
             "description": "The BRK-* rule that classified it, so a drift finding traces back to the shared catalogue."
           },
+          "trace_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Trace this finding's run belongs to, when the run was traced. Absent otherwise -- never an id that resolves to nothing."
+          },
+          "span_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The span of the call this finding was read out of, so it can be opened in a tracing backend."
+          },
           "hint": {
             "type": [
               "string",

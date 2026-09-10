@@ -25,6 +25,11 @@ finding still says it happened four hundred times and an MCP finding still
 names the rule that classified it. A field that is absent means the mode
 cannot establish it, which is different from zero, and is why none of them
 gets a default.
+
+`trace_id` and `span_id` are in that list for the same reason. A finding
+extracted from this array can be pasted into a tracing backend and land on the
+exact call it was read out of; a finding from an untraced run simply omits
+them, rather than carrying an id that resolves to nothing.
 """
 
 from __future__ import annotations
@@ -44,6 +49,8 @@ _OPTIONAL = (
     "examples",
     "change_id",
     "source_rule_id",
+    "trace_id",
+    "span_id",
 )
 
 

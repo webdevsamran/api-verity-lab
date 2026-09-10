@@ -80,6 +80,7 @@ def assess_auth_posture(
     timeout: float = 10.0,
     max_pages: int = DEFAULT_MAX_PAGES,
     client_factory: Any = None,
+    recorder: Any = None,
 ) -> tuple[list[McpFinding], dict[str, Any]]:
     """Findings plus the posture record, from at most one extra request."""
     classification = classify_target(endpoint).classification
@@ -130,18 +131,27 @@ def assess_auth_posture(
     def make_client() -> McpClient:
         if client_factory is not None:
             return client_factory(anonymous_headers)  # type: ignore[no-any-return]
-        return McpClient(endpoint, timeout=timeout, headers=anonymous_headers)
+        return McpClient(endpoint, timeout=timeout, headers=anonymous_headers, recorder=recorder)
+
+    # The span of the anonymous probe, captured on the way out whether it
+    # succeeded or failed: a refusal is evidence too, and the call that was
+    # refused is the one a reader wants to look at.
+    probe_span: str | None = None
 
     try:
         with make_client() as client:
             observation = Observation(endpoint=endpoint)
-            anonymous_tools, _ = list_tools(client, observation, max_pages=max_pages)
+            try:
+                anonymous_tools, _ = list_tools(client, observation, max_pages=max_pages)
+            finally:
+                probe_span = client.last_span_id
     except McpHttpError as exc:
         challenged = "www-authenticate" in exc.headers
         posture["anonymous_access"] = f"refused-{exc.status}"
         posture["challenge_header_present"] = challenged
         findings.append(
             McpFinding(
+                span_id=probe_span,
                 rule_id="MCP-AUTH-ENFORCED",
                 severity="INFO",
                 message=(
@@ -153,6 +163,7 @@ def assess_auth_posture(
         if exc.status in (401, 403) and not challenged:
             findings.append(
                 McpFinding(
+                    span_id=probe_span,
                     rule_id="MCP-AUTH-NO-CHALLENGE",
                     severity="WARN",
                     message=(
@@ -170,6 +181,7 @@ def assess_auth_posture(
         posture["anonymous_access"] = "indeterminate"
         findings.append(
             McpFinding(
+                span_id=probe_span,
                 rule_id="MCP-AUTH-INDETERMINATE",
                 severity="INFO",
                 message=(
@@ -187,6 +199,7 @@ def assess_auth_posture(
     if count == 0:
         findings.append(
             McpFinding(
+                span_id=probe_span,
                 rule_id="MCP-AUTH-ENFORCED",
                 severity="INFO",
                 message=(
@@ -209,6 +222,7 @@ def assess_auth_posture(
         )
     findings.append(
         McpFinding(
+            span_id=probe_span,
             rule_id="MCP-AUTH-ANONYMOUS-LIST",
             severity=_ANONYMOUS_SEVERITY.get(classification, "WARN"),
             message=f"{message}. The target classifies as {classification}",

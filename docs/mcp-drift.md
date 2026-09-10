@@ -116,6 +116,28 @@ The mock server in `apiverity/mock/mcp_server.py` validates all of this by
 default, which is how the gap was found: a mock that accepts anything cannot
 prove the client sends anything.
 
+### Correlating a finding with the call that produced it
+
+`--otlp-endpoint URL` records one span per MCP call under the OpenTelemetry
+GenAI conventions and POSTs them to an OTLP/HTTP collector. Every finding then
+carries `trace_id` and `span_id`, in the report *and* in the top-level
+`findings` array, so a reader can go from "this tool's schema drifted" to the
+exact request that established it without leaving the tracing backend they
+already use.
+
+Attribution is per producer, not per run. Conformance, presence, schema drift
+and annotation findings name the `tools/list` span they were read out of; the
+authentication-posture findings name the separate anonymous request, because
+that is the call that shows what they are about. A finding derived from the
+URL alone — `MCP-AUTH-PLAINTEXT-TRANSPORT` — names no span, since no request
+established it. A correlation that points at the wrong call is worse than none.
+
+A run with no `--otlp-endpoint` omits both fields rather than emitting an id
+that resolves to nothing, and a collector that is down produces a warning on
+stderr, never a failed run: the findings were established before the export
+was attempted, and losing them because a sidecar restarted is how a gate
+becomes the thing teams switch off.
+
 ## Authorization
 
 The specification allows a server's tool set to vary by the authorization

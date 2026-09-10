@@ -315,3 +315,92 @@ class _Reply:
 
     def json(self) -> dict[str, Any]:
         return self._payload
+
+
+# ------------------------------------------------- correlation (RUN-08)
+
+
+def test_each_finding_names_the_call_it_was_read_out_of() -> None:
+    """A finding that cannot point at its evidence has to be taken on trust.
+
+    The point of tracing a drift run is the pivot: from "this tool's schema
+    drifted" to the exact request that established it, in one click, in a
+    backend the team already has.
+    """
+    recorder = TraceRecorder(seed="correlate")
+    with McpMockServer([_tool("alpha"), _tool("ghost")]) as server:
+        report = detect_mcp_drift(
+            _declared(_tool("alpha")),
+            server.endpoint,
+            recorder=recorder,
+        )
+
+    undeclared = [f for f in report.findings if f.rule_id == "MCP-DRIFT-TOOL-UNDECLARED"]
+    assert undeclared, "the fixture serves a tool the manifest never declared"
+    finding = undeclared[0]
+    assert finding.trace_id == recorder.trace_id
+    assert finding.span_id in {span.span_id for span in recorder.spans}
+
+    named = next(span for span in recorder.spans if span.span_id == finding.span_id)
+    assert named.name == "tools/list", "the undeclared tool was seen in the tool list"
+
+
+def test_the_anonymous_probe_findings_point_at_the_anonymous_call() -> None:
+    """Not at the authenticated list, which is a different request.
+
+    Attribution is applied per producer for exactly this reason: a blanket
+    "everything came from the tool list" would send a reader to a call that
+    does not show what the finding is about.
+    """
+    recorder = TraceRecorder(seed="anon")
+    with McpMockServer([_tool("alpha")], require_auth="s3cret", anonymous_tools=[]) as server:
+        report = detect_mcp_drift(
+            _declared(_tool("alpha")),
+            server.endpoint,
+            headers={"Authorization": "Bearer s3cret"},
+            recorder=recorder,
+        )
+
+    auth = [f for f in report.findings if f.rule_id.startswith("MCP-AUTH-")]
+    assert auth, "the run made an anonymous probe and reported on it"
+    spans = {span.span_id: span for span in recorder.spans}
+    for finding in auth:
+        if finding.span_id is None:
+            continue
+        assert finding.span_id in spans
+
+    # Two `tools/list` calls happened: the credentialed one and the probe.
+    lists = [span for span in recorder.spans if span.name == "tools/list"]
+    assert len(lists) >= 2
+
+
+def test_an_untraced_run_claims_no_trace() -> None:
+    with McpMockServer([_tool("alpha")]) as server:
+        report = detect_mcp_drift(_declared(_tool("alpha")), server.endpoint)
+    assert all(f.trace_id is None and f.span_id is None for f in report.findings)
+
+
+def test_the_published_finding_shape_carries_the_correlation() -> None:
+    """`unify` is what a consumer reads; the ids have to survive it.
+
+    The top-level `findings` array exists so a consumer does not have to know
+    which drift mode ran. An id that only appears inside the mode-specific
+    report would be invisible to exactly that consumer.
+    """
+    from apiverity.runtime.findings import unify
+
+    recorder = TraceRecorder(seed="unify")
+    with McpMockServer([_tool("alpha"), _tool("ghost")]) as server:
+        report = detect_mcp_drift(
+            _declared(_tool("alpha")),
+            server.endpoint,
+            recorder=recorder,
+        )
+
+    traced = [unify(f) for f in report.findings if f.span_id]
+    assert traced
+    assert all(row["trace_id"] == recorder.trace_id for row in traced)
+    assert all(row["span_id"] for row in traced)
+
+    plain = unify(type(report.findings[0])(rule_id="X", message="y"))
+    assert "trace_id" not in plain and "span_id" not in plain

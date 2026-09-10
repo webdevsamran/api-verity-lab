@@ -228,6 +228,12 @@ class McpClient:
         #: never sees.
         self.last_status: int | None = None
         self.last_headers: dict[str, str] = {}
+        #: Span id of the most recent call, when tracing is on. Recorded the
+        #: same way and for the same reason as the two above: the analysers
+        #: that turn a response into findings are handed the response, not the
+        #: call, and a finding that cannot name its evidence is one a reader
+        #: has to take on trust.
+        self.last_span_id: str | None = None
 
     def __enter__(self) -> McpClient:
         if self._client is None:
@@ -333,6 +339,7 @@ class McpClient:
             ),
         )
         span_id, started = str(handle[0]), float(handle[1])
+        self.last_span_id = span_id
         meta = envelope["params"]["_meta"]
         meta["traceparent"] = self.recorder.traceparent(span_id)
         return span_id, started

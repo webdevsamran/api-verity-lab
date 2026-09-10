@@ -54,6 +54,12 @@ class McpFinding(BaseModel):
     #: trace it back to the shared engine rather than take it on trust.
     change_id: str | None = None
     source_rule_id: str | None = None
+    #: The trace and the span of the call this finding was read out of, when
+    #: the run was traced. Both absent otherwise: a finding that named a trace
+    #: nobody recorded would send a reader looking for something that does not
+    #: exist, which is worse than saying nothing.
+    trace_id: str | None = None
+    span_id: str | None = None
 
 
 class McpDriftReport(BaseModel):
@@ -72,6 +78,20 @@ class McpDriftReport(BaseModel):
     #: would say "traced, look it up" and send the reader somewhere nothing
     #: exists.
     trace: dict[str, Any] = Field(default_factory=dict)
+
+
+def _from_span(span_id: str | None, findings: list[McpFinding]) -> list[McpFinding]:
+    """Attribute a group of findings to the call they were read out of.
+
+    Applied at each producer rather than once over the whole list, because the
+    producers do not share a source: the auth findings come from a separate
+    anonymous request, and one of them is read off the URL before any request
+    is made at all.
+    """
+    if span_id is not None:
+        for finding in findings:
+            finding.span_id = span_id
+    return findings
 
 
 def _conformance(tools: list[dict[str, Any]], envelope: dict[str, Any]) -> list[McpFinding]:
@@ -364,6 +384,10 @@ def detect_mcp_drift(
             )
 
         tools, envelope = list_tools(client, observation, max_pages=max_pages)
+        # The call that produced the evidence. Conformance, presence, schema
+        # drift and annotations are all read out of *this* response, so this is
+        # the span a reader should be sent to.
+        list_span = client.last_span_id
 
         second: list[dict[str, Any]] = []
         if check_stability:
@@ -384,11 +408,13 @@ def detect_mcp_drift(
             headers=headers,
             timeout=timeout,
             max_pages=max_pages,
+            recorder=recorder,
         )
 
     if not observation.pagination_exhausted:
         findings.append(
             McpFinding(
+                span_id=list_span,
                 rule_id="MCP-DRIFT-PAGINATION-CAPPED",
                 severity="WARN",
                 message=(
@@ -400,9 +426,9 @@ def detect_mcp_drift(
         )
 
     findings.extend(auth_findings)
-    findings.extend(_conformance(tools, envelope))
+    findings.extend(_from_span(list_span, _conformance(tools, envelope)))
     if check_stability:
-        findings.extend(_stability(tools, second))
+        findings.extend(_from_span(list_span, _stability(tools, second)))
 
     observed, load_findings = load_manifest({"tools": tools}, label="served")
     findings.extend(
@@ -410,6 +436,7 @@ def detect_mcp_drift(
             rule_id=f.rule_id,
             severity=f.severity.value,
             message=f"served manifest: {f.message}",
+            span_id=list_span,
         )
         for f in load_findings
         if f.severity is not Severity.INFO
@@ -417,10 +444,25 @@ def detect_mcp_drift(
 
     if declared is not None:
         findings.extend(
-            _presence(declared, observed, pagination_exhausted=observation.pagination_exhausted)
+            _from_span(
+                list_span,
+                _presence(
+                    declared, observed, pagination_exhausted=observation.pagination_exhausted
+                ),
+            )
         )
-        findings.extend(_schema_drift(declared, observed))
-        findings.extend(_annotations(declared, observed))
+        findings.extend(_from_span(list_span, _schema_drift(declared, observed)))
+        findings.extend(_from_span(list_span, _annotations(declared, observed)))
+
+    if recorder is not None:
+        # The trace covers the run, so every finding carries it. The *span* is
+        # attributed where each group of findings was actually read, above --
+        # a blanket "everything came from the tool list" would be wrong for the
+        # ones derived from the URL, and a correlation that points at the wrong
+        # call is worse than none.
+        trace_id = str(recorder.trace_id)
+        for finding in findings:
+            finding.trace_id = trace_id
 
     return McpDriftReport(
         target=endpoint,
