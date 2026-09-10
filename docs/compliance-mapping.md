@@ -92,10 +92,10 @@ Source: <https://owasp.org/API-Security/editions/2023/en/0x11-t10/>, published 2
 | # | Control | Rules | Produced by |
 |---|---|---|---|
 | API1 | Broken Object Level Authorization | *not assessable* | -- |
-| API2 | Broken Authentication | `SEC-AUTH-`<br>`SEC-SCHEME-`<br>`MCP-AUTH-` | `drift`, `validate` |
+| API2 | Broken Authentication | `SEC-AUTH-`<br>`SEC-SCHEME-`<br>`SEC-APIKEY-IN-QUERY`<br>`SEC-BASIC-AUTH`<br>`MCP-AUTH-` | `drift`, `validate` |
 | API3 | Broken Object Property Level Authorization | `SEC-ADDL-PROPERTIES`<br>`BRK-RESP-FIELD-`<br>`DRIFT-RESPONSE-CREDENTIAL` | `breaking`, `drift`, `mcp-lock`, `validate` |
-| API4 | Unrestricted Resource Consumption | `SEC-RATE-LIMIT-METADATA`<br>`BRK-CONSTRAINT-`<br>`BUDGET-` | `breaking`, `budget`, `drift`, `mcp-lock`, `validate` |
-| API5 | Broken Function Level Authorization | `SEC-UNAUTH-WRITE`<br>`SEC-AUTH-MISSING` | `validate` |
+| API4 | Unrestricted Resource Consumption | `SEC-RATE-LIMIT-METADATA`<br>`SEC-ARRAY-UNBOUNDED`<br>`SEC-COLLECTION-UNPAGINATED`<br>`BRK-CONSTRAINT-`<br>`BUDGET-` | `breaking`, `budget`, `drift`, `mcp-lock`, `validate` |
+| API5 | Broken Function Level Authorization | `SEC-UNAUTH-WRITE`<br>`SEC-AUTH-MISSING`<br>`SEC-SCOPE-` | `validate` |
 | API6 | Unrestricted Access to Sensitive Business Flows | *not assessable* | -- |
 | API7 | Server Side Request Forgery | *not assessable* | -- |
 | API8 | Security Misconfiguration | `SEC-HTTPS-POLICY`<br>`SEC-SENSITIVE-HEADER`<br>`MCP-AUTH-PLAINTEXT-TRANSPORT` | `drift`, `validate` |
@@ -112,8 +112,8 @@ Source: <https://owasp.org/API-Security/editions/2023/en/0x11-t10/>, published 2
 
 - **API2 Broken Authentication** — the contract's authentication *declarations*, plus what a live MCP server serves anonymously. An endpoint protected by an undeclared gateway looks identical to an unprotected one from here
 - **API3 Broken Object Property Level Authorization** — a response that grew a field, or a schema that accepts any property, is where over-exposure hides. Whether a returned field should have been visible to that caller is not something the contract states
-- **API4 Unrestricted Resource Consumption** — undeclared limits from the contract, and observed call volume against a declared budget. `apiverity regression` measures latency; neither measures what the service can actually absorb
-- **API5 Broken Function Level Authorization** — a mutating operation with no declared authentication is the documented case
+- **API4 Unrestricted Resource Consumption** — undeclared limits from the contract -- an array a caller can send with no ceiling, a listing with no pagination -- and observed call volume against a declared budget. `apiverity regression` measures latency; none of it measures what the service can actually absorb
+- **API5 Broken Function Level Authorization** — a mutating operation with no declared authentication is the documented case, and so is one whose OAuth requirement names no scope or a scope that grants everything -- both make the per-operation declaration decorative
 - **API9 Improper Inventory Management** — this is the control this project is closest to being *about*: an endpoint serving something the contract does not declare, and a tool surface that moved without review
 - **API10 Unsafe Consumption of APIs** — consuming an MCP server whose behaviour has diverged from its manifest is exactly this risk, from the consumer's side
 

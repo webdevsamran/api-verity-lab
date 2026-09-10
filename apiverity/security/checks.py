@@ -178,7 +178,12 @@ def run_security_checks(
     require_https: bool = True,
     forbid_additional_properties: bool = False,
 ) -> list[Finding]:
-    findings: list[Finding] = []
+    from apiverity.security.hardening import run_hardening_checks
+
+    # What the document *declares* that is a problem on its own -- a credential
+    # in a query string, an unbounded request array, an OAuth requirement with
+    # no scope. The checks below cover what it omits; these cover what it says.
+    findings: list[Finding] = list(run_hardening_checks(service))
 
     for url in service.servers:
         if (

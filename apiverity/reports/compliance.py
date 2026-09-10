@@ -348,7 +348,13 @@ API_TOP_10 = Framework(
         Control(
             "API2",
             "Broken Authentication",
-            rules=("SEC-AUTH-", "SEC-SCHEME-", "MCP-AUTH-"),
+            rules=(
+                "SEC-AUTH-",
+                "SEC-SCHEME-",
+                "SEC-APIKEY-IN-QUERY",
+                "SEC-BASIC-AUTH",
+                "MCP-AUTH-",
+            ),
             caveat=(
                 "the contract's authentication *declarations*, plus what a live MCP server "
                 "serves anonymously. An endpoint protected by an undeclared gateway looks "
@@ -368,18 +374,29 @@ API_TOP_10 = Framework(
         Control(
             "API4",
             "Unrestricted Resource Consumption",
-            rules=("SEC-RATE-LIMIT-METADATA", "BRK-CONSTRAINT-", "BUDGET-"),
+            rules=(
+                "SEC-RATE-LIMIT-METADATA",
+                "SEC-ARRAY-UNBOUNDED",
+                "SEC-COLLECTION-UNPAGINATED",
+                "BRK-CONSTRAINT-",
+                "BUDGET-",
+            ),
             caveat=(
-                "undeclared limits from the contract, and observed call volume against a "
-                "declared budget. `apiverity regression` measures latency; neither measures "
-                "what the service can actually absorb"
+                "undeclared limits from the contract -- an array a caller can send with no "
+                "ceiling, a listing with no pagination -- and observed call volume against a "
+                "declared budget. `apiverity regression` measures latency; none of it "
+                "measures what the service can actually absorb"
             ),
         ),
         Control(
             "API5",
             "Broken Function Level Authorization",
-            rules=("SEC-UNAUTH-WRITE", "SEC-AUTH-MISSING"),
-            caveat="a mutating operation with no declared authentication is the documented case",
+            rules=("SEC-UNAUTH-WRITE", "SEC-AUTH-MISSING", "SEC-SCOPE-"),
+            caveat=(
+                "a mutating operation with no declared authentication is the documented "
+                "case, and so is one whose OAuth requirement names no scope or a scope that "
+                "grants everything -- both make the per-operation declaration decorative"
+            ),
         ),
         Control(
             "API6",
