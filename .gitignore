@@ -36,8 +36,16 @@ Thumbs.db
 .env
 .env.*
 !.env.example
-# temporary dev/debug helpers
-*_fix*.py
+# temporary dev/debug helpers.
+#
+# `*_fix*.py` was the pattern here, and it matched anything with "fix" inside a
+# longer word: `test_swagger2_fixture.py` was written, formatted, run green,
+# and silently never committed. An ignore rule that swallows a file whose name
+# merely contains three letters is a rule that loses work without a message.
+#
+# Anchored to the shapes a scratch helper actually has instead.
+fix_*.py
+*_hotfix.py
 tests/_dbg*.py
 build/
 web/dist/
