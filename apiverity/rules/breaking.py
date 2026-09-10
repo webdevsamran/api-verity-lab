@@ -363,6 +363,12 @@ CATALOG: dict[str, RuleSpec] = {
             "page boundary reads as removed, so the whole comparison is unsound.",
         ),
         RuleSpec(
+            "BRK-RESP-FIELD-GUARANTEED",
+            Severity.INFO,
+            "A response field that was optional is now always present; consumers gain a "
+            "guarantee they did not have.",
+        ),
+        RuleSpec(
             "BRK-SOAP-ACTION-CHANGED",
             Severity.ERROR,
             "The SOAPAction header changed. Gateways and ESBs route on it and generated "
@@ -571,8 +577,16 @@ class BreakingEngine:
             # the only signal available without changing the change model.
             if _is_body_field(change):
                 if direction == "response":
+                    # Not `BRK-RESP-FIELD-ADDED`. The severity was right --
+                    # gaining a guarantee breaks nobody -- but the rule said a
+                    # field was added when the field was already there, and
+                    # `explain` then answered with "consumers ignore fields
+                    # they do not know", which is advice about a different
+                    # change entirely.
                     rule = (
-                        "BRK-RESP-FIELD-ADDED" if became_required else "BRK-RESP-FIELD-OPTIONALIZED"
+                        "BRK-RESP-FIELD-GUARANTEED"
+                        if became_required
+                        else "BRK-RESP-FIELD-OPTIONALIZED"
                     )
                 else:
                     rule = (

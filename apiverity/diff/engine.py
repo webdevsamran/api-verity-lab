@@ -1023,11 +1023,26 @@ class DiffEngine:
                 path=f"{path}.{prop}",
             )
 
-        # required list changes
+        # required list changes.
+        #
+        # Both loops require the field on *both* sides, and that is the whole
+        # subtlety. A field that has just appeared did not "become required",
+        # and one that has just been deleted did not "become optional" -- there
+        # was no transition, there was an addition or a removal, and each of
+        # those is already reported above with the requiredness in the message.
+        #
+        # Without the guard every such edit produced two findings. Adding one
+        # required request field gave BRK-REQ-FIELD-ADDED-REQUIRED *and*
+        # BRK-REQ-FIELD-BECAME-REQUIRED; removing a guaranteed response field
+        # gave BRK-RESP-FIELD-REMOVED *and* BRK-RESP-FIELD-OPTIONALIZED, which
+        # is two ERRORs for one change. That inflated the error count a gate
+        # thresholds on, the counts in the PR summary, and the totals in every
+        # report -- and on the request side the spurious half read as a
+        # relaxation, which is the opposite of what happened.
         old_req = set(old.required)
         new_req = set(new.required)
         for prop in sorted(new_req - old_req):
-            if prop in new.properties:
+            if prop in new.properties and prop in old.properties:
                 self._add(
                     ChangeKind.PARAMETER_REQUIREDNESS,
                     operation_key,
@@ -1048,7 +1063,7 @@ class DiffEngine:
                     ),
                 )
         for prop in sorted(old_req - new_req):
-            if prop in old.properties:
+            if prop in old.properties and prop in new.properties:
                 # The reverse direction, which was not detected at all. It is
                 # relaxation in a request and breakage in a response: a client
                 # that always read this field may now receive objects without

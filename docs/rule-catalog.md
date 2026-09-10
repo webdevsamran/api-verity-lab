@@ -52,6 +52,7 @@ the live catalog at any time with `apiverity rules --json`.
 | `BRK-HEADER-REMOVED` | WARN | A declared response header was removed. | Keep sending the header until consumers stop reading it. A missing header is usually an empty string on the other side, which is a bug that looks like data. |
 | `BRK-RESP-CONSTRAINT-TIGHTENED` | WARN | A response constraint was tightened; returned values may fall outside what clients expect. | Leave the declared bound alone unless you are certain no consumer validates the response against it. Narrowing what you promise to return breaks a strict client without breaking a request. |
 | `BRK-RESP-FIELD-ADDED` | INFO | A response body field was added (consumers ignore unknown fields). | Nothing to do: consumers ignore fields they do not know. |
+| `BRK-RESP-FIELD-GUARANTEED` | INFO | A response field that was optional is now always present; consumers gain a guarantee they did not have. | Nothing to undo -- a promise was strengthened, not withdrawn. Worth checking the server really does populate it in every path that returns this response, because the contract now says it does. |
 | `BRK-RESP-FIELD-OPTIONALIZED` | ERROR | A response field is no longer guaranteed; consumers reading it unconditionally will break. | Keep returning it unconditionally. Consumers written against a guarantee do not check for absence, so the first missing value is a crash rather than a fallback. |
 | `BRK-RESP-FIELD-REMOVED` | ERROR | A response body field was removed; readers of it break. | Keep returning the field until consumers stop reading it -- empty, null or a frozen value -- and mark it deprecated in the schema. Then remove it in the next major. |
 | `BRK-RESP-STATUS-ADDED` | INFO | A new response status was declared. | Nothing to do, though a client with an exhaustive status handler will meet the new one before it has a branch for it. |
@@ -130,7 +131,7 @@ Only changes the shared engine cannot already see are listed here. A removed too
 
 ## Severity profiles
 
-Nobody writes sixty-eight overrides. A profile is a starting position that every other setting -- the config's own `severity_overrides`, and `--severity-override` on the command line -- takes precedence over. It sets both the severities and the threshold that fails a run, because either half alone is already expressible with `fail_on`, which would leave the name meaning nothing.
+Nobody writes sixty-nine overrides. A profile is a starting position that every other setting -- the config's own `severity_overrides`, and `--severity-override` on the command line -- takes precedence over. It sets both the severities and the threshold that fails a run, because either half alone is already expressible with `fail_on`, which would leave the name meaning nothing.
 
 Profiles cover this catalogue only. Security-lint, drift, MCP-conformance and loader findings are not in it and are unaffected by any of them.
 
@@ -140,4 +141,4 @@ Profiles cover this catalogue only. Security-lint, drift, MCP-conformance and lo
 | `balanced` | `error` | 0 | The catalogue as shipped. Definite breakage blocks; everything else reports. |
 | `advisory` | `never` | 0 | Nothing blocks. Every finding is still reported, at its catalogue severity. |
 
-_68 rules, each with a non-breaking alternative._
+_69 rules, each with a non-breaking alternative._

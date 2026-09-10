@@ -1,7 +1,7 @@
 """Render docs/rule-parity.md by making the rules fire.
 
-The catalogue has sixty-eight rules and the tool speaks seven formats, and nothing
-told a GraphQL user which of the sixty-eight could apply to them. The obvious
+The catalogue has sixty-nine rules and the tool speaks seven formats, and nothing
+told a GraphQL user which of the sixty-nine could apply to them. The obvious
 answer is a hand-written table, which is the one this project will not accept:
 a matrix asserting coverage it does not have is worse than no matrix, because
 it gets quoted.

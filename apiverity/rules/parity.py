@@ -1,7 +1,7 @@
 """Which rules can fire for which protocol, found by making them fire.
 
-The catalogue has sixty-eight rules and the tool speaks seven formats, and nothing
-told a GraphQL user which of the sixty-eight could ever apply to them. The
+The catalogue has sixty-nine rules and the tool speaks seven formats, and nothing
+told a GraphQL user which of the sixty-nine could ever apply to them. The
 obvious way to answer that is a hand-written table, which is the one answer this
 project will not accept: a matrix asserting coverage it does not have is worse
 than no matrix, because it is quoted.
@@ -269,6 +269,16 @@ def _add_a_response_field(service: Service) -> None:
     schema = _first_response_schema(service)
     if schema is not None:
         schema.properties["verityAddedResponseField"] = SchemaNode(type="string")
+
+
+def _guarantee_a_response_field(service: Service) -> None:
+    schema = _first_response_schema(service)
+    if schema is None:
+        return
+    for name in schema.properties:
+        if name not in schema.required:
+            schema.required.append(name)
+            return
 
 
 def _optionalize_a_response_field(service: Service) -> None:
@@ -608,6 +618,11 @@ MUTATIONS: tuple[Mutation, ...] = (
     ),
     Mutation("loosen a constraint", _loosen_a_constraint, "a declared bound is dropped"),
     Mutation("add a response field", _add_a_response_field, "the response grows"),
+    Mutation(
+        "guarantee a response field",
+        _guarantee_a_response_field,
+        "an optional response field starts always being sent",
+    ),
     Mutation(
         "make a response field optional",
         _optionalize_a_response_field,

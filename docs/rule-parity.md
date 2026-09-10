@@ -48,6 +48,7 @@ would be a parser that is not populating something.
 | narrow a response enum | a value consumers switched on stops being returned |
 | loosen a constraint | a declared bound is dropped |
 | add a response field | the response grows |
+| guarantee a response field | an optional response field starts always being sent |
 | make a response field optional | a guarantee is withdrawn |
 | add an operation | a new endpoint or RPC |
 | un-deprecate an operation | a retirement is called off |
@@ -135,12 +136,13 @@ would be a parser that is not populating something.
 | `BRK-REQ-BODY-REQUIRED` | ERROR |  |  |  | ✓ |  |  |  |
 | `BRK-REQ-FIELD-ADDED-OPTIONAL` | INFO | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `BRK-REQ-FIELD-ADDED-REQUIRED` | ERROR | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `BRK-REQ-FIELD-BECAME-REQUIRED` | ERROR | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `BRK-REQ-FIELD-BECAME-REQUIRED` | ERROR | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  |
 | `BRK-REQ-FIELD-OPTIONALIZED` | INFO | ✓ |  | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `BRK-REQ-FIELD-REMOVED` | ERROR | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `BRK-RESERVATION-REMOVED` | WARN |  | ✓ |  |  |  |  |  |
 | `BRK-RESP-CONSTRAINT-TIGHTENED` | WARN |  |  |  |  | ✓ |  |  |
 | `BRK-RESP-FIELD-ADDED` | INFO |  | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `BRK-RESP-FIELD-GUARANTEED` | INFO |  | ✓ | ✓ |  | ✓ |  |  |
 | `BRK-RESP-FIELD-OPTIONALIZED` | ERROR |  |  | ✓ |  | ✓ |  | ✓ |
 | `BRK-RESP-FIELD-REMOVED` | ERROR |  | ✓ | ✓ |  | ✓ |  | ✓ |
 | `BRK-RESP-STATUS-ADDED` | INFO |  | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -180,4 +182,4 @@ The interesting column. Each of these is either a mutation this harness does not
 - `BRK-PROPERTY-NAMES-CHANGED` — The constraint on what property *names* are allowed changed; keys that used to be accepted may not be.
 - `BRK-REQ-BODY-ADDED-REQUIRED` — A required request body was added.
 
-_48 of 68 rules observed firing across 7 protocol(s) and 54 mutations._
+_49 of 69 rules observed firing across 7 protocol(s) and 55 mutations._

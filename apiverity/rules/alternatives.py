@@ -157,6 +157,11 @@ ALTERNATIVES: dict[str, str] = {
         "for absence, so the first missing value is a crash rather than a fallback."
     ),
     "BRK-RESP-FIELD-ADDED": "Nothing to do: consumers ignore fields they do not know.",
+    "BRK-RESP-FIELD-GUARANTEED": (
+        "Nothing to undo -- a promise was strengthened, not withdrawn. Worth checking "
+        "the server really does populate it in every path that returns this response, "
+        "because the contract now says it does."
+    ),
     "BRK-RESP-TYPE-CHANGED": (
         "Add a new field with the new type and keep the old one for a release. Changing a "
         "type in place misparses on every strongly-typed client."

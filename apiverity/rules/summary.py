@@ -78,6 +78,7 @@ _PHRASES: tuple[tuple[str, str], ...] = (
     ("BRK-RESP-CONSTRAINT-TIGHTENED", "response constraints were tightened"),
     ("BRK-RESP-TYPE-CHANGED", "response field types changed, so consumers may misparse them"),
     ("BRK-RESP-FIELD-ADDED", "response body fields were added"),
+    ("BRK-RESP-FIELD-GUARANTEED", "response fields that were optional are now always sent"),
     ("BRK-RESP-STATUS-ADDED", "new response statuses were declared"),
     ("BRK-HEADER-REMOVED", "declared response headers were removed"),
     ("BRK-HEADER-ADDED", "new response headers were declared"),

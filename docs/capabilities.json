@@ -375,7 +375,7 @@
     }
   ],
   "rules": {
-    "count": 68,
+    "count": 69,
     "ids": [
       "BRK-CONDITIONAL-SCHEMA-CHANGED",
       "BRK-CONSTRAINT-LOOSENED",
@@ -432,6 +432,7 @@
       "BRK-RESERVATION-REMOVED",
       "BRK-RESP-CONSTRAINT-TIGHTENED",
       "BRK-RESP-FIELD-ADDED",
+      "BRK-RESP-FIELD-GUARANTEED",
       "BRK-RESP-FIELD-OPTIONALIZED",
       "BRK-RESP-FIELD-REMOVED",
       "BRK-RESP-STATUS-ADDED",
