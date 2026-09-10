@@ -110,16 +110,57 @@ def config_setting(name: str, default: Any = None) -> Any:
     return default if value in (None, "", [], {}) else value
 
 
-def merged_severity_overrides(cli_overrides: dict[str, str] | None) -> dict[str, str] | None:
-    """Config overrides with the command line on top.
+#: `--profile`, or None. Set from the parsed arguments alongside the config,
+#: and read wherever the two are combined.
+_PROFILE: str | None = None
 
-    The command line wins because it is the more specific statement: someone
-    typing `--severity-override X=INFO` for one run is not editing the
-    project's policy.
+
+def set_profile(name: str | None) -> None:
+    global _PROFILE
+    _PROFILE = name or None
+
+
+def active_profile() -> str | None:
+    """The profile in force: the flag, else the config's, else none."""
+    return _PROFILE or config_setting("profile")
+
+
+def merged_severity_overrides(cli_overrides: dict[str, str] | None) -> dict[str, str] | None:
+    """Profile, then config, then the command line -- each more specific.
+
+    A profile is a starting position, so anything stated explicitly wins over
+    it: a team on `strict` that has agreed one rule is advisory writes that one
+    rule down, and the profile must not put it back.
     """
-    merged: dict[str, str] = dict(config_setting("severity_overrides", {}) or {})
+    from apiverity.rules.profiles import severity_overrides
+
+    merged: dict[str, str] = {}
+    profile = active_profile()
+    if profile:
+        merged.update(severity_overrides(str(profile)))
+    merged.update(config_setting("severity_overrides", {}) or {})
     merged.update(cli_overrides or {})
     return merged or None
+
+
+def fail_on_threshold() -> str:
+    """`error` / `warn` / `never`, from the config or the profile.
+
+    Explicit beats implied in the same direction as the severities: a config
+    that sets `fail_on` has said what it wants, and a profile is what you get
+    when it has not.
+    """
+    from apiverity.core.config import DEFAULT_FAIL_ON
+
+    explicit = config_setting("fail_on")
+    if explicit:
+        return str(explicit).lower()
+    profile = active_profile()
+    if profile:
+        from apiverity.rules.profiles import fail_on
+
+        return fail_on(str(profile))
+    return DEFAULT_FAIL_ON
 
 
 def apply_project_suppressions(findings: list[Any]) -> tuple[list[Any], dict[str, Any]]:

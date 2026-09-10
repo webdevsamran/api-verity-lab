@@ -23,6 +23,15 @@
       },
       "description": "Glob patterns naming this project's contracts, e.g. ['api/**/*.yaml']."
     },
+    "profile": {
+      "type": "string",
+      "enum": [
+        "strict",
+        "balanced",
+        "advisory"
+      ],
+      "description": "Severity profile: a starting position that every other setting overrides."
+    },
     "severity_overrides": {
       "type": "object",
       "additionalProperties": {

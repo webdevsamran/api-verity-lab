@@ -13,6 +13,8 @@ from apiverity.cli.commands.common import (
     EXIT_USAGE,
     _emit,
     _load,
+    active_profile,
+    merged_severity_overrides,
 )
 
 
@@ -92,12 +94,57 @@ def cmd_plugins(args: argparse.Namespace) -> int:
 
 def cmd_rules(args: argparse.Namespace) -> int:
     from apiverity.rules.breaking import CATALOG
+    from apiverity.rules.profiles import active_severity, summary
 
+    if getattr(args, "profiles", False):
+        # Listed on request rather than appended to every `rules` run: the
+        # catalogue is sixty-five rows and three more at the bottom is where a
+        # reader stops looking.
+        profiles = [
+            {
+                "profile": name,
+                "fail_on": threshold,
+                "rules_raised": raised,
+                "description": description,
+            }
+            for name, threshold, description, raised in summary()
+        ]
+        _emit(
+            {
+                "tool": "apiverity",
+                "command": "rules",
+                "count": len(profiles),
+                "profiles": profiles,
+            },
+            args.json,
+        )
+        return EXIT_OK
+
+    # Severities as *this run* would apply them, not as the catalogue declares
+    # them. `apiverity rules` is where someone checks what a rule will do
+    # before writing an override; printing the shipped severity while a profile
+    # or a config quietly changes it makes this command the thing that misleads.
+    profile = active_profile()
+    overrides = merged_severity_overrides(None) or {}
     rules = [
-        {"rule_id": rid, "severity": spec.severity.value, "description": spec.description}
+        {
+            "rule_id": rid,
+            "severity": active_severity(rid, spec.severity.value, overrides),
+            "catalog_severity": spec.severity.value,
+            "description": spec.description,
+        }
         for rid, spec in sorted(CATALOG.items())
     ]
-    _emit({"tool": "apiverity", "command": "rules", "count": len(rules), "rules": rules}, args.json)
+    _emit(
+        {
+            "tool": "apiverity",
+            "command": "rules",
+            "count": len(rules),
+            **({"profile": profile} if profile else {}),
+            "rules": rules,
+        },
+        args.json,
+    )
     return EXIT_OK
 
 

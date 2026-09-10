@@ -16,6 +16,7 @@ from apiverity.cli.commands.common import (
     _pair,
     apply_project_suppressions,
     config_setting,
+    fail_on_threshold,
     merged_severity_overrides,
 )
 
@@ -86,7 +87,7 @@ def _exit_for(findings: list[Any]) -> int:
     ERROR and nothing else, so a team adopting the gate on an existing API had
     the documented way to say "report, do not block" and it did nothing.
     """
-    floor = str(config_setting("fail_on", "error")).lower()
+    floor = fail_on_threshold()
     if floor == "never":
         return EXIT_OK
     wanted = {"error": ("ERROR",), "warn": ("ERROR", "WARN")}.get(floor, ("ERROR",))

@@ -271,9 +271,10 @@
     },
     {
       "name": "rules",
-      "summary": "the whole rule catalogue, with severities",
+      "summary": "the whole rule catalogue, with the severities this run would apply",
       "options": [
-        "--json"
+        "--json",
+        "--profiles"
       ]
     },
     {

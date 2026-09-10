@@ -28,6 +28,7 @@ from apiverity.cli.commands.common import (
     EXIT_OK,
     load_project_config,
     set_allow_remote_refs,
+    set_profile,
     set_spec_format,
 )
 from apiverity.cli.commands.governance import (
@@ -62,6 +63,7 @@ from apiverity.cli.commands.testing import (
     cmd_test,
     cmd_workflow,
 )
+from apiverity.rules.profiles import PROFILES
 from apiverity.runtime.mcp_lock import DEFAULT_KEY_ENV, DEFAULT_LOCK_NAME
 from apiverity.specs.loader import SPEC_FORMATS
 
@@ -104,6 +106,15 @@ __all__ = [
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="apiverity", description=__doc__)
     parser.add_argument("--version", action="version", version=f"apiverity {__version__}")
+    parser.add_argument(
+        "--profile",
+        choices=list(PROFILES),
+        help=(
+            "severity profile: a starting position every other setting overrides. "
+            "`strict` raises every WARN in the catalogue to ERROR; `balanced` is the "
+            "catalogue as shipped; `advisory` reports without blocking"
+        ),
+    )
     parser.add_argument(
         "--config",
         metavar="PATH",
@@ -721,7 +732,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_explain)
     p = sub.add_parser(
         "rules",
-        help="the whole rule catalogue, with severities",
+        help="the whole rule catalogue, with the severities this run would apply",
+    )
+    p.add_argument(
+        "--profiles",
+        action="store_true",
+        help="list the severity profiles instead of the rules",
     )
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_rules)
@@ -777,6 +793,7 @@ def main(argv: list[str] | None = None) -> int:
     # means one parse per run and one answer, rather than each command finding
     # its own -- which is how two commands come to disagree about which file
     # governs a directory.
+    set_profile(getattr(args, "profile", None))
     load_project_config(
         getattr(args, "project_config", None),
         disabled=bool(getattr(args, "no_config", False)),

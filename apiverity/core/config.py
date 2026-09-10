@@ -35,7 +35,16 @@ CONFIG_SCHEMA_VERSION = 1
 
 DEFAULT_CONFIG_NAME = ".apiverity.yaml"
 
+#: Where a run lands when neither the config nor a profile states a threshold.
+DEFAULT_FAIL_ON = "error"
+
 _SEVERITIES = ("ERROR", "WARN", "INFO")
+
+#: Imported by name rather than from `rules.profiles`, because `core` must not
+#: depend on `rules`: the config schema is generated from this module and the
+#: generator would then pull the whole rule catalogue in to describe one enum.
+#: `tests/unit/test_severity_profiles.py` fails if the two lists diverge.
+_PROFILES = ("strict", "balanced", "advisory")
 
 
 @dataclass
@@ -45,10 +54,20 @@ class Config:
     version: int = CONFIG_SCHEMA_VERSION
     #: Glob patterns naming this project's contracts.
     contracts: list[str] = field(default_factory=list)
+    #: One of `strict` / `balanced` / `advisory`, or None for the shipped
+    #: defaults. A starting position, under everything below it: nobody writes
+    #: sixty-five overrides, so without a name for the position they want, a
+    #: team either accepts the defaults or turns the gate off.
+    profile: str | None = None
     #: Rule id -> severity, the persistent form of `--severity-override`.
     severity_overrides: dict[str, str] = field(default_factory=dict)
     #: Lowest severity that fails a run: error | warn | never.
-    fail_on: str = "error"
+    #:
+    #: None means the file did not say, which is not the same as saying
+    #: `error`: a profile supplies the threshold when nothing states one, and a
+    #: default stored here would silently outrank it. `DEFAULT_FAIL_ON` is what
+    #: a run falls back to when neither speaks.
+    fail_on: str | None = None
     #: Path to a suppressions file, if the project keeps one.
     suppressions: str | None = None
     #: Whether `breaking` should check the version bump by default.
@@ -61,9 +80,11 @@ class Config:
         out: dict[str, Any] = {"version": self.version}
         if self.contracts:
             out["contracts"] = self.contracts
+        if self.profile:
+            out["profile"] = self.profile
         if self.severity_overrides:
             out["severity_overrides"] = self.severity_overrides
-        if self.fail_on != "error":
+        if self.fail_on:
             out["fail_on"] = self.fail_on
         if self.suppressions:
             out["suppressions"] = self.suppressions
@@ -86,6 +107,10 @@ FIELDS: dict[str, tuple[dict[str, Any], str]] = {
     "contracts": (
         {"type": "array", "items": {"type": "string"}},
         "Glob patterns naming this project's contracts, e.g. ['api/**/*.yaml'].",
+    ),
+    "profile": (
+        {"type": "string", "enum": list(_PROFILES)},
+        "Severity profile: a starting position that every other setting overrides.",
     ),
     "severity_overrides": (
         {
@@ -232,6 +257,7 @@ def _validate(raw: dict[str, Any], path: str) -> list[Finding]:
         ("contracts", list),
         ("check_semver", bool),
         ("suggest_version", bool),
+        ("profile", str),
         ("suppressions", str),
     ):
         value = raw.get(key)
@@ -265,7 +291,8 @@ def load_config(path: str | Path) -> tuple[Config, list[Finding]]:
         severity_overrides={
             str(k): str(v).upper() for k, v in (raw.get("severity_overrides") or {}).items()
         },
-        fail_on=str(raw.get("fail_on", "error")),
+        fail_on=(str(raw["fail_on"]) if raw.get("fail_on") is not None else None),
+        profile=raw.get("profile"),
         suppressions=raw.get("suppressions"),
         check_semver=bool(raw.get("check_semver", False)),
         suggest_version=bool(raw.get("suggest_version", False)),
@@ -291,6 +318,7 @@ def find_config(start: Path | None = None) -> Path | None:
 __all__ = [
     "CONFIG_SCHEMA_VERSION",
     "DEFAULT_CONFIG_NAME",
+    "DEFAULT_FAIL_ON",
     "Config",
     "ConfigError",
     "find_config",

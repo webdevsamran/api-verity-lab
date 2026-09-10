@@ -125,4 +125,16 @@ Only changes the shared engine cannot already see are listed here. A removed too
 | `BRK-ONEOF-WIDENED` | INFO | A protobuf field moved out of a oneof; no existing sender can notice. | Nothing to do: no existing sender can observe the difference. |
 | `BRK-RESERVATION-REMOVED` | WARN | A protobuf field number is no longer reserved and can be reused by mistake. | Put the reservation back. It exists to stop a retired number being reused, and removing it re-opens exactly that. |
 
+## Severity profiles
+
+Nobody writes sixty-five overrides. A profile is a starting position that every other setting -- the config's own `severity_overrides`, and `--severity-override` on the command line -- takes precedence over. It sets both the severities and the threshold that fails a run, because either half alone is already expressible with `fail_on`, which would leave the name meaning nothing.
+
+Profiles cover this catalogue only. Security-lint, drift, MCP-conformance and loader findings are not in it and are unaffected by any of them.
+
+| Profile | Fails on | Rules raised | What it means |
+|---|---|---|---|
+| `strict` | `error` | 21 | Anything that might break a consumer blocks: every WARN in the catalogue is raised to ERROR. |
+| `balanced` | `error` | 0 | The catalogue as shipped. Definite breakage blocks; everything else reports. |
+| `advisory` | `never` | 0 | Nothing blocks. Every finding is still reported, at its catalogue severity. |
+
 _65 rules, each with a non-breaking alternative._

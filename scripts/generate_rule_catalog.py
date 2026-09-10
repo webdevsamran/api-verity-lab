@@ -19,6 +19,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 from apiverity.rules.alternatives import ALTERNATIVES
 from apiverity.rules.breaking import CATALOG, RuleSpec
+from apiverity.rules.profiles import summary as profile_summary
 
 _HEADER = """\
 # Breaking-Rule Catalog
@@ -114,6 +115,24 @@ def render() -> str:
         out.append("|---|---|---|---|")
         out.extend(_row(spec) for spec in remaining.values())
         out.append("")
+    out.append("## Severity profiles\n")
+    out.append(
+        "Nobody writes sixty-five overrides. A profile is a starting position that "
+        "every other setting -- the config's own `severity_overrides`, and "
+        "`--severity-override` on the command line -- takes precedence over. It sets "
+        "both the severities and the threshold that fails a run, because either half "
+        "alone is already expressible with `fail_on`, which would leave the name "
+        "meaning nothing.\n"
+    )
+    out.append(
+        "Profiles cover this catalogue only. Security-lint, drift, MCP-conformance "
+        "and loader findings are not in it and are unaffected by any of them.\n"
+    )
+    out.append("| Profile | Fails on | Rules raised | What it means |")
+    out.append("|---|---|---|---|")
+    for name, threshold, description, raised in profile_summary():
+        out.append(f"| `{name}` | `{threshold}` | {raised} | {description} |")
+    out.append("")
     out.append(f"_{len(CATALOG)} rules, each with a non-breaking alternative._\n")
     return "\n".join(out)
 

@@ -139,11 +139,20 @@ single run:
 
 ```yaml
 version: 1
+profile: balanced       # strict | balanced | advisory
 fail_on: never          # report without blocking, while adopting the gate
 severity_overrides:
   BRK-DEPRECATION-ADDED: INFO
 suppressions: .apiverity-suppressions.json
 ```
+
+`profile` is a starting position; everything else in the file, and every flag
+on the command line, takes precedence over it. `strict` raises every WARN in
+the catalogue to ERROR, `balanced` is the catalogue as shipped, and `advisory`
+reports without blocking. `apiverity rules --profiles` prints the three and
+what each one does; `apiverity rules` prints every rule at the severity *this*
+run would apply, not the shipped one. The table is generated into
+[the rule catalogue](rule-catalog.md#severity-profiles).
 
 `fail_on` takes `error` (the default), `warn`, or `never`. A gate that fails on
 its first run against an API that already has history gets removed rather than

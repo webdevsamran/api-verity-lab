@@ -17,7 +17,9 @@ from apiverity.cli.commands.common import (
     NL,
     _emit,
     _load,
+    active_profile,
     config_setting,
+    fail_on_threshold,
     set_last_contract,
     set_last_seed,
     set_last_target,
@@ -46,7 +48,7 @@ def _gate(findings: list[Any]) -> int:
     now, so a team adopting the gate on an existing API had the documented way
     to say "report, do not block" and it did nothing.
     """
-    floor = str(config_setting("fail_on", "")).lower()
+    floor = fail_on_threshold() if (config_setting("fail_on") or active_profile()) else ""
     if floor == "never":
         return EXIT_OK
     gating = {"error": frozenset({"ERROR"})}.get(floor, _GATING)
