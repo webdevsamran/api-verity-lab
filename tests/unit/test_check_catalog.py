@@ -1,4 +1,4 @@
-"""The security rules were reachable, undocumented, and unexplainable.
+"""The non-breaking rules were reachable, undocumented, and unexplainable.
 
 `apiverity explain BRK-RESP-FIELD-REMOVED` has worked since the breaking rules
 got a catalogue. `apiverity explain SEC-CORS-WILDCARD` answered *"no rule with
@@ -22,23 +22,26 @@ from pathlib import Path
 from typing import Any
 
 from apiverity.cli.main import main
-from apiverity.security.catalog import SECURITY_CATALOG, spec_for
+from apiverity.rules.check_catalog import catalog
+from apiverity.security.catalog import spec_for
+
+SECURITY_CATALOG = catalog()
 
 _ROOT = Path(__file__).resolve().parents[2]
 _PACKAGE = _ROOT / "apiverity"
-_DOC = _ROOT / "docs" / "security-rules.md"
+_DOC = _ROOT / "docs" / "check-rules.md"
 
 #: `rule_id="SEC-..."` anywhere in the package, which is how every one of these
 #: is constructed. Read from the source rather than by running every check,
 #: because a check that needs a live server to fire would otherwise be invisible
 #: to this test and its rule would be the one that goes missing.
-_EMITTED = re.compile(r'rule_id=(?:")(SEC-[A-Z0-9-]+)(?:")')
+_EMITTED = re.compile(r'rule_id=(?:")((?:SEC|LIFECYCLE)-[A-Z0-9-]+)(?:")')
 
 
 def _emitted_ids() -> set[str]:
     found: set[str] = set()
     for path in _PACKAGE.rglob("*.py"):
-        if path.name == "catalog.py" and path.parent.name == "security":
+        if path.name in {"catalog.py", "check_catalog.py", "lifecycle_catalog.py"}:
             continue
         found.update(_EMITTED.findall(path.read_text(encoding="utf-8")))
     return found
@@ -122,7 +125,7 @@ def test_explain_says_which_command_produces_it() -> None:
 def test_explain_groups_a_security_rule_with_its_family() -> None:
     _code, payload = _run(["--no-config", "explain", "SEC-SCOPE-BROAD", "--json"])
     assert payload["group"].startswith("Security")
-    assert payload["documentation"] == "docs/security-rules.md"
+    assert payload["documentation"] == "docs/check-rules.md"
 
 
 def test_a_typo_suggests_a_security_rule() -> None:
@@ -144,8 +147,8 @@ def test_a_typo_suggests_a_security_rule() -> None:
 def test_the_generated_document_lists_every_rule() -> None:
     text = _DOC.read_text(encoding="utf-8")
     for rule_id in SECURITY_CATALOG:
-        assert f"`{rule_id}`" in text, f"{rule_id} is missing from docs/security-rules.md"
-    assert f"_{len(SECURITY_CATALOG)} security rules._" in text
+        assert f"`{rule_id}`" in text, f"{rule_id} is missing from docs/check-rules.md"
+    assert f"_{len(SECURITY_CATALOG)} check rules._" in text
 
 
 def test_the_document_is_not_stale() -> None:
@@ -153,7 +156,7 @@ def test_the_document_is_not_stale() -> None:
     import sys
 
     result = subprocess.run(
-        [sys.executable, str(_ROOT / "scripts" / "generate_security_rules.py"), "--check"],
+        [sys.executable, str(_ROOT / "scripts" / "generate_check_rules.py"), "--check"],
         capture_output=True,
         text=True,
         cwd=_ROOT,

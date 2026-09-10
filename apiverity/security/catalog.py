@@ -19,37 +19,18 @@ that is published and dead -- the defect this project has now found four times.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from apiverity.core.model import Severity
+from apiverity.rules.check_catalog import CheckRuleSpec
+from apiverity.rules.check_catalog import spec as _spec
+
+#: Kept as an alias so existing imports of `SecurityRuleSpec` keep working.
+#: The shape moved to `rules/check_catalog.py` when the lifecycle checks needed
+#: the same one: two catalogues with two generators and two documents would
+#: drift, and having one is the entire point of having any.
+SecurityRuleSpec = CheckRuleSpec
 
 
-@dataclass(frozen=True)
-class SecurityRuleSpec:
-    """One security rule: what it means, and what to do about it."""
-
-    rule_id: str
-    severity: Severity
-    #: What the finding says, in one line.
-    description: str
-    #: What to do. Not "consider reviewing" -- the specific edit, where there is
-    #: one, and an honest "nothing, this is a note" where there is not.
-    instead: str
-    #: Which command produces it.
-    produced_by: str = "validate"
-
-
-def _spec(
-    rule_id: str,
-    severity: Severity,
-    description: str,
-    instead: str,
-    produced_by: str = "validate",
-) -> tuple[str, SecurityRuleSpec]:
-    return rule_id, SecurityRuleSpec(rule_id, severity, description, instead, produced_by)
-
-
-SECURITY_CATALOG: dict[str, SecurityRuleSpec] = dict(
+SECURITY_CATALOG: dict[str, CheckRuleSpec] = dict(
     [
         # --- authentication, as the document declares it ------------------
         _spec(
@@ -222,8 +203,16 @@ SECURITY_CATALOG: dict[str, SecurityRuleSpec] = dict(
 )
 
 
-def spec_for(rule_id: str) -> SecurityRuleSpec | None:
-    return SECURITY_CATALOG.get(rule_id)
+def spec_for(rule_id: str) -> CheckRuleSpec | None:
+    """One rule, from any family -- not only the security one.
+
+    A caller looking up `LIFECYCLE-SUNSET-PASSED` here does not care which
+    module defines it, and answering "no such rule" because it belongs to a
+    different table would be the defect this catalogue was built to fix.
+    """
+    from apiverity.rules.check_catalog import catalog
+
+    return catalog().get(rule_id)
 
 
 __all__ = ["SECURITY_CATALOG", "SecurityRuleSpec", "spec_for"]

@@ -99,7 +99,7 @@ Source: <https://owasp.org/API-Security/editions/2023/en/0x11-t10/>, published 2
 | API6 | Unrestricted Access to Sensitive Business Flows | *not assessable* | -- |
 | API7 | Server Side Request Forgery | *not assessable* | -- |
 | API8 | Security Misconfiguration | `SEC-HTTPS-POLICY`<br>`SEC-SENSITIVE-HEADER`<br>`MCP-AUTH-PLAINTEXT-TRANSPORT` | `drift`, `validate` |
-| API9 | Improper Inventory Management | `DRIFT-`<br>`MCP-DRIFT-TOOL-UNDECLARED`<br>`MCP-LOCK-TOOL-ADDED`<br>`BRK-OP-` | `breaking`, `drift`, `mcp-lock` |
+| API9 | Improper Inventory Management | `DRIFT-`<br>`MCP-DRIFT-TOOL-UNDECLARED`<br>`MCP-LOCK-TOOL-ADDED`<br>`BRK-OP-`<br>`LIFECYCLE-` | `breaking`, `drift`, `mcp-lock` |
 | API10 | Unsafe Consumption of APIs | `MCP-DRIFT-`<br>`MCP-CONF-` | `drift` |
 
 ### What this tool cannot see
@@ -114,7 +114,7 @@ Source: <https://owasp.org/API-Security/editions/2023/en/0x11-t10/>, published 2
 - **API3 Broken Object Property Level Authorization** — a response that grew a field, or a schema that accepts any property, is where over-exposure hides. Whether a returned field should have been visible to that caller is not something the contract states
 - **API4 Unrestricted Resource Consumption** — undeclared limits from the contract -- an array a caller can send with no ceiling, a listing with no pagination -- and observed call volume against a declared budget. `apiverity regression` measures latency; none of it measures what the service can actually absorb
 - **API5 Broken Function Level Authorization** — a mutating operation with no declared authentication is the documented case, and so is one whose OAuth requirement names no scope or a scope that grants everything -- both make the per-operation declaration decorative
-- **API9 Improper Inventory Management** — this is the control this project is closest to being *about*: an endpoint serving something the contract does not declare, and a tool surface that moved without review
+- **API9 Improper Inventory Management** — this is the control this project is closest to being *about*: an endpoint serving something the contract does not declare, a tool surface that moved without review, and a deprecation with no retirement date -- an inventory problem is usually a version nobody retired
 - **API10 Unsafe Consumption of APIs** — consuming an MCP server whose behaviour has diverged from its manifest is exactly this risk, from the consumer's side
 
 ## How a rendered report grades a control

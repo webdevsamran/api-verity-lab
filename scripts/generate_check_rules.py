@@ -1,9 +1,11 @@
-"""Render docs/security-rules.md from `apiverity/security/catalog.py`.
+"""Render docs/check-rules.md from the merged check catalogue.
 
 Generated for the same reason `docs/rule-catalog.md` is: a hand-written list of
-twenty-two rule ids drifts, and the version that drifts is the one people
-configure `--severity-override` from. Run after editing the catalogue;
-`--check` fails when the committed file is stale.
+rule ids drifts, and the version that drifts is the one people configure
+`--severity-override` from. One document rather than one per family, because
+two documents with two generators drift from each other as well as from the
+code. Run after editing a catalogue; `--check` fails when the committed file
+is stale.
 """
 
 from __future__ import annotations
@@ -13,20 +15,26 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
-from apiverity.security.catalog import SECURITY_CATALOG
+from apiverity.rules.check_catalog import catalog
+
+SECURITY_CATALOG = catalog()
 
 NL = chr(10)
 
-_HEADER = """# Security rules
+_HEADER = """# Check rules
 
-Static checks over a normalized contract, run by `apiverity validate`. Every one
-is addressable: `apiverity explain SEC-APIKEY-IN-QUERY` prints what it means,
-what to ship instead, and the exact `--severity-override` to change it.
+Every rule this tool emits that is not a breaking-change rule. Most are static
+checks over a normalized contract, run by `apiverity validate`; the few that
+need a live service say so in their own row.
 
-This file is generated from `apiverity/security/catalog.py`. A test fails when
-a check emits an id the catalogue does not carry, and when the catalogue
-carries an id nothing emits -- the first is a rule that cannot be explained,
-the second is a rule that is published and dead.
+Each is addressable: `apiverity explain SEC-APIKEY-IN-QUERY` prints what it
+means, what to ship instead, and the exact `--severity-override` to change it.
+
+This file is generated from the catalogues under `apiverity/rules/` and
+`apiverity/security/`. A test fails when a check emits an id no catalogue
+carries, and when a catalogue carries an id nothing emits -- the first is a
+rule that cannot be explained, the second is a rule that is published and
+dead.
 
 These rules are **not** covered by the severity profiles in
 [the rule catalogue](rule-catalog.md#severity-profiles), which act on the
@@ -79,6 +87,19 @@ _GROUPS: list[tuple[str, tuple[str, ...], str]] = [
         ("SEC-ADDL-", "SEC-CORS-", "SEC-HTTPS-"),
         "",
     ),
+    (
+        "Lifecycle",
+        ("LIFECYCLE-",),
+        "Deprecation with a date attached, or without one. `deprecated: true` is the "
+        "whole of what OpenAPI says about retiring an operation -- no date, no migration "
+        "target, no obligation -- so a contract can be deprecating something for six "
+        "years and look identical on the day it is switched off. Dates and header shapes "
+        "are checked against [RFC 9745](https://www.rfc-editor.org/rfc/rfc9745.html) "
+        "(`Deprecation`, Standards Track, March 2025) and "
+        "[RFC 8594](https://www.rfc-editor.org/rfc/rfc8594.html) (`Sunset`, "
+        "Informational, May 2019), which use different date formats -- which is itself "
+        "one of the checks.",
+    ),
 ]
 
 
@@ -120,12 +141,12 @@ def render() -> str:
                 f"| {_cell(spec.description)} | {_cell(spec.instead)} |"
             )
         out.append("")
-    out.append(f"_{len(SECURITY_CATALOG)} security rules._{NL}")
+    out.append(f"_{len(SECURITY_CATALOG)} check rules._{NL}")
     return NL.join(out)
 
 
 def main() -> int:
-    target = pathlib.Path(__file__).resolve().parents[1] / "docs" / "security-rules.md"
+    target = pathlib.Path(__file__).resolve().parents[1] / "docs" / "check-rules.md"
     rendered = render()
     previous = target.read_text(encoding="utf-8") if target.is_file() else None
     if previous == rendered:
@@ -133,7 +154,7 @@ def main() -> int:
         return 0
     if "--check" in sys.argv:
         print(
-            "error: docs/security-rules.md is stale; run scripts/generate_security_rules.py",
+            "error: docs/security-rules.md is stale; run scripts/generate_check_rules.py",
             file=sys.stderr,
         )
         return 1

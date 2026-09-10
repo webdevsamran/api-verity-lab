@@ -57,11 +57,13 @@ jobs:
         # rots, and this is the last file to leave to memory.
         run: python scripts/generate_capability_manifest.py --check
 
-      - name: Security rule doc matches the catalogue
-        # Twenty-two SEC-* rules were reachable, documented nowhere, and denied
-        # by `apiverity explain`. They have a catalogue now, and this keeps the
-        # published list from drifting away from the rules that actually fire.
-        run: python scripts/generate_security_rules.py --check
+      - name: Check-rule doc matches the catalogues
+        # Every rule that is not a breaking-change rule. Twenty-two SEC-* ones
+        # were reachable, documented nowhere and denied by `apiverity explain`;
+        # the LIFECYCLE-* family joined the same table rather than starting a
+        # second one. This keeps the published list from drifting away from the
+        # rules that actually fire.
+        run: python scripts/generate_check_rules.py --check
 
       - name: Compliance mapping doc matches the code
         # The OWASP control -> rule mapping is published in

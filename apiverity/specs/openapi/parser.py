@@ -842,6 +842,11 @@ class OpenApiParser:
                         responses=responses,
                         security=op_security,
                         examples=self._to_examples(doc, op_node, op_pointer),
+                        extensions={
+                            k: v
+                            for k, v in op_node.items()
+                            if isinstance(k, str) and k.startswith("x-")
+                        },
                         source_location=self._loc(op_pointer, op_node),
                     )
                 )

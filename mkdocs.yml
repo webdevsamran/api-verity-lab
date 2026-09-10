@@ -34,7 +34,7 @@ nav:
   - Roadmap: roadmap.md
   - Reference:
       - Rule catalog: rule-catalog.md
-      - Security rules: security-rules.md
+      - Check rules: check-rules.md
       - Spec support: spec-support.md
       - Protocol support: protocol-support.md
       - Exit codes: exit-codes.md

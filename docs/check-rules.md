@@ -1,13 +1,17 @@
-# Security rules
+# Check rules
 
-Static checks over a normalized contract, run by `apiverity validate`. Every one
-is addressable: `apiverity explain SEC-APIKEY-IN-QUERY` prints what it means,
-what to ship instead, and the exact `--severity-override` to change it.
+Every rule this tool emits that is not a breaking-change rule. Most are static
+checks over a normalized contract, run by `apiverity validate`; the few that
+need a live service say so in their own row.
 
-This file is generated from `apiverity/security/catalog.py`. A test fails when
-a check emits an id the catalogue does not carry, and when the catalogue
-carries an id nothing emits -- the first is a rule that cannot be explained,
-the second is a rule that is published and dead.
+Each is addressable: `apiverity explain SEC-APIKEY-IN-QUERY` prints what it
+means, what to ship instead, and the exact `--severity-override` to change it.
+
+This file is generated from the catalogues under `apiverity/rules/` and
+`apiverity/security/`. A test fails when a check emits an id no catalogue
+carries, and when a catalogue carries an id nothing emits -- the first is a
+rule that cannot be explained, the second is a rule that is published and
+dead.
 
 These rules are **not** covered by the severity profiles in
 [the rule catalogue](rule-catalog.md#severity-profiles), which act on the
@@ -69,10 +73,23 @@ Limits the contract does not declare. Unbounded *strings* are deliberately not c
 | `SEC-CORS-WILDCARD` | WARN | `validate` | A wildcard CORS origin is declared. | Name the origins. `*` cannot be combined with credentials, and where it is combined anyway the browser is the only thing enforcing the difference. |
 | `SEC-HTTPS-POLICY` | WARN | `validate` | A server URL uses plain HTTP. | Use HTTPS. A localhost URL is exempt; anything else puts the credential and the payload on the wire in the clear. |
 
+## Lifecycle
+
+Deprecation with a date attached, or without one. `deprecated: true` is the whole of what OpenAPI says about retiring an operation -- no date, no migration target, no obligation -- so a contract can be deprecating something for six years and look identical on the day it is switched off. Dates and header shapes are checked against [RFC 9745](https://www.rfc-editor.org/rfc/rfc9745.html) (`Deprecation`, Standards Track, March 2025) and [RFC 8594](https://www.rfc-editor.org/rfc/rfc8594.html) (`Sunset`, Informational, May 2019), which use different date formats -- which is itself one of the checks.
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `LIFECYCLE-DEPRECATED-NO-GUIDANCE` | INFO | `validate` | A deprecated operation points nowhere. | Say what to call instead, in the description or through the `deprecation` link relation RFC 9745 defines. A caller who reads the flag still has to work out the replacement, and will guess. |
+| `LIFECYCLE-DEPRECATED-NO-SUNSET` | WARN | `validate` | An operation is deprecated and names no retirement date. | Declare a `Sunset` response header (RFC 8594) or an `x-sunset` date. `deprecated: true` carries no date, so a caller cannot tell a deprecation that ends next quarter from one that has been open for six years. |
+| `LIFECYCLE-HEADER-SHAPE` | WARN | `validate` | A `Sunset` or `Deprecation` header is declared in a shape its RFC does not define. | `Sunset` is an HTTP-date (`Sat, 31 Dec 2018 23:59:59 GMT`, RFC 8594); `Deprecation` is a structured-field Date (`@1688169599`, RFC 9745). Neither is `format: date-time`, and a client generated from that parses a shape the server does not send. |
+| `LIFECYCLE-SUNSET-BEFORE-DEPRECATION` | ERROR | `validate` | The retirement date is earlier than the deprecation date. | Fix the dates. RFC 9745 states a `Sunset` timestamp MUST NOT be earlier than the `Deprecation` one: a resource cannot be withdrawn before it was deprecated. |
+| `LIFECYCLE-SUNSET-PASSED` | ERROR | `validate` | A declared sunset date has passed and the operation is still here. | Remove the operation, or move the date to one the team still means. A retirement date nobody enforces teaches callers to ignore the next one. |
+| `LIFECYCLE-SUNSET-WITHOUT-DEPRECATION` | WARN | `validate` | An operation declares a retirement date and is not marked deprecated. | Mark it `deprecated: true`. The contract is currently retiring something it never told anyone to stop using. |
+
 ## Other
 
 | Rule | Severity | Produced by | Fires when | Instead |
 |---|---|---|---|---|
 | `SEC-UNAUTH-WRITE` | WARN | `validate` | A mutating operation has no authentication declaration. | Same edit as SEC-AUTH-MISSING, and more urgent: a POST or DELETE that a reader cannot tell is protected is one nobody will audit. |
 
-_22 security rules._
+_28 check rules._

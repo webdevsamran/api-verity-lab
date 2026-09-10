@@ -305,6 +305,14 @@ class Operation(BaseModel):
     responses: list[Response] = Field(default_factory=list)
     security: list[SecurityRequirement] | None = None  # None = inherit global
     examples: list[Example] = Field(default_factory=list)
+    #: `x-*` keys the document carried on this operation, verbatim.
+    #:
+    #: Kept because a contract says things the specification has no field for,
+    #: and dropping them means a check cannot see what the author wrote down.
+    #: `x-sunset` is the case that forced it: a deprecation with a retirement
+    #: date is a plan, one without is an intention, and only the extension
+    #: distinguishes them.
+    extensions: dict[str, Any] = Field(default_factory=dict)
     # gRPC streaming. Captured because changing either of these changes the
     # wire protocol: a client generated against a unary RPC cannot call a
     # streaming one, so the two are not the same method with a new shape --

@@ -176,19 +176,20 @@ _RULE_GUIDE: tuple[tuple[str, str, str], ...] = (
     ("BRK-FIELD-", "Protocol buffers", "docs/rule-catalog.md"),
     ("BRK-ONEOF-", "Protocol buffers", "docs/rule-catalog.md"),
     ("BRK-RESERVATION-", "Protocol buffers", "docs/rule-catalog.md"),
-    ("SEC-SCOPE-", "Security: authorization scope", "docs/security-rules.md"),
-    ("SEC-AUTH-", "Security: authentication", "docs/security-rules.md"),
-    ("SEC-SCHEME-", "Security: authentication", "docs/security-rules.md"),
-    ("SEC-NO-AUTH-", "Security: authentication", "docs/security-rules.md"),
-    ("SEC-APIKEY-", "Security: credentials", "docs/security-rules.md"),
-    ("SEC-BASIC-", "Security: credentials", "docs/security-rules.md"),
-    ("SEC-SECRET-", "Security: credentials", "docs/security-rules.md"),
-    ("SEC-RESPONSE-CREDENTIAL", "Security: credentials", "docs/security-rules.md"),
-    ("SEC-SENSITIVE-", "Security: credentials", "docs/security-rules.md"),
-    ("SEC-ARRAY-", "Security: resource consumption", "docs/security-rules.md"),
-    ("SEC-COLLECTION-", "Security: resource consumption", "docs/security-rules.md"),
-    ("SEC-RATE-LIMIT-", "Security: resource consumption", "docs/security-rules.md"),
-    ("SEC-", "Security: shape and transport", "docs/security-rules.md"),
+    ("SEC-SCOPE-", "Security: authorization scope", "docs/check-rules.md"),
+    ("SEC-AUTH-", "Security: authentication", "docs/check-rules.md"),
+    ("SEC-SCHEME-", "Security: authentication", "docs/check-rules.md"),
+    ("SEC-NO-AUTH-", "Security: authentication", "docs/check-rules.md"),
+    ("SEC-APIKEY-", "Security: credentials", "docs/check-rules.md"),
+    ("SEC-BASIC-", "Security: credentials", "docs/check-rules.md"),
+    ("SEC-SECRET-", "Security: credentials", "docs/check-rules.md"),
+    ("SEC-RESPONSE-CREDENTIAL", "Security: credentials", "docs/check-rules.md"),
+    ("SEC-SENSITIVE-", "Security: credentials", "docs/check-rules.md"),
+    ("SEC-ARRAY-", "Security: resource consumption", "docs/check-rules.md"),
+    ("SEC-COLLECTION-", "Security: resource consumption", "docs/check-rules.md"),
+    ("SEC-RATE-LIMIT-", "Security: resource consumption", "docs/check-rules.md"),
+    ("SEC-", "Security: shape and transport", "docs/check-rules.md"),
+    ("LIFECYCLE-", "Lifecycle", "docs/check-rules.md"),
     ("SEMVER-", "Semantic versioning", "docs/rule-catalog.md"),
     ("MCP-DRIFT-", "MCP runtime drift", "docs/mcp-drift.md"),
     ("MCP-CONF-", "MCP conformance", "docs/mcp-drift.md"),
@@ -219,7 +220,7 @@ def cmd_explain(args: argparse.Namespace) -> int:
     """Explain one rule: what it means, why, and how to change its severity."""
     from apiverity.rules.alternatives import ALTERNATIVES
     from apiverity.rules.breaking import CATALOG
-    from apiverity.security.catalog import SECURITY_CATALOG
+    from apiverity.rules.check_catalog import catalog as check_catalog
 
     rule_id = str(args.rule_id).strip().upper()
     spec = CATALOG.get(rule_id)
@@ -227,7 +228,10 @@ def cmd_explain(args: argparse.Namespace) -> int:
         # Twenty-two security rules were reachable, emitted by real runs, and
         # answered here with "no rule with id ..." -- in the command that exists
         # because a rule nobody understands gets suppressed rather than fixed.
-        security = SECURITY_CATALOG.get(rule_id)
+        # The lifecycle rules joined the same table rather than starting a
+        # second one.
+        checks = check_catalog()
+        security = checks.get(rule_id)
         if security is not None:
             group, where = _guide_for(rule_id)
             _emit(
@@ -267,7 +271,7 @@ def cmd_explain(args: argparse.Namespace) -> int:
             )
             return EXIT_OK
         suggestions = _did_you_mean(
-            rule_id, sorted(CATALOG) + sorted(ALTERNATIVES) + sorted(SECURITY_CATALOG)
+            rule_id, sorted(CATALOG) + sorted(ALTERNATIVES) + sorted(checks)
         )
         print(f"error: no rule with id {rule_id!r}", file=sys.stderr)
         if suggestions:

@@ -422,11 +422,18 @@ API_TOP_10 = Framework(
         Control(
             "API9",
             "Improper Inventory Management",
-            rules=("DRIFT-", "MCP-DRIFT-TOOL-UNDECLARED", "MCP-LOCK-TOOL-ADDED", "BRK-OP-"),
+            rules=(
+                "DRIFT-",
+                "MCP-DRIFT-TOOL-UNDECLARED",
+                "MCP-LOCK-TOOL-ADDED",
+                "BRK-OP-",
+                "LIFECYCLE-",
+            ),
             caveat=(
                 "this is the control this project is closest to being *about*: an endpoint "
-                "serving something the contract does not declare, and a tool surface that "
-                "moved without review"
+                "serving something the contract does not declare, a tool surface that moved "
+                "without review, and a deprecation with no retirement date -- an inventory "
+                "problem is usually a version nobody retired"
             ),
         ),
         Control(
