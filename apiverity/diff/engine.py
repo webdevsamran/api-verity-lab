@@ -270,6 +270,9 @@ class DiffEngine:
         if old.kind == OperationKind.MCP_TOOL and new.kind == OperationKind.MCP_TOOL:
             self._diff_mcp_tool(old, new, key)
 
+        if old.kind == OperationKind.SOAP_OPERATION and new.kind == OperationKind.SOAP_OPERATION:
+            self._diff_soap_operation(old, new, key)
+
         old_examples = {e.name: e.value for e in old.examples}
         new_examples = {e.name: e.value for e in new.examples}
         if old_examples != new_examples:
@@ -280,6 +283,64 @@ class DiffEngine:
                 f"examples changed for '{key}'",
                 old_value=sorted(old_examples),
                 new_value=sorted(new_examples),
+            )
+
+    def _diff_soap_operation(self, old: Operation, new: Operation, key: str) -> None:
+        """The three SOAP facts no schema rule can see.
+
+        A WSDL says more about how to call an operation than its message
+        schemas do, and the extra part is carried in `Operation.bindings`
+        rather than in the shared surface -- so without this, two contracts
+        whose every schema matched would diff clean while no existing client
+        could call either one.
+
+        `SOAPAction` is the case that forced it: it is an HTTP header, ESBs and
+        API gateways route on it, and changing it is a one-word edit that
+        leaves the entire body identical.
+        """
+        old_soap = old.bindings.get("soap") or {}
+        new_soap = new.bindings.get("soap") or {}
+        if not isinstance(old_soap, dict) or not isinstance(new_soap, dict):
+            return
+
+        before, after = old_soap.get("soap_action"), new_soap.get("soap_action")
+        if before != after and (before or after):
+            self._add(
+                ChangeKind.SOAP_ACTION_CHANGED,
+                key,
+                "meta",
+                f"SOAPAction for '{key}' changed from {before or '(none)'!r} to "
+                f"{after or '(none)'!r}",
+                old_value=before,
+                new_value=after,
+                old_location=old.source_location,
+                new_location=new.source_location,
+            )
+
+        if old_soap.get("style") != new_soap.get("style"):
+            self._add(
+                ChangeKind.SOAP_STYLE_CHANGED,
+                key,
+                "request",
+                f"binding style for '{key}' changed from {old_soap.get('style')!r} to "
+                f"{new_soap.get('style')!r}",
+                old_value=old_soap.get("style"),
+                new_value=new_soap.get("style"),
+                old_location=old.source_location,
+                new_location=new.source_location,
+            )
+
+        if old_soap.get("soap_version") != new_soap.get("soap_version"):
+            self._add(
+                ChangeKind.SOAP_VERSION_CHANGED,
+                key,
+                "meta",
+                f"SOAP version for '{key}' changed from {old_soap.get('soap_version')!r} to "
+                f"{new_soap.get('soap_version')!r}",
+                old_value=old_soap.get("soap_version"),
+                new_value=new_soap.get("soap_version"),
+                old_location=old.source_location,
+                new_location=new.source_location,
             )
 
     def _diff_mcp_manifest(self) -> None:

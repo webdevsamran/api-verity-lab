@@ -66,7 +66,8 @@
         "asyncapi",
         "sse",
         "websocket",
-        "mcp"
+        "mcp",
+        "soap"
       ],
       "description": "Every member of apiverity.core.model.Protocol, in declaration order. Adding a protocol to that enum without adding it here makes `validate --json` emit an artifact that violates this schema; tests/unit/test_result_schema_matches_protocols.py binds the two so the omission fails the build instead of shipping."
     },

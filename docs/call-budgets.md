@@ -10,7 +10,7 @@ apiverity budget traffic.har --budget budgets.yaml --spec openapi.yaml
 The most-cited worry about agent traffic is not that an agent calls the wrong
 endpoint — it is that it calls the right one ten thousand times.
 
-No contract in any of the six formats this engine reads has a field for how
+No contract in any of the seven formats this engine reads has a field for how
 often anything may be called. A rate limit lives in a gateway config, if it
 exists at all, and the contract an agent was generated from is silent about it.
 A budget file is that missing declaration, and this command checks observed

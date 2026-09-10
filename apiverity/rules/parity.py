@@ -1,7 +1,7 @@
 """Which rules can fire for which protocol, found by making them fire.
 
-The catalogue has sixty-five rules and the tool speaks six formats, and nothing
-told a GraphQL user which of the sixty-five could ever apply to them. The
+The catalogue has sixty-eight rules and the tool speaks seven formats, and nothing
+told a GraphQL user which of the sixty-eight could ever apply to them. The
 obvious way to answer that is a hand-written table, which is the one answer this
 project will not accept: a matrix asserting coverage it does not have is worse
 than no matrix, because it is quoted.
@@ -541,6 +541,35 @@ def _add_a_required_request_body(service: Service) -> None:
             return
 
 
+def _soap_binding(op: Any) -> dict[str, Any] | None:
+    binding = op.bindings.get("soap")
+    return binding if isinstance(binding, dict) else None
+
+
+def _change_the_soap_action(service: Service) -> None:
+    for op in service.operations:
+        binding = _soap_binding(op)
+        if binding is not None and binding.get("soap_action"):
+            binding["soap_action"] = f"{binding['soap_action']}/v2"
+            return
+
+
+def _change_the_binding_style(service: Service) -> None:
+    for op in service.operations:
+        binding = _soap_binding(op)
+        if binding is not None and binding.get("style"):
+            binding["style"] = "rpc" if binding["style"] != "rpc" else "document"
+            return
+
+
+def _change_the_soap_version(service: Service) -> None:
+    for op in service.operations:
+        binding = _soap_binding(op)
+        if binding is not None and binding.get("soap_version"):
+            binding["soap_version"] = "1.2" if binding["soap_version"] != "1.2" else "1.1"
+            return
+
+
 MUTATIONS: tuple[Mutation, ...] = (
     Mutation("remove an operation", _remove_operation, "an endpoint or RPC is deleted"),
     Mutation("deprecate an operation", _deprecate_operation, "an endpoint is marked deprecated"),
@@ -640,6 +669,13 @@ MUTATIONS: tuple[Mutation, ...] = (
         _add_a_required_request_body,
         "an endpoint that took nothing now needs a body",
     ),
+    Mutation(
+        "change the SOAPAction",
+        _change_the_soap_action,
+        "the header a gateway routes on, with every schema untouched",
+    ),
+    Mutation("change the binding style", _change_the_binding_style, "document becomes rpc"),
+    Mutation("change the SOAP version", _change_the_soap_version, "1.1 becomes 1.2"),
     Mutation("bump the version", _bump_version, "a release, with nothing else changed"),
 )
 

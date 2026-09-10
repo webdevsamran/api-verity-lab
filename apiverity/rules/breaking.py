@@ -362,6 +362,24 @@ CATALOG: dict[str, RuleSpec] = {
             "One side is a single page of a paginated tools/list. Every tool past the "
             "page boundary reads as removed, so the whole comparison is unsound.",
         ),
+        RuleSpec(
+            "BRK-SOAP-ACTION-CHANGED",
+            Severity.ERROR,
+            "The SOAPAction header changed. Gateways and ESBs route on it and generated "
+            "stubs send the old one, with an unchanged body that now reaches nothing.",
+        ),
+        RuleSpec(
+            "BRK-SOAP-STYLE-CHANGED",
+            Severity.ERROR,
+            "A binding moved between document and rpc style, which changes how the body "
+            "is wrapped; every existing client serializes it the old way.",
+        ),
+        RuleSpec(
+            "BRK-SOAP-VERSION-CHANGED",
+            Severity.ERROR,
+            "A port moved between SOAP 1.1 and 1.2. The envelope namespace and the "
+            "Content-Type both change, so a 1.1 client gets a 415 rather than a fault.",
+        ),
     ]
 }
 
@@ -493,6 +511,14 @@ class BreakingEngine:
             if annotation_rule is None:
                 return []
             return [self._finding(annotation_rule, change, change.description)]
+
+        # --- SOAP ----------------------------------------------------------
+        if kind == ChangeKind.SOAP_ACTION_CHANGED:
+            return [self._finding("BRK-SOAP-ACTION-CHANGED", change, change.description)]
+        if kind == ChangeKind.SOAP_STYLE_CHANGED:
+            return [self._finding("BRK-SOAP-STYLE-CHANGED", change, change.description)]
+        if kind == ChangeKind.SOAP_VERSION_CHANGED:
+            return [self._finding("BRK-SOAP-VERSION-CHANGED", change, change.description)]
 
         # --- protobuf ------------------------------------------------------
         if kind == ChangeKind.RPC_STREAMING_CHANGED:

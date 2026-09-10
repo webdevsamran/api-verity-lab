@@ -121,6 +121,22 @@ COMMANDS: list[tuple[str, list[str]]] = [
         "validate (mcp)",
         ["validate", str(FIXTURES / "mcp/tools_v1.json"), "--json"],
     ),
+    # SOAP is the seventh format and the one whose artifacts nobody would have
+    # looked at by hand, which is the whole reason it is here rather than
+    # assumed. `fault:<name>` response statuses go through this path too.
+    (
+        "validate (wsdl)",
+        ["validate", str(FIXTURES / "wsdl/orders-v1.wsdl"), "--json"],
+    ),
+    (
+        "breaking (wsdl)",
+        [
+            "breaking",
+            str(FIXTURES / "wsdl/orders-v1.wsdl"),
+            str(FIXTURES / "wsdl/orders-v2.wsdl"),
+            "--json",
+        ],
+    ),
     (
         "breaking (mcp)",
         [

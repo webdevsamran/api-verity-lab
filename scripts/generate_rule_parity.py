@@ -1,7 +1,7 @@
 """Render docs/rule-parity.md by making the rules fire.
 
-The catalogue has sixty-five rules and the tool speaks six formats, and nothing
-told a GraphQL user which of the sixty-five could apply to them. The obvious
+The catalogue has sixty-eight rules and the tool speaks seven formats, and nothing
+told a GraphQL user which of the sixty-eight could apply to them. The obvious
 answer is a hand-written table, which is the one this project will not accept:
 a matrix asserting coverage it does not have is worse than no matrix, because
 it gets quoted.
@@ -41,6 +41,7 @@ CONTRACTS: dict[str, pathlib.Path] = {
     # only fixture measured is a 3.0-shaped one would say something about the
     # fixture and read as something about the engine.
     "openapi (2020-12)": FIXTURES / "apis" / "jsonschema2020" / "v1.yaml",
+    "wsdl": FIXTURES / "wsdl" / "orders-v1.wsdl",
 }
 
 _HEADER = """# Rule parity across protocols

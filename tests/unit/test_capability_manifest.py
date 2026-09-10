@@ -81,14 +81,14 @@ def test_the_exit_codes_are_the_defined_ones() -> None:
 def test_formats_and_protocol_values_are_published_separately() -> None:
     """Two lists that answer different questions, each named for its question.
 
-    Two plugins map onto `openapi`, so a set of protocol values reports five
-    formats where six exist; the enum reports seven because it carries `sse`
+    Two plugins map onto `openapi`, so a set of protocol values reports six
+    formats where seven exist; the enum reports eight because it carries `sse`
     and `websocket`, which are AsyncAPI channel kinds rather than documents
     anyone passes on a command line.
     """
     payload = _payload()
-    assert len(payload["spec_plugins"]) == 6
-    assert len(payload["protocol_values"]) == 7
+    assert len(payload["spec_plugins"]) == 7
+    assert len(payload["protocol_values"]) == 8
     assert {entry["protocol"] for entry in payload["spec_plugins"]} < set(
         payload["protocol_values"]
     )
@@ -97,7 +97,7 @@ def test_formats_and_protocol_values_are_published_separately() -> None:
 def test_the_format_count_in_prose_is_derived_not_typed() -> None:
     module = _generator()
     text = module.render_llms()
-    words = {4: "four", 5: "five", 6: "six", 7: "seven"}
+    words = {4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight"}
     assert f"across {words[module._format_count()]} formats" in text
 
 

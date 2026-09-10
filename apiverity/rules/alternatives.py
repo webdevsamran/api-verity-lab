@@ -235,6 +235,21 @@ ALTERNATIVES: dict[str, str] = {
         "an agent routes on the description, so an edited description silently changes what "
         "every existing plan does, with no version anywhere to pin against."
     ),
+    "BRK-SOAP-ACTION-CHANGED": (
+        "Keep the old soapAction on the existing operation and put the new one on a new "
+        "operation in the same portType. The header is what a gateway routes on, so "
+        "changing it retires the endpoint without saying so."
+    ),
+    "BRK-SOAP-STYLE-CHANGED": (
+        "Add a second binding and a second port in the new style, and leave the old "
+        "binding in place. A WSDL may declare as many ports as you like, so a style "
+        "migration does not have to be a cutover."
+    ),
+    "BRK-SOAP-VERSION-CHANGED": (
+        "Add a SOAP 1.2 port alongside the 1.1 one rather than replacing it. Both can "
+        "point at the same portType and the same address, and clients move when they "
+        "are rebuilt instead of when you deploy."
+    ),
     "BRK-MCP-OUTPUT-SCHEMA-REMOVED": (
         "Keep declaring the outputSchema. A consumer parsing `structuredContent` was written "
         "against that guarantee, and withdrawing it does not change what the tool returns -- "

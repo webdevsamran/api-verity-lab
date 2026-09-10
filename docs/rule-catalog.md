@@ -124,10 +124,13 @@ Only changes the shared engine cannot already see are listed here. A removed too
 | `BRK-ONEOF-NARROWED` | ERROR | A protobuf field moved into a oneof; it is now exclusive with the others. | Add a new field to the oneof rather than moving an existing one in. Moving one in makes it mutually exclusive with fields senders already set together. |
 | `BRK-ONEOF-WIDENED` | INFO | A protobuf field moved out of a oneof; no existing sender can notice. | Nothing to do: no existing sender can observe the difference. |
 | `BRK-RESERVATION-REMOVED` | WARN | A protobuf field number is no longer reserved and can be reused by mistake. | Put the reservation back. It exists to stop a retired number being reused, and removing it re-opens exactly that. |
+| `BRK-SOAP-ACTION-CHANGED` | ERROR | The SOAPAction header changed. Gateways and ESBs route on it and generated stubs send the old one, with an unchanged body that now reaches nothing. | Keep the old soapAction on the existing operation and put the new one on a new operation in the same portType. The header is what a gateway routes on, so changing it retires the endpoint without saying so. |
+| `BRK-SOAP-STYLE-CHANGED` | ERROR | A binding moved between document and rpc style, which changes how the body is wrapped; every existing client serializes it the old way. | Add a second binding and a second port in the new style, and leave the old binding in place. A WSDL may declare as many ports as you like, so a style migration does not have to be a cutover. |
+| `BRK-SOAP-VERSION-CHANGED` | ERROR | A port moved between SOAP 1.1 and 1.2. The envelope namespace and the Content-Type both change, so a 1.1 client gets a 415 rather than a fault. | Add a SOAP 1.2 port alongside the 1.1 one rather than replacing it. Both can point at the same portType and the same address, and clients move when they are rebuilt instead of when you deploy. |
 
 ## Severity profiles
 
-Nobody writes sixty-five overrides. A profile is a starting position that every other setting -- the config's own `severity_overrides`, and `--severity-override` on the command line -- takes precedence over. It sets both the severities and the threshold that fails a run, because either half alone is already expressible with `fail_on`, which would leave the name meaning nothing.
+Nobody writes sixty-eight overrides. A profile is a starting position that every other setting -- the config's own `severity_overrides`, and `--severity-override` on the command line -- takes precedence over. It sets both the severities and the threshold that fails a run, because either half alone is already expressible with `fail_on`, which would leave the name meaning nothing.
 
 Profiles cover this catalogue only. Security-lint, drift, MCP-conformance and loader findings are not in it and are unaffected by any of them.
 
@@ -137,4 +140,4 @@ Profiles cover this catalogue only. Security-lint, drift, MCP-conformance and lo
 | `balanced` | `error` | 0 | The catalogue as shipped. Definite breakage blocks; everything else reports. |
 | `advisory` | `never` | 0 | Nothing blocks. Every finding is still reported, at its catalogue severity. |
 
-_65 rules, each with a non-breaking alternative._
+_68 rules, each with a non-breaking alternative._

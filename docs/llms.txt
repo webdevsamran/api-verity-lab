@@ -1,9 +1,9 @@
 # api-verity-lab
 
-> API contract governance across six formats -- OpenAPI 3.0/3.1/3.2, Swagger 2.0,
+> API contract governance across seven formats -- OpenAPI 3.0/3.1/3.2, Swagger 2.0,
 > AsyncAPI 2.x/3.x, GraphQL, gRPC and MCP tool manifests -- under one normalized
 > contract model and one versioned result format. Diffs contracts, classifies
-> breaking changes against 65 rules with stable ids, detects runtime drift
+> breaking changes against 68 rules with stable ids, detects runtime drift
 > against live services and recorded traffic, governs the tool surface agents call,
 > and measures performance budgets.
 
@@ -24,7 +24,7 @@ thing they count by a test.
 
 - [Rule catalog](https://webdevsamran.github.io/api-verity-lab/rule-catalog/): Every breaking-change rule, its severity, and the non-breaking alternative
 - [Spec support](https://webdevsamran.github.io/api-verity-lab/spec-support/): Which spec versions and constructs are read, and which are not
-- [Protocol support](https://webdevsamran.github.io/api-verity-lab/protocol-support/): What each of the six protocols supports
+- [Protocol support](https://webdevsamran.github.io/api-verity-lab/protocol-support/): What each of the seven protocols supports
 - [Exit codes](https://webdevsamran.github.io/api-verity-lab/exit-codes/): The exit-code contract, and how it differs from sibling projects
 - [MCP drift](https://webdevsamran.github.io/api-verity-lab/mcp-drift/): Declared tool manifest against a running MCP server
 - [MCP tool poisoning](https://webdevsamran.github.io/api-verity-lab/mcp-poisoning/): Reading a tool description as executable text (OWASP MCP03)

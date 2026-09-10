@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions name="OrderService"
+                  targetNamespace="urn:verity:orders"
+                  xmlns:tns="urn:verity:orders"
+                  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                  xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/">
+
+  <wsdl:documentation>Orders, described the way half the industry still ships them.</wsdl:documentation>
+
+  <wsdl:types>
+    <xs:schema targetNamespace="urn:verity:orders" elementFormDefault="qualified">
+
+      <xs:simpleType name="OrderStatus">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="PLACED"/>
+          <xs:enumeration value="SHIPPED"/>
+          <xs:enumeration value="DELIVERED"/>
+          <xs:enumeration value="CANCELLED"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="OrderId">
+        <xs:annotation>
+          <xs:documentation>An order reference, as printed on the invoice.</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+          <xs:minLength value="6"/>
+          <xs:maxLength value="32"/>
+          <xs:pattern value="ORD-[0-9]+"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:complexType name="Money">
+        <xs:sequence>
+          <xs:element name="amount" type="xs:decimal"/>
+          <xs:element name="currency" type="xs:string"/>
+        </xs:sequence>
+        <xs:attribute name="scale" type="xs:int" use="required"/>
+      </xs:complexType>
+
+      <xs:complexType name="LineItem">
+        <xs:sequence>
+          <xs:element name="sku" type="xs:string"/>
+          <xs:element name="quantity" type="xs:int"/>
+          <xs:element name="price" type="tns:Money"/>
+          <xs:element name="note" type="xs:string" minOccurs="0" nillable="true"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="Party">
+        <xs:sequence>
+          <xs:element name="name" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="Customer">
+        <xs:complexContent>
+          <xs:extension base="tns:Party">
+            <xs:sequence>
+              <xs:element name="customerId" type="xs:string"/>
+              <xs:element name="loyaltyTier" type="xs:string" minOccurs="0"/>
+            </xs:sequence>
+          </xs:extension>
+        </xs:complexContent>
+      </xs:complexType>
+
+      <xs:complexType name="Order">
+        <xs:sequence>
+          <xs:element name="orderId" type="tns:OrderId"/>
+          <xs:element name="status" type="tns:OrderStatus"/>
+          <xs:element name="customer" type="tns:Customer"/>
+          <xs:element name="items" type="tns:LineItem" maxOccurs="unbounded"/>
+          <xs:element name="total" type="tns:Money"/>
+          <xs:element name="placedAt" type="xs:dateTime"/>
+          <xs:element name="trackingCode" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:element name="GetOrderRequest">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="orderId" type="tns:OrderId"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+
+      <xs:element name="GetOrderResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="order" type="tns:Order"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+
+      <xs:element name="PlaceOrderRequest">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="customer" type="tns:Customer"/>
+            <xs:element name="items" type="tns:LineItem" maxOccurs="unbounded"/>
+            <xs:choice>
+              <xs:element name="shipToAddress" type="xs:string"/>
+              <xs:element name="pickUpLocation" type="xs:string"/>
+            </xs:choice>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+
+      <xs:element name="PlaceOrderResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="orderId" type="tns:OrderId"/>
+            <xs:element name="status" type="tns:OrderStatus"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+
+      <xs:element name="CancelOrderRequest">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="orderId" type="tns:OrderId"/>
+            <xs:element name="reason" type="xs:string" minOccurs="0"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+
+      <xs:element name="CancelOrderResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="cancelled" type="xs:boolean"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+
+      <xs:element name="OrderFault">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="code" type="xs:string"/>
+            <xs:element name="detail" type="xs:string" minOccurs="0"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+
+    </xs:schema>
+  </wsdl:types>
+
+  <wsdl:message name="GetOrderInput">
+    <wsdl:part name="parameters" element="tns:GetOrderRequest"/>
+  </wsdl:message>
+  <wsdl:message name="GetOrderOutput">
+    <wsdl:part name="parameters" element="tns:GetOrderResponse"/>
+  </wsdl:message>
+  <wsdl:message name="PlaceOrderInput">
+    <wsdl:part name="parameters" element="tns:PlaceOrderRequest"/>
+  </wsdl:message>
+  <wsdl:message name="PlaceOrderOutput">
+    <wsdl:part name="parameters" element="tns:PlaceOrderResponse"/>
+  </wsdl:message>
+  <wsdl:message name="CancelOrderInput">
+    <wsdl:part name="parameters" element="tns:CancelOrderRequest"/>
+  </wsdl:message>
+  <wsdl:message name="CancelOrderOutput">
+    <wsdl:part name="parameters" element="tns:CancelOrderResponse"/>
+  </wsdl:message>
+  <wsdl:message name="OrderFaultMessage">
+    <wsdl:part name="fault" element="tns:OrderFault"/>
+  </wsdl:message>
+
+  <wsdl:portType name="OrderPort">
+    <wsdl:operation name="GetOrder">
+      <wsdl:documentation>Fetch one order by its reference.</wsdl:documentation>
+      <wsdl:input message="tns:GetOrderInput"/>
+      <wsdl:output message="tns:GetOrderOutput"/>
+      <wsdl:fault name="OrderNotFound" message="tns:OrderFaultMessage"/>
+    </wsdl:operation>
+    <wsdl:operation name="PlaceOrder">
+      <wsdl:documentation>Place a new order for a known customer.</wsdl:documentation>
+      <wsdl:input message="tns:PlaceOrderInput"/>
+      <wsdl:output message="tns:PlaceOrderOutput"/>
+      <wsdl:fault name="OrderRejected" message="tns:OrderFaultMessage"/>
+      <wsdl:fault name="CustomerUnknown" message="tns:OrderFaultMessage"/>
+    </wsdl:operation>
+    <wsdl:operation name="CancelOrder">
+      <wsdl:documentation>Cancel an order that has not shipped.</wsdl:documentation>
+      <wsdl:input message="tns:CancelOrderInput"/>
+      <wsdl:output message="tns:CancelOrderOutput"/>
+      <wsdl:fault name="OrderNotFound" message="tns:OrderFaultMessage"/>
+    </wsdl:operation>
+  </wsdl:portType>
+
+  <wsdl:binding name="OrderBinding" type="tns:OrderPort">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="GetOrder">
+      <soap:operation soapAction="urn:verity:orders/GetOrder"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="OrderNotFound"><soap:fault name="OrderNotFound" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="PlaceOrder">
+      <soap:operation soapAction="urn:verity:orders/PlaceOrder"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="OrderRejected"><soap:fault name="OrderRejected" use="literal"/></wsdl:fault>
+      <wsdl:fault name="CustomerUnknown"><soap:fault name="CustomerUnknown" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="CancelOrder">
+      <soap:operation soapAction="urn:verity:orders/CancelOrder"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="OrderNotFound"><soap:fault name="OrderNotFound" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+  </wsdl:binding>
+
+  <wsdl:service name="OrderService">
+    <wsdl:documentation>The production order endpoint.</wsdl:documentation>
+    <wsdl:port name="OrderPortSoap11" binding="tns:OrderBinding">
+      <soap:address location="https://orders.example.com/soap"/>
+    </wsdl:port>
+  </wsdl:service>
+
+</wsdl:definitions>

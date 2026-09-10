@@ -77,77 +77,83 @@ would be a parser that is not populating something.
 | add an optional request field | a new input callers may send |
 | make a request field optional | an input stops being mandatory |
 | add a required request body | an endpoint that took nothing now needs a body |
+| change the SOAPAction | the header a gateway routes on, with every schema untouched |
+| change the binding style | document becomes rpc |
+| change the SOAP version | 1.1 becomes 1.2 |
 | bump the version | a release, with nothing else changed |
 
 ## Rules
 
-| Rule | Severity | asyncapi | grpc | mcp | openapi | openapi (2020-12) | swagger2 |
-|---|---|---|---|---|---|---|---|
-| `BRK-CONDITIONAL-SCHEMA-CHANGED` | WARN |  |  |  |  |  |  |
-| `BRK-CONSTRAINT-LOOSENED` | INFO |  |  |  |  |  |  |
-| `BRK-CONSTRAINT-TIGHTENED` | ERROR | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `BRK-CONTAINS-CHANGED` | WARN |  |  |  |  | ✓ |  |
-| `BRK-DEPENDENT-REQUIRED-ADDED` | ERROR | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `BRK-DEPENDENT-REQUIRED-REMOVED` | WARN |  |  |  |  |  |  |
-| `BRK-DEPENDENT-SCHEMA-CHANGED` | WARN |  |  |  |  |  |  |
-| `BRK-DEPRECATION-ADDED` | WARN | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `BRK-DEPRECATION-REMOVED` | INFO |  |  |  |  |  |  |
-| `BRK-ENUM-NARROWED-REQUEST` | ERROR | ✓ |  | ✓ | ✓ | ✓ | ✓ |
-| `BRK-ENUM-NARROWED-RESPONSE` | WARN |  |  |  |  |  |  |
-| `BRK-ENUM-WIDENED` | INFO | ✓ |  | ✓ | ✓ | ✓ | ✓ |
-| `BRK-FIELD-NUMBER-REUSED` | ERROR |  | ✓ |  |  |  |  |
-| `BRK-FIELD-NUMBER-UNRESERVED` | WARN |  | ✓ |  |  |  |  |
-| `BRK-FIELD-PRESENCE-LOST` | ERROR |  | ✓ |  |  |  |  |
-| `BRK-HEADER-ADDED` | INFO |  | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `BRK-HEADER-REMOVED` | WARN |  |  |  |  |  |  |
-| `BRK-MCP-ANNOTATION-DECLARATION-CHANGED` | INFO |  |  |  |  |  |  |
-| `BRK-MCP-DESTRUCTIVE-HINT-CLEARED` | WARN |  |  |  |  |  |  |
-| `BRK-MCP-DESTRUCTIVE-HINT-SET` | WARN |  |  | ✓ |  |  |  |
-| `BRK-MCP-IDEMPOTENT-HINT-CLEARED` | WARN |  |  |  |  |  |  |
-| `BRK-MCP-IDEMPOTENT-HINT-SET` | WARN |  |  |  |  |  |  |
-| `BRK-MCP-MANIFEST-TRUNCATED` | ERROR |  |  |  |  |  |  |
-| `BRK-MCP-OPENWORLD-HINT-CHANGED` | INFO |  |  |  |  |  |  |
-| `BRK-MCP-OUTPUT-SCHEMA-ADDED` | WARN |  |  | ✓ |  |  |  |
-| `BRK-MCP-OUTPUT-SCHEMA-REMOVED` | ERROR |  |  | ✓ |  |  |  |
-| `BRK-MCP-READONLY-HINT-CLEARED` | WARN |  |  | ✓ |  |  |  |
-| `BRK-MCP-READONLY-HINT-SET` | WARN |  |  |  |  |  |  |
-| `BRK-MCP-TOOL-DESCRIPTION-CHANGED` | WARN |  |  | ✓ |  |  |  |
-| `BRK-MCP-TOOL-RENAME-SUSPECTED` | INFO |  |  |  |  |  |  |
-| `BRK-MEDIA-TYPE-CHANGED` | ERROR |  |  |  | ✓ |  | ✓ |
-| `BRK-ONEOF-NARROWED` | ERROR |  |  |  |  |  |  |
-| `BRK-ONEOF-WIDENED` | INFO |  |  |  |  |  |  |
-| `BRK-OP-ADDED` | INFO |  |  |  | ✓ | ✓ | ✓ |
-| `BRK-OP-REMOVED` | ERROR |  |  |  | ✓ | ✓ | ✓ |
-| `BRK-PARAM-ADDED-OPTIONAL` | INFO | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `BRK-PARAM-ADDED-REQUIRED` | ERROR | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `BRK-PARAM-OPTIONALIZED` | INFO |  |  |  | ✓ |  | ✓ |
-| `BRK-PARAM-REMOVED` | ERROR |  |  |  | ✓ |  | ✓ |
-| `BRK-PARAM-REQUIRED` | ERROR |  |  |  | ✓ |  | ✓ |
-| `BRK-PARAM-TYPE-CHANGED` | ERROR |  |  |  | ✓ |  | ✓ |
-| `BRK-PATTERN-PROPERTIES-CHANGED` | WARN |  |  |  |  |  |  |
-| `BRK-PROPERTY-NAMES-CHANGED` | WARN |  |  |  |  |  |  |
-| `BRK-REQ-BODY-ADDED-OPTIONAL` | INFO | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `BRK-REQ-BODY-ADDED-REQUIRED` | ERROR |  |  |  |  |  |  |
-| `BRK-REQ-BODY-REMOVED` | ERROR | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `BRK-REQ-BODY-REQUIRED` | ERROR |  |  |  | ✓ |  |  |
-| `BRK-REQ-FIELD-ADDED-OPTIONAL` | INFO | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `BRK-REQ-FIELD-ADDED-REQUIRED` | ERROR | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `BRK-REQ-FIELD-BECAME-REQUIRED` | ERROR | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `BRK-REQ-FIELD-OPTIONALIZED` | INFO | ✓ |  | ✓ | ✓ | ✓ | ✓ |
-| `BRK-REQ-FIELD-REMOVED` | ERROR | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `BRK-RESERVATION-REMOVED` | WARN |  | ✓ |  |  |  |  |
-| `BRK-RESP-CONSTRAINT-TIGHTENED` | WARN |  |  |  |  | ✓ |  |
-| `BRK-RESP-FIELD-ADDED` | INFO |  | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `BRK-RESP-FIELD-OPTIONALIZED` | ERROR |  |  | ✓ |  | ✓ |  |
-| `BRK-RESP-FIELD-REMOVED` | ERROR |  | ✓ | ✓ |  | ✓ |  |
-| `BRK-RESP-STATUS-ADDED` | INFO |  | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `BRK-RESP-STATUS-REMOVED` | ERROR |  |  |  |  |  | ✓ |
-| `BRK-RESP-TYPE-CHANGED` | WARN |  | ✓ | ✓ |  | ✓ |  |
-| `BRK-RPC-ADDED` | INFO |  | ✓ | ✓ |  |  |  |
-| `BRK-RPC-REMOVED` | ERROR | ✓ | ✓ | ✓ |  |  |  |
-| `BRK-RPC-STREAMING-CHANGED` | ERROR |  | ✓ |  |  |  |  |
-| `BRK-SECURITY-CHANGED` | ERROR | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `BRK-TUPLE-SHAPE-CHANGED` | ERROR |  |  |  |  | ✓ |  |
+| Rule | Severity | asyncapi | grpc | mcp | openapi | openapi (2020-12) | swagger2 | wsdl |
+|---|---|---|---|---|---|---|---|---|
+| `BRK-CONDITIONAL-SCHEMA-CHANGED` | WARN |  |  |  |  |  |  |  |
+| `BRK-CONSTRAINT-LOOSENED` | INFO |  |  |  |  |  |  |  |
+| `BRK-CONSTRAINT-TIGHTENED` | ERROR | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `BRK-CONTAINS-CHANGED` | WARN |  |  |  |  | ✓ |  |  |
+| `BRK-DEPENDENT-REQUIRED-ADDED` | ERROR | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `BRK-DEPENDENT-REQUIRED-REMOVED` | WARN |  |  |  |  |  |  |  |
+| `BRK-DEPENDENT-SCHEMA-CHANGED` | WARN |  |  |  |  |  |  |  |
+| `BRK-DEPRECATION-ADDED` | WARN | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `BRK-DEPRECATION-REMOVED` | INFO |  |  |  |  |  |  |  |
+| `BRK-ENUM-NARROWED-REQUEST` | ERROR | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |
+| `BRK-ENUM-NARROWED-RESPONSE` | WARN |  |  |  |  |  |  |  |
+| `BRK-ENUM-WIDENED` | INFO | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |
+| `BRK-FIELD-NUMBER-REUSED` | ERROR |  | ✓ |  |  |  |  |  |
+| `BRK-FIELD-NUMBER-UNRESERVED` | WARN |  | ✓ |  |  |  |  |  |
+| `BRK-FIELD-PRESENCE-LOST` | ERROR |  | ✓ |  |  |  |  |  |
+| `BRK-HEADER-ADDED` | INFO |  | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `BRK-HEADER-REMOVED` | WARN |  |  |  |  |  |  |  |
+| `BRK-MCP-ANNOTATION-DECLARATION-CHANGED` | INFO |  |  |  |  |  |  |  |
+| `BRK-MCP-DESTRUCTIVE-HINT-CLEARED` | WARN |  |  |  |  |  |  |  |
+| `BRK-MCP-DESTRUCTIVE-HINT-SET` | WARN |  |  | ✓ |  |  |  |  |
+| `BRK-MCP-IDEMPOTENT-HINT-CLEARED` | WARN |  |  |  |  |  |  |  |
+| `BRK-MCP-IDEMPOTENT-HINT-SET` | WARN |  |  |  |  |  |  |  |
+| `BRK-MCP-MANIFEST-TRUNCATED` | ERROR |  |  |  |  |  |  |  |
+| `BRK-MCP-OPENWORLD-HINT-CHANGED` | INFO |  |  |  |  |  |  |  |
+| `BRK-MCP-OUTPUT-SCHEMA-ADDED` | WARN |  |  | ✓ |  |  |  |  |
+| `BRK-MCP-OUTPUT-SCHEMA-REMOVED` | ERROR |  |  | ✓ |  |  |  |  |
+| `BRK-MCP-READONLY-HINT-CLEARED` | WARN |  |  | ✓ |  |  |  |  |
+| `BRK-MCP-READONLY-HINT-SET` | WARN |  |  |  |  |  |  |  |
+| `BRK-MCP-TOOL-DESCRIPTION-CHANGED` | WARN |  |  | ✓ |  |  |  |  |
+| `BRK-MCP-TOOL-RENAME-SUSPECTED` | INFO |  |  |  |  |  |  |  |
+| `BRK-MEDIA-TYPE-CHANGED` | ERROR |  |  |  | ✓ |  | ✓ |  |
+| `BRK-ONEOF-NARROWED` | ERROR |  |  |  |  |  |  |  |
+| `BRK-ONEOF-WIDENED` | INFO |  |  |  |  |  |  |  |
+| `BRK-OP-ADDED` | INFO |  |  |  | ✓ | ✓ | ✓ |  |
+| `BRK-OP-REMOVED` | ERROR |  |  |  | ✓ | ✓ | ✓ |  |
+| `BRK-PARAM-ADDED-OPTIONAL` | INFO | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `BRK-PARAM-ADDED-REQUIRED` | ERROR | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `BRK-PARAM-OPTIONALIZED` | INFO |  |  |  | ✓ |  | ✓ |  |
+| `BRK-PARAM-REMOVED` | ERROR |  |  |  | ✓ |  | ✓ |  |
+| `BRK-PARAM-REQUIRED` | ERROR |  |  |  | ✓ |  | ✓ |  |
+| `BRK-PARAM-TYPE-CHANGED` | ERROR |  |  |  | ✓ |  | ✓ |  |
+| `BRK-PATTERN-PROPERTIES-CHANGED` | WARN |  |  |  |  |  |  |  |
+| `BRK-PROPERTY-NAMES-CHANGED` | WARN |  |  |  |  |  |  |  |
+| `BRK-REQ-BODY-ADDED-OPTIONAL` | INFO | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `BRK-REQ-BODY-ADDED-REQUIRED` | ERROR |  |  |  |  |  |  |  |
+| `BRK-REQ-BODY-REMOVED` | ERROR | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `BRK-REQ-BODY-REQUIRED` | ERROR |  |  |  | ✓ |  |  |  |
+| `BRK-REQ-FIELD-ADDED-OPTIONAL` | INFO | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `BRK-REQ-FIELD-ADDED-REQUIRED` | ERROR | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `BRK-REQ-FIELD-BECAME-REQUIRED` | ERROR | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `BRK-REQ-FIELD-OPTIONALIZED` | INFO | ✓ |  | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `BRK-REQ-FIELD-REMOVED` | ERROR | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `BRK-RESERVATION-REMOVED` | WARN |  | ✓ |  |  |  |  |  |
+| `BRK-RESP-CONSTRAINT-TIGHTENED` | WARN |  |  |  |  | ✓ |  |  |
+| `BRK-RESP-FIELD-ADDED` | INFO |  | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `BRK-RESP-FIELD-OPTIONALIZED` | ERROR |  |  | ✓ |  | ✓ |  | ✓ |
+| `BRK-RESP-FIELD-REMOVED` | ERROR |  | ✓ | ✓ |  | ✓ |  | ✓ |
+| `BRK-RESP-STATUS-ADDED` | INFO |  | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `BRK-RESP-STATUS-REMOVED` | ERROR |  |  |  |  |  | ✓ | ✓ |
+| `BRK-RESP-TYPE-CHANGED` | WARN |  | ✓ | ✓ |  | ✓ |  | ✓ |
+| `BRK-RPC-ADDED` | INFO |  | ✓ | ✓ |  |  |  | ✓ |
+| `BRK-RPC-REMOVED` | ERROR | ✓ | ✓ | ✓ |  |  |  | ✓ |
+| `BRK-RPC-STREAMING-CHANGED` | ERROR |  | ✓ |  |  |  |  |  |
+| `BRK-SECURITY-CHANGED` | ERROR | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `BRK-SOAP-ACTION-CHANGED` | ERROR |  |  |  |  |  |  | ✓ |
+| `BRK-SOAP-STYLE-CHANGED` | ERROR |  |  |  |  |  |  | ✓ |
+| `BRK-SOAP-VERSION-CHANGED` | ERROR |  |  |  |  |  |  | ✓ |
+| `BRK-TUPLE-SHAPE-CHANGED` | ERROR |  |  |  |  | ✓ |  |  |
 
 ## Rules no mutation produced
 
@@ -174,4 +180,4 @@ The interesting column. Each of these is either a mutation this harness does not
 - `BRK-PROPERTY-NAMES-CHANGED` — The constraint on what property *names* are allowed changed; keys that used to be accepted may not be.
 - `BRK-REQ-BODY-ADDED-REQUIRED` — A required request body was added.
 
-_45 of 65 rules observed firing across 6 protocol(s) and 51 mutations._
+_48 of 68 rules observed firing across 7 protocol(s) and 54 mutations._

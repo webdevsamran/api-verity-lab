@@ -103,6 +103,15 @@ _PHRASES: tuple[tuple[str, str], ...] = (
         "BRK-RESERVATION-REMOVED",
         "a protobuf field number is no longer reserved and can be reused by mistake",
     ),
+    # SOAP. Each of these leaves every message schema identical, which is
+    # exactly why a summary that only counted schema findings would say
+    # nothing happened.
+    (
+        "BRK-SOAP-ACTION-CHANGED",
+        "the SOAPAction header changed, so existing callers route to nothing",
+    ),
+    ("BRK-SOAP-STYLE-CHANGED", "a binding moved between document and rpc style"),
+    ("BRK-SOAP-VERSION-CHANGED", "a port moved between SOAP 1.1 and 1.2"),
     ("BRK-SECURITY-", "authentication requirements changed"),
     ("BRK-DEPRECATION-ADDED", "operations were deprecated"),
     ("BRK-MEDIA-TYPE", "media types changed"),

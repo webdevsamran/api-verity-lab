@@ -834,7 +834,7 @@ def _use_utf8_streams() -> None:
     `apiverity validate` on a contract titled in Japanese exited 4 -- the
     documented code for "an unexpected error inside the tool" -- on a Windows
     console, because Python encodes stdout with the locale codepage and cp1252
-    cannot represent those characters. A tool that advertises six protocols and
+    cannot represent those characters. A tool that advertises seven protocols and
     reads contracts written anywhere in the world cannot fail on the name of
     the API. The same crash reached `changelog` (which prints emoji) and any
     finding message containing an arrow.

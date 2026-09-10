@@ -53,7 +53,7 @@ _GUIDE: tuple[tuple[str, str, str], ...] = (
         "spec-support.md",
         "Which spec versions and constructs are read, and which are not",
     ),
-    ("Protocol support", "protocol-support.md", "What each of the six protocols supports"),
+    ("Protocol support", "protocol-support.md", "What each of the seven protocols supports"),
     (
         "Exit codes",
         "exit-codes.md",
@@ -176,7 +176,7 @@ def render_capabilities() -> str:
         "name": "api-verity-lab",
         "version": __version__,
         "summary": (
-            "API contract governance across six protocols: diff, breaking-change rules, "
+            "API contract governance across seven protocols: diff, breaking-change rules, "
             "runtime drift, performance budgets and agent-tool governance under one contract "
             "model and one result format."
         ),

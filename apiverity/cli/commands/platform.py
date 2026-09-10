@@ -100,7 +100,7 @@ def cmd_rules(args: argparse.Namespace) -> int:
 
     if getattr(args, "profiles", False):
         # Listed on request rather than appended to every `rules` run: the
-        # catalogue is sixty-five rows and three more at the bottom is where a
+        # catalogue is sixty-eight rows and three more at the bottom is where a
         # reader stops looking.
         profiles = [
             {
@@ -178,6 +178,7 @@ _RULE_GUIDE: tuple[tuple[str, str, str], ...] = (
     ("BRK-FIELD-", "Protocol buffers", "docs/rule-catalog.md"),
     ("BRK-ONEOF-", "Protocol buffers", "docs/rule-catalog.md"),
     ("BRK-RESERVATION-", "Protocol buffers", "docs/rule-catalog.md"),
+    ("BRK-SOAP-", "SOAP bindings", "docs/spec-support.md"),
     ("SEC-SCOPE-", "Security: authorization scope", "docs/check-rules.md"),
     ("SEC-AUTH-", "Security: authentication", "docs/check-rules.md"),
     ("SEC-SCHEME-", "Security: authentication", "docs/check-rules.md"),

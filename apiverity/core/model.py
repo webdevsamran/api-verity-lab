@@ -29,6 +29,11 @@ class Protocol(StrEnum):
     #: manifest: the tools an agent can call, and the JSON Schemas they accept
     #: and return.
     MCP = "mcp"
+    #: SOAP, described by a WSDL 1.1 document. The oldest format here and the
+    #: one most likely to be read only by generated stubs, which is exactly why
+    #: an unnoticed change to it surfaces as a deserialization failure rather
+    #: than as a confused developer.
+    SOAP = "soap"
 
 
 class SourceLocation(BaseModel):
@@ -281,6 +286,12 @@ class OperationKind(StrEnum):
     EVENT = "event"  # AsyncAPI publish/subscribe or SSE event stream
     WS_MESSAGE = "ws_message"  # documented WebSocket bidirectional message type
     MCP_TOOL = "mcp_tool"  # a tool an MCP server exposes through tools/list
+    #: A WSDL `portType` operation. Deliberately has no branch in `key` below:
+    #: `portType.operation` is already the identity SOAP dispatches on, which
+    #: is what the fallback produces. Method and path are left unset on
+    #: purpose -- every operation on a port shares one URL and one verb, so
+    #: keying on them would collapse the whole service into one entry.
+    SOAP_OPERATION = "soap_operation"
 
 
 class Operation(BaseModel):
@@ -492,6 +503,12 @@ class ChangeKind(StrEnum):
     TOOL_OUTPUT_SCHEMA_CHANGED = "tool_output_schema_changed"
     TOOL_RENAME_SUSPECTED = "tool_rename_suspected"
     MANIFEST_TRUNCATED = "manifest_truncated"
+    # SOAP-specific. All three are invisible to every schema rule and break
+    # every generated stub, which is the combination that earns a kind of its
+    # own rather than a description a classifier has to read.
+    SOAP_ACTION_CHANGED = "soap_action_changed"
+    SOAP_STYLE_CHANGED = "soap_style_changed"
+    SOAP_VERSION_CHANGED = "soap_version_changed"
 
 
 class Change(BaseModel):

@@ -1,7 +1,7 @@
 {
   "name": "api-verity-lab",
   "version": "0.2.0",
-  "summary": "API contract governance across six protocols: diff, breaking-change rules, runtime drift, performance budgets and agent-tool governance under one contract model and one result format.",
+  "summary": "API contract governance across seven protocols: diff, breaking-change rules, runtime drift, performance budgets and agent-tool governance under one contract model and one result format.",
   "repository": "https://github.com/webdevsamran/api-verity-lab",
   "documentation": "https://webdevsamran.github.io/api-verity-lab",
   "license": "Apache-2.0",
@@ -29,6 +29,10 @@
     {
       "plugin": "Swagger2SpecPlugin",
       "protocol": "openapi"
+    },
+    {
+      "plugin": "WsdlSpecPlugin",
+      "protocol": "soap"
     }
   ],
   "protocol_values": [
@@ -38,7 +42,8 @@
     "asyncapi",
     "sse",
     "websocket",
-    "mcp"
+    "mcp",
+    "soap"
   ],
   "commands": [
     {
@@ -370,7 +375,7 @@
     }
   ],
   "rules": {
-    "count": 65,
+    "count": 68,
     "ids": [
       "BRK-CONDITIONAL-SCHEMA-CHANGED",
       "BRK-CONSTRAINT-LOOSENED",
@@ -436,6 +441,9 @@
       "BRK-RPC-REMOVED",
       "BRK-RPC-STREAMING-CHANGED",
       "BRK-SECURITY-CHANGED",
+      "BRK-SOAP-ACTION-CHANGED",
+      "BRK-SOAP-STYLE-CHANGED",
+      "BRK-SOAP-VERSION-CHANGED",
       "BRK-TUPLE-SHAPE-CHANGED"
     ],
     "every_rule_has_an_alternative": true

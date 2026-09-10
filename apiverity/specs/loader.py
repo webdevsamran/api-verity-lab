@@ -65,6 +65,7 @@ SPEC_FORMATS = (
     "graphql",
     "grpc",
     "mcp",
+    "wsdl",
 )
 
 
@@ -75,6 +76,7 @@ def _builtin_plugins(*, allow_remote_refs: bool = False) -> list[SpecPlugin]:
     from apiverity.specs.mcp import McpSpecPlugin
     from apiverity.specs.openapi import OpenApiSpecPlugin
     from apiverity.specs.swagger2 import Swagger2SpecPlugin
+    from apiverity.specs.wsdl import WsdlSpecPlugin
 
     # Order matters. MCP sits ahead of GraphQL and gRPC because those two sniff
     # for substrings ("type Query", a `service` declaration) that can occur
@@ -87,6 +89,9 @@ def _builtin_plugins(*, allow_remote_refs: bool = False) -> list[SpecPlugin]:
         GraphQlSpecPlugin(),
         GrpcSpecPlugin(),
         AsyncApiSpecPlugin(),
+        # Last, and it costs nothing to be: its marker is the WSDL 1.1
+        # namespace URI, which no other format contains.
+        WsdlSpecPlugin(),
     ]
 
 

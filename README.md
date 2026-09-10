@@ -143,7 +143,7 @@ GET /users/{id}:
       email: removed   # ← ERROR: clients reading .email will break
 ```
 
-The catalog ships 65 rules across ERROR/WARN/INFO with per-rule severity
+The catalog ships 68 rules across ERROR/WARN/INFO with per-rule severity
 overrides — see [`docs/rule-catalog.md`](docs/rule-catalog.md), run `apiverity rules`,
 or ask about one directly: `apiverity explain BRK-RESP-FIELD-REMOVED` prints what it
 means, which group it belongs to, and the exact `--severity-override` to change it.
@@ -301,7 +301,11 @@ persisted operations and introspection drift ·
 gRPC proto + compiled descriptor sets ✅ streaming, presence, reserved ranges ·
 **MCP tool manifests** ✅ a saved `tools/list` diffed under the same rules,
 plus a `BRK-MCP-*` family for the parts that are MCP's alone — annotation
-hints, `outputSchema` presence and tool-description edits.
+hints, `outputSchema` presence and tool-description edits ·
+**WSDL 1.1 / SOAP** ✅ portTypes, bindings and the XSD subset a WSDL actually
+uses, plus a `BRK-SOAP-*` family for SOAPAction, binding style and SOAP
+version — the three facts that break every generated stub while leaving every
+message schema identical.
 
 That last one is the shared model paying off rather than a new engine: a
 removed tool, a newly-required argument and a narrowed enum in a manifest fire
@@ -338,7 +342,7 @@ Browsable at **<https://webdevsamran.github.io/api-verity-lab/>**, or as files h
 |---|---|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | The normalized contract model every engine reads, and how change ids are built |
 | [docs/rule-catalog.md](docs/rule-catalog.md) | Every breaking-change rule, generated from the code by `scripts/generate_rule_catalog.py` |
-| [docs/spec-support.md](docs/spec-support.md) | What is supported per format: OpenAPI, AsyncAPI, GraphQL, gRPC |
+| [docs/spec-support.md](docs/spec-support.md) | What is supported per format: OpenAPI, AsyncAPI, GraphQL, gRPC, MCP, WSDL |
 | [PROTOCOL_SUPPORT.md](PROTOCOL_SUPPORT.md) | Per-protocol status, graded EXISTING / PARTIAL / BLOCKED |
 | [docs/capability-status.md](docs/capability-status.md) | Honest per-capability status, same grading |
 | [docs/workflow-authoring.md](docs/workflow-authoring.md) | Writing stateful workflow manifests |

@@ -2,7 +2,7 @@
 
 The most-cited worry about agent traffic is not that an agent calls the wrong
 endpoint, it is that it calls the right one ten thousand times — and no
-contract in any of the six formats this engine reads has a field for saying how
+contract in any of the seven formats this engine reads has a field for saying how
 often anything may be called.
 
 Two things get most of the tests. The window is sliding, because a burst that
