@@ -3,6 +3,23 @@
 Templates are deterministic, dependency-free manifests that teams can copy,
 adjust and run: CRUD lifecycle, pagination walk, auth refresh, resource
 lifecycle with cleanup.
+
+## These emitted a syntax the engine does not read
+
+Every template wrote `{{ id }}` for a variable, `extract={"widget_id": "id"}`
+for an extraction and `assert_jsonpath={"state": ...}` for an assertion.
+`WorkflowEngine` substitutes `{id}`, and its JSONPath subset is `$.a.b` -- a
+bare field name matches nothing.
+
+So a template printed by `apiverity workflow --template crud-lifecycle` and run
+as printed failed on its first step with *"could not extract \'widget_id\' from
+id"*, and would have sent a literal `/widgets/{{ widget_id }}` if it had got
+that far. All four were affected, in all three ways.
+
+Nothing caught it because the tests compared the templates against themselves
+-- `assert "{{ refresh_token }}" in ...` -- and the graph validator that exists
+to check exactly this looked for `{{ }}` as well. `tests/unit/test_templates_
+run.py` runs each of them against the mock instead.
 """
 
 from __future__ import annotations
@@ -31,18 +48,18 @@ def crud_lifecycle_workflow(
                 name="create",
                 request=WorkflowRequest(method="POST", path=collection_path, body=body),
                 assert_status=[200, 201],
-                extract={id_var: "id"},
+                extract={id_var: "$.id"},
             ),
             WorkflowStep(
                 name="read",
-                request=WorkflowRequest(method="GET", path=f"{collection_path}/{{{{ {id_var} }}}}"),
+                request=WorkflowRequest(method="GET", path=f"{collection_path}/{{{id_var}}}"),
                 assert_status=[200],
             ),
             WorkflowStep(
                 name="update",
                 request=WorkflowRequest(
                     method="PATCH",
-                    path=f"{collection_path}/{{{{ {id_var} }}}}",
+                    path=f"{collection_path}/{{{id_var}}}",
                     body={"name": "verity-updated"},
                 ),
                 assert_status=[200],
@@ -51,9 +68,7 @@ def crud_lifecycle_workflow(
         cleanup=[
             WorkflowStep(
                 name="delete",
-                request=WorkflowRequest(
-                    method="DELETE", path=f"{collection_path}/{{{{ {id_var} }}}}"
-                ),
+                request=WorkflowRequest(method="DELETE", path=f"{collection_path}/{{{id_var}}}"),
                 assert_status=[200, 202, 204, 404],  # 404 tolerated: already gone
             )
         ],
@@ -110,18 +125,18 @@ def auth_refresh_workflow(
                     path=token_path,
                     body={
                         "grant_type": "refresh_token",
-                        "refresh_token": f"{{{{ {refresh_token_var} }}}}",
+                        "refresh_token": f"{{{refresh_token_var}}}",
                     },
                 ),
                 assert_status=[200],
-                extract={"access_token": "access_token"},
+                extract={"access_token": "$.access_token"},
             ),
             WorkflowStep(
                 name="authenticated-call",
                 request=WorkflowRequest(
                     method="GET",
                     path="/me",
-                    headers={"Authorization": "Bearer {{ access_token }}"},
+                    headers={"Authorization": "Bearer {access_token}"},
                 ),
                 assert_status=[200],
             ),
@@ -140,26 +155,24 @@ def resource_lifecycle_workflow(*, base_url: str, resource: str = "/orders") -> 
                 name="create-order",
                 request=WorkflowRequest(method="POST", path=resource, body={"state": "draft"}),
                 assert_status=[201],
-                extract={"order_id": "id"},
+                extract={"order_id": "$.id"},
             ),
             WorkflowStep(
                 name="submit",
-                request=WorkflowRequest(
-                    method="POST", path=f"{resource}/{{{{ order_id }}}}/submit"
-                ),
+                request=WorkflowRequest(method="POST", path=f"{resource}/{{order_id}}/submit"),
                 assert_status=[200],
             ),
             WorkflowStep(
                 name="verify-terminal",
-                request=WorkflowRequest(method="GET", path=f"{resource}/{{{{ order_id }}}}"),
+                request=WorkflowRequest(method="GET", path=f"{resource}/{{order_id}}"),
                 assert_status=[200],
-                assert_jsonpath={"state": "submitted"},
+                assert_jsonpath={"$.state": "submitted"},
             ),
         ],
         cleanup=[
             WorkflowStep(
                 name="cancel-cleanup",
-                request=WorkflowRequest(method="DELETE", path=f"{resource}/{{{{ order_id }}}}"),
+                request=WorkflowRequest(method="DELETE", path=f"{resource}/{{order_id}}"),
                 assert_status=[200, 204, 404],
             )
         ],

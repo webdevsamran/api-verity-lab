@@ -70,7 +70,8 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
 ## Generation & stateful testing
 - Seeded positive/negative generation, boundary values, pairwise, example mutation, shrinking, corpus export/import/replay — EXISTING
 - Pluggable case generators via `apiverity.generators`, invoked by `apiverity test --generator` — EXISTING (`fuzz/generators.py`); built-ins: unicode, nesting, numeric, header-safety
-- Workflow engine v2 (extraction/guards/cleanup), graph validation, templates, model-based CRUD — EXISTING
+- Workflow engine v2 (extraction/guards/cleanup), templates, model-based CRUD — EXISTING
+- Graph validation before a run: `workflow` checks the manifest for variables nothing fills, duplicate step names and cleanup that deletes what it did not create, and refuses to send anything when it finds one (`--no-preflight` overrides) — EXISTING (`stateful/graph.py`)
 - Workflow inference from OpenAPI Links (`workflow --infer`) — EXISTING (`stateful/infer.py`); links-only, every step emitted commented out, destructive steps commented twice
 - Arazzo 1.1.0 import and export (`workflow --to-arazzo`; an Arazzo description runs directly) — EXISTING (`stateful/arazzo.py`); the export is validated against the OAI's own published JSON Schema, and every construct with no equivalent in this engine — `goto`, `retry`, nested workflows, AsyncAPI channel steps — is reported rather than dropped. See [Arazzo workflows](arazzo.md)
 
@@ -156,7 +157,7 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
 ## Library-only capabilities
 
 Every entry above is graded EXISTING when the capability is implemented and
-tested. Five of them are implemented, tested, and **reachable from no
+tested. Four of them are implemented, tested, and **reachable from no
 command** -- importable from Python, absent from the CLI. That is a different
 thing from EXISTING and a reader will not distinguish them unless told, so
 they are listed here.
@@ -170,7 +171,6 @@ cannot join or leave it quietly.
 |---|---|---|
 | `apiverity.core.model_v2` | Stable entity ids, canonical entity hashes, `result-v1` -> `2.0` artifact migration, and `ContractBundle` -- several services combined into one versioned surface | import only |
 | `apiverity.fuzz.boundary` | Explicit boundary values for numeric, string and array constraints, beyond the random generator | import only |
-| `apiverity.stateful.graph` | Validates a workflow manifest as a graph -- variable ordering, cycles -- before it runs | import only |
 | `apiverity.stateful.model_based` | A CRUD transition model executed against an authorized target | import only |
 | `apiverity.traffic.auth` | Auth profiles resolved from environment variables or files at request time, never persisted | import only |
 
@@ -178,8 +178,7 @@ Two notes on how to read that.
 
 **"Import only" is not "broken".** Each has tests that run in CI, and the SDK
 is a supported surface. What it means is that no flag on any command reaches
-them: there is no `--auth-profile`, and `workflow run` does not call the graph
-validator.
+them: there is no `--auth-profile`.
 
 **It is also not a plan.** Some of these should probably be wired up and some
 should probably be deleted, and deciding which is a judgement about the

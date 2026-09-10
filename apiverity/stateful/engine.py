@@ -24,6 +24,7 @@ from apiverity.stateful.models import (
     WorkflowRequest,
     WorkflowResult,
     WorkflowStep,
+    placeholder,
 )
 
 _JSONPATH_RE = re.compile(r"^\$\.([A-Za-z_][\w.]*)(?:\[(\d+)\])?$")
@@ -114,9 +115,15 @@ def _extract_jsonpath(data: Any, expression: str) -> tuple[bool, Any]:
 
 
 def _substitute(text: str, variables: dict[str, Any]) -> str:
+    """Replace `{name}` with the variable's value, leaving unknown ones as-is.
+
+    `placeholder` rather than a literal `"{" + key + "}"`, so this and
+    `stateful.graph` cannot drift apart about what a variable looks like --
+    which is exactly what happened: the validator looked for `{{ name }}`.
+    """
     out = text
     for key, value in variables.items():
-        out = out.replace("{" + key + "}", str(value))
+        out = out.replace(placeholder(key), str(value))
     return out
 
 

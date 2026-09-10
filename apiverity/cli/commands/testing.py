@@ -112,6 +112,10 @@ def cmd_workflow(args: argparse.Namespace) -> int:
     if bad is not None:
         print(f"error: --input {bad!r} is not NAME=VALUE", file=sys.stderr)
         return EXIT_USAGE
+
+    if not _preflight(wf, inputs, skip=getattr(args, "no_preflight", False)):
+        return EXIT_USAGE
+
     try:
         result = WorkflowEngine(wf, base_url, inputs).run()
     except ValueError as exc:
@@ -323,6 +327,46 @@ def _infer_workflow(args: argparse.Namespace) -> int:
         # better than an exit code that reads like the spec was rejected.
         return EXIT_OK
     return EXIT_OK
+
+
+def _preflight(workflow: Any, inputs: dict[str, Any], *, skip: bool = False) -> bool:
+    """Check the manifest as a graph before a single request goes out.
+
+    `stateful/graph.py` has existed since the engine did and no command called
+    it -- which is how it came to be looking for `{{ name }}` while the engine
+    substitutes `{name}`, for long enough that the four built-in templates were
+    written to match the validator rather than the engine.
+
+    An ERROR stops the run. `WF-MISSING-VAR` means a request would go out with
+    a literal `{name}` in its path, and a workflow whose first step is wrong is
+    a workflow that has already sent whatever came before it by the time
+    anybody notices. Warnings print and the run continues: an uncleaned
+    resource is worth knowing about and is not a reason to refuse.
+
+    Variables supplied with `--input` count as available, so a manifest that
+    declares none but templates one the caller passes is not reported.
+    """
+    from apiverity.stateful.graph import validate_workflow_graph
+
+    if skip:
+        return True
+    declared = list(workflow.inputs)
+    workflow.inputs = sorted(set(declared) | set(inputs))
+    try:
+        validation = validate_workflow_graph(workflow)
+    finally:
+        workflow.inputs = declared
+
+    for issue in validation.issues:
+        print(f"{issue.severity.value.lower()}: {issue.message}", file=sys.stderr)
+    if validation.ok:
+        return True
+    print(
+        "refusing to run: the manifest would send requests that cannot be "
+        "completed. Pass --no-preflight to run it anyway.",
+        file=sys.stderr,
+    )
+    return False
 
 
 def _workflow_inputs(args: argparse.Namespace) -> tuple[dict[str, Any], str | None]:

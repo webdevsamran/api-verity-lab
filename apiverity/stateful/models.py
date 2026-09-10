@@ -1,10 +1,35 @@
-"""Workflow manifest and result models."""
+"""Workflow manifest and result models, and the variable syntax they use.
+
+`VARIABLE_RE` and `placeholder` live here rather than in the engine because
+three modules need to agree about them and one of them must not import httpx.
+
+They did not agree. `engine._substitute` replaces `{name}`; `graph.py` looked
+for `{{ name }}` and `templates.py` emitted `{{ name }}`. So the validator and
+the four built-in templates shared a syntax the thing that executes them has
+never implemented -- which nothing caught, because the validator was reachable
+from no command and the templates were only ever compared against themselves.
+"""
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from pydantic import BaseModel, Field
+
+#: `{name}` -- what `WorkflowEngine` substitutes and therefore what a manifest
+#: means by a variable. Anything else is a literal and is sent as written.
+VARIABLE_RE = re.compile(r"\{([A-Za-z_][A-Za-z0-9_]*)\}")
+
+
+def placeholder(name: str) -> str:
+    """The text a manifest writes to stand for `name`."""
+    return "{" + name + "}"
+
+
+def variables_in(text: object) -> set[str]:
+    """Every variable a string refers to. Empty for anything that is not one."""
+    return set(VARIABLE_RE.findall(text)) if isinstance(text, str) else set()
 
 
 class WorkflowRequest(BaseModel):

@@ -1,0 +1,204 @@
+openapi: 3.1.0
+info:
+  title: Verity Template Fixture
+  version: 1.0.0
+  description: >-
+    The contract the four built-in workflow templates assume. Every path any of
+    them names is here, so `apiverity workflow --template NAME` can be rendered
+    and run without editing a single line of it -- which is what
+    tests/integration/test_templates_run.py does.
+
+    It exists because the templates were only ever compared against themselves.
+    Rendered and inspected they looked right; run, the first one failed on its
+    first request.
+servers:
+  - url: http://127.0.0.1:8090
+paths:
+  # --- crud-lifecycle -------------------------------------------------------
+  /widgets:
+    post:
+      operationId: createWidget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: {type: string}
+      responses:
+        "201":
+          description: created
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Widget"}
+  /widgets/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: {type: string}
+    get:
+      operationId: getWidget
+      responses:
+        "200":
+          description: one widget
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Widget"}
+    patch:
+      operationId: updateWidget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: {type: string}
+      responses:
+        "200":
+          description: updated
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Widget"}
+    delete:
+      operationId: deleteWidget
+      responses:
+        "204": {description: deleted}
+
+  # --- pagination-walk ------------------------------------------------------
+  /items:
+    get:
+      operationId: listItems
+      parameters:
+        - name: page
+          in: query
+          schema: {type: integer, minimum: 1}
+        - name: per_page
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 100}
+      responses:
+        "200":
+          description: a page of items
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 100
+                items: {$ref: "#/components/schemas/Widget"}
+
+  # --- resource-lifecycle ---------------------------------------------------
+  /orders:
+    post:
+      operationId: createOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                state: {type: string}
+      responses:
+        "201":
+          description: created
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Order"}
+  /orders/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: {type: string}
+    get:
+      operationId: getOrder
+      responses:
+        "200":
+          description: one order
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Order"}
+    delete:
+      operationId: deleteOrder
+      responses:
+        "204": {description: deleted}
+  /orders/{id}/submit:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: {type: string}
+    post:
+      operationId: submitOrder
+      # No request body: the template sends none, and a required one here would
+      # make the fixture describe an API the template cannot drive.
+      responses:
+        "200":
+          description: submitted
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Order"}
+
+  # --- auth-refresh ---------------------------------------------------------
+  /auth/token:
+    post:
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [grant_type, refresh_token]
+              properties:
+                grant_type: {type: string}
+                refresh_token: {type: string}
+      responses:
+        "200":
+          description: a new access token
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [access_token]
+                properties:
+                  access_token: {type: string, minLength: 8}
+                  expires_in: {type: integer}
+  /me:
+    get:
+      operationId: whoAmI
+      security:
+        - bearer: []
+      responses:
+        "200":
+          description: the caller
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: {type: string}
+                  name: {type: string}
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+  schemas:
+    Widget:
+      type: object
+      required: [id, name]
+      properties:
+        id: {type: string}
+        name: {type: string, minLength: 1}
+    Order:
+      type: object
+      required: [id, state]
+      properties:
+        id: {type: string}
+        state:
+          type: string
+          enum: [draft, submitted, cancelled]

@@ -393,6 +393,15 @@ def build_parser() -> argparse.ArgumentParser:
             "literal `{name}`"
         ),
     )
+    p.add_argument(
+        "--no-preflight",
+        action="store_true",
+        help=(
+            "run the manifest without checking it as a graph first. The check "
+            "refuses a manifest that would send a request containing a variable "
+            "nothing fills"
+        ),
+    )
     p.add_argument("-o", "--output", help="write the draft to a file instead of stdout")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_workflow)

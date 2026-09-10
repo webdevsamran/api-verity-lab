@@ -40,6 +40,21 @@ Values stay strings. `inputs` is a list of names with no types, so parsing
 `--input limit=1` into an integer would be the command deciding something the
 manifest did not say.
 
+## Checked before anything is sent
+
+`workflow` validates the manifest as a graph first: a step may only use a
+variable an earlier step extracted or an input you supplied, step names must be
+unique, and cleanup may not delete something nothing created. An **error stops
+the run** -- a request going out with a literal `{user_id}` in its path is the
+thing this exists to prevent, and by the time anybody notices, the steps before
+it have already been sent. Warnings (a created resource with no cleanup) print
+and the run continues. `--no-preflight` skips the check.
+
+The variable syntax is single braces, `{name}`, everywhere: paths, headers,
+bodies and query values. Extraction and assertion paths use the engine's
+JSONPath subset, `$.a.b` with an optional trailing `[0]` -- a bare `id` matches
+nothing.
+
 ## Arazzo
 
 A manifest can be written as an [Arazzo 1.1.0 description](arazzo.md), and an

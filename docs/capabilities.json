@@ -407,6 +407,7 @@
         "--input",
         "--json",
         "--list-templates",
+        "--no-preflight",
         "--spec",
         "--template",
         "--to-arazzo",

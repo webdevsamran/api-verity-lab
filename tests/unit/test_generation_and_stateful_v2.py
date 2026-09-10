@@ -123,16 +123,42 @@ class TestCorpus:
 
 
 class TestWorkflowGraph:
+    """`{name}`, not `{{ name }}`.
+
+    Every test in this class used to be written in the double-brace syntax the
+    validator looked for and the engine has never implemented -- so they passed
+    against a validator that found nothing at all in a real manifest.
+    """
+
     def test_missing_variable_detected(self) -> None:
         wf = Workflow(
             name="bad",
             steps=[
-                WorkflowStep(name="s1", request=WorkflowRequest(path="/x/{{ missing }}")),
+                WorkflowStep(name="s1", request=WorkflowRequest(path="/x/{missing}")),
             ],
         )
         result = validate_workflow_graph(wf)
         assert not result.ok
         assert any(i.rule_id == "WF-MISSING-VAR" for i in result.issues)
+
+    def test_the_double_brace_form_is_not_a_variable(self) -> None:
+        """The regression that made every other test in this class vacuous. If
+        the validator ever reads `{{ missing }}` again, this fails."""
+        wf = Workflow(
+            name="literal",
+            steps=[
+                WorkflowStep(name="s1", request=WorkflowRequest(path="/x/{{ missing }}")),
+            ],
+        )
+        assert validate_workflow_graph(wf).ok
+
+    def test_a_supplied_input_is_available(self) -> None:
+        wf = Workflow(
+            name="parameterised",
+            inputs=["tenant"],
+            steps=[WorkflowStep(name="s1", request=WorkflowRequest(path="/t/{tenant}"))],
+        )
+        assert validate_workflow_graph(wf).ok
 
     def test_incomplete_cleanup_warned(self) -> None:
         wf = Workflow(
@@ -141,13 +167,38 @@ class TestWorkflowGraph:
                 WorkflowStep(
                     name="create",
                     request=WorkflowRequest(method="POST", path="/things"),
-                    extract={"thing_id": "id"},
+                    extract={"thing_id": "$.id"},
                 ),
+                # The variable has to *address* something for it to be a
+                # resource somebody could clean up -- see the next test.
+                WorkflowStep(name="read", request=WorkflowRequest(path="/things/{thing_id}")),
             ],
             cleanup=[],
         )
         result = validate_workflow_graph(wf)
         assert any(i.rule_id == "WF-INCOMPLETE-CLEANUP" for i in result.issues)
+
+    def test_a_value_that_addresses_nothing_is_not_an_uncleaned_resource(self) -> None:
+        """`POST /auth/token` extracting an `access_token` is not a resource
+        with a DELETE endpoint, and the rule warned about one until a created
+        resource was defined as a variable something puts in a *path*."""
+        wf = Workflow(
+            name="auth",
+            steps=[
+                WorkflowStep(
+                    name="refresh",
+                    request=WorkflowRequest(method="POST", path="/auth/token"),
+                    extract={"access_token": "$.access_token"},
+                ),
+                WorkflowStep(
+                    name="call",
+                    request=WorkflowRequest(
+                        path="/me", headers={"Authorization": "Bearer {access_token}"}
+                    ),
+                ),
+            ],
+        )
+        assert validate_workflow_graph(wf).issues == []
 
     def test_complete_cleanup_passes(self) -> None:
         wf = Workflow(
@@ -156,13 +207,14 @@ class TestWorkflowGraph:
                 WorkflowStep(
                     name="create",
                     request=WorkflowRequest(method="POST", path="/things"),
-                    extract={"thing_id": "id"},
+                    extract={"thing_id": "$.id"},
                 ),
+                WorkflowStep(name="read", request=WorkflowRequest(path="/things/{thing_id}")),
             ],
             cleanup=[
                 WorkflowStep(
                     name="del",
-                    request=WorkflowRequest(method="DELETE", path="/things/{{ thing_id }}"),
+                    request=WorkflowRequest(method="DELETE", path="/things/{thing_id}"),
                 ),
             ],
         )
@@ -184,17 +236,21 @@ class TestTemplates:
         walk = TEMPLATES["pagination-walk"](base_url="http://localhost:9999")
         assert len(walk.steps) == 5
         auth = TEMPLATES["auth-refresh"](base_url="http://localhost:9999")
-        assert "{{ refresh_token }}" in auth.steps[0].request.body["refresh_token"]
+        assert auth.steps[0].request.body["refresh_token"] == "{refresh_token}"
         life = TEMPLATES["resource-lifecycle"](base_url="http://localhost:9999")
-        assert life.steps[0].extract == {"order_id": "id"}
+        assert life.steps[0].extract == {"order_id": "$.id"}
 
     def test_templates_validate_cleanly(self) -> None:
+        """No issues at all, not just no errors.
+
+        The comment here said templates "may legitimately warn about cleanup",
+        which was true of a validator that could not see a `{name}`: it warned
+        about every created resource including the ones cleanup deleted.
+        """
         for factory in TEMPLATES.values():
             wf = factory(base_url="http://localhost:9999")
             result = validate_workflow_graph(wf)
-            # templates may legitimately warn about cleanup only when they create resources
-            errors = [i for i in result.issues if i.severity.value == "ERROR"]
-            assert not errors, (wf.name, errors)
+            assert result.issues == [], (wf.name, [i.message for i in result.issues])
 
 
 # --- Model-based runner -------------------------------------------------------------------

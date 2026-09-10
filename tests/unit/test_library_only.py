@@ -47,7 +47,6 @@ REACHED_OTHERWISE = {
 LIBRARY_ONLY = {
     "apiverity.core.model_v2",
     "apiverity.fuzz.boundary",
-    "apiverity.stateful.graph",
     "apiverity.stateful.model_based",
     "apiverity.traffic.auth",
 }
