@@ -33,8 +33,10 @@ did nothing. Offsets are honoured now, and `ProfileResult` reports how well.
 
 A load generator that cannot keep up with its own schedule is measuring itself.
 `ProfileResult.late_ms` is the gap between when each request was due and when
-it actually went out, and `achieved_rps` is what the run managed against what
-the profile asked for. Both are reported beside the latencies rather than
+it actually went out, and `achieved_rps` is what the run offered against what
+the profile asked for -- measured over the dispatch window, not over the total,
+because how long the last responses take to drain is the service's business
+and dividing by it reports a rate nobody offered. Both are reported beside the latencies rather than
 folded into them, because "p99 was 900ms" means something different when the
 client was three seconds behind schedule -- the distinction k6 draws with
 `dropped_iterations`, and one this project would otherwise be silently on the
@@ -69,6 +71,14 @@ Transport = Callable[[str, str], tuple[int, float]]
 #: Scheduling resolution. 20 Hz: fine enough that a 60-second ramp changes rate
 #: 1,200 times, coarse enough that the scheduler is not itself the load.
 _STEP = 0.05
+
+#: How late a dispatch may be before the run stops describing its own profile.
+#:
+#: One scheduling step, because that is the resolution the schedule is built at
+#: and being under one step late is the closest a run can come to honouring it.
+#: A fixed wall-clock figure would mean different things at different rates:
+#: 250 ms is five slots at 20 requests a second and a fiftieth of one at 4.
+SCHEDULE_TOLERANCE_MS = _STEP * 1000.0
 
 
 @dataclass(frozen=True)
@@ -161,7 +171,13 @@ class ProfileResult:
     scheduled: int = 0
     #: Per request, how far behind schedule its dispatch was.
     late_ms: list[float] = field(default_factory=list)
-    #: Wall-clock seconds the run took, for the achieved rate.
+    #: Wall-clock seconds from the first dispatch to the last. This is the
+    #: window the offered rate is measured over.
+    dispatch_s: float = 0.0
+    #: Wall-clock seconds until the last response came back, which is longer
+    #: than `dispatch_s` by however long the tail took to drain. Reported
+    #: separately: dividing requests by *this* would report a rate the profile
+    #: never asked for and the generator never offered.
     duration_s: float = 0.0
 
     @property
@@ -178,25 +194,34 @@ class ProfileResult:
 
     @property
     def achieved_rps(self) -> float:
-        """Requests actually sent per second of wall clock.
+        """Requests put on the wire per second, over the dispatch window.
 
         Compare it against the profile's own rate: a large gap means the
         generator, not the service, decided how much traffic there was.
+
+        Divided by `dispatch_s`, not `duration_s`. An open-loop profile
+        controls when requests *go out*; how long the last responses take to
+        come back is the service's business. Measured over the total, a 2-second
+        profile whose tail drained for another second reported two thirds of the
+        rate it had actually offered -- which reads as a generator that fell
+        behind and was nothing of the kind.
         """
-        return self.sent / self.duration_s if self.duration_s > 0 else 0.0
+        return self.scheduled / self.dispatch_s if self.dispatch_s > 0 else 0.0
 
     @property
     def max_late_ms(self) -> float:
         return max(self.late_ms) if self.late_ms else 0.0
 
-    def kept_up(self, tolerance_ms: float = 250.0) -> bool:
+    def kept_up(self, tolerance_ms: float | None = None) -> bool:
         """Whether the generator stayed on schedule closely enough to believe.
 
         Not a pass/fail on the service. It is a statement about this run: with
         requests going out seconds after they were due, the latencies describe
         a service under a load nobody asked for.
+
+        The default is `SCHEDULE_TOLERANCE_MS`, which is one scheduling step.
         """
-        return self.max_late_ms <= tolerance_ms
+        return self.max_late_ms <= (SCHEDULE_TOLERANCE_MS if tolerance_ms is None else tolerance_ms)
 
 
 def _pct(sorted_or_unsorted: list[float], pct: float) -> float:
@@ -287,6 +312,7 @@ def execute(
             # exactly the case this is here to catch.
             result.late_ms.append(max(0.0, (clock() - due) * 1000.0))
             pending.append((pool.submit(transport, method, path), due))
+        result.dispatch_s = clock() - started
         for future, _due in pending:
             _collect(result, future)
     result.duration_s = clock() - started
@@ -307,6 +333,7 @@ def _collect(result: ProfileResult, future: Future[tuple[int, float]]) -> None:
 
 
 __all__ = [
+    "SCHEDULE_TOLERANCE_MS",
     "LoadProfile",
     "ProfileResult",
     "Transport",

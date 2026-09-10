@@ -628,6 +628,7 @@ def _regression_shape(args: argparse.Namespace, service: Service) -> int:
             "p99_ms": round(result.p99, 2),
             "max_late_ms": round(result.max_late_ms, 2),
             "kept_up": result.kept_up(),
+            "dispatch_s": round(result.dispatch_s, 3),
             "duration_s": round(result.duration_s, 3),
         },
     }
@@ -640,8 +641,8 @@ def _regression_shape(args: argparse.Namespace, service: Service) -> int:
         print(f"  target: {args.base_url}{path}")
         print(f"  scheduled {result.scheduled}, sent {result.sent}, errors {result.errors}")
         print(
-            f"  requested {profile.rate_start:g}/s, achieved {result.achieved_rps:.1f}/s "
-            f"over {result.duration_s:.1f}s"
+            f"  requested {profile.rate_start:g}/s, offered {result.achieved_rps:.1f}/s "
+            f"over {result.dispatch_s:.1f}s ({result.duration_s:.1f}s including the drain)"
         )
         print(f"  p50 {result.p50:.1f}ms   p95 {result.p95:.1f}ms   p99 {result.p99:.1f}ms")
         print(f"  statuses: {result.status_counts}")

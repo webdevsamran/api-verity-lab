@@ -13,7 +13,7 @@ apiverity regression openapi.yaml --base-url https://staging.example.com \
 GET /users  ramp 60s at 1/s -> 20/s (even arrivals, seed 0)
   target: https://staging.example.com/users
   scheduled 631, sent 631, errors 0
-  requested 1/s, achieved 10.5/s over 60.0s
+  requested 1/s, offered 10.5/s over 60.0s (60.2s including the drain)
   p50 41.2ms   p95 118.7ms   p99 402.1ms
   statuses: {'2xx': 629, '5xx': 2}
 ```
@@ -54,8 +54,8 @@ describing a shape that never happened.
 ## What the run says about itself
 
 **`achieved_rps` against the rate you asked for**, and **`max_late_ms`**: how
-far behind its own schedule the generator fell at worst. When it falls far
-enough behind, the run says so in as many words:
+far behind its own schedule the generator fell at worst. When it falls further
+behind than one scheduling step, the run says so in as many words:
 
 ```text
   WARNING: this generator fell up to 3140ms behind its own schedule. The
@@ -68,6 +68,18 @@ requests going out three seconds after they were due, the latencies above
 describe a load nobody asked for. k6 draws the same distinction with
 `dropped_iterations`, and a load report that hid it would be quotable and
 wrong.
+
+The offered rate is measured over the **dispatch window**, not the total. An
+open-loop profile controls when requests *go out*; how long the last responses
+take to drain is the service's business, and dividing by the total would report
+two thirds of the rate a two-second profile actually offered when its tail took
+another second — which reads as a generator that fell behind and is nothing of
+the kind. The run reports both windows.
+
+"Far enough behind" is one scheduling step, 50 ms, rather than a round
+wall-clock figure: 250 ms is five slots at twenty requests a second and a
+fiftieth of one at four, so a fixed number would mean something different at
+every rate.
 
 Nothing is dropped here — `scheduled == sent + errors` always holds. A
 generator that silently discarded a backlog would report a clean run of a

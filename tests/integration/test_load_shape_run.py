@@ -18,6 +18,7 @@ import pytest
 
 from apiverity.cli.main import main
 from apiverity.mock import MockServer
+from apiverity.performance.profiles import SCHEDULE_TOLERANCE_MS
 from apiverity.specs.loader import detect_and_load
 
 _SPEC = "fixtures/apis/crud/openapi.yaml"
@@ -62,10 +63,15 @@ def test_the_requested_rate_is_roughly_the_rate_that_arrives(service) -> None:
     assert code == 0
     assert shape["scheduled"] == shape["sent"] + shape["errors"]
     assert shape["requested_rps"] == 20.0
-    # Generous, deliberately: this runs on shared CI hardware and a tight bound
-    # would make the suite flaky, which is how a test like this gets deleted.
-    assert 12.0 <= shape["achieved_rps"] <= 28.0
-    assert 1.5 <= shape["duration_s"] <= 4.0
+    # Not "the achieved rate is 20" -- that is a claim about the machine, and a
+    # loaded CI runner falsifies it. The property that holds everywhere is the
+    # one the feature exists for: either the generator kept up and the rate is
+    # what was asked for, or it did not and the run says so. A run that missed
+    # the rate *and* claimed to have kept up would be the actual defect.
+    if shape["kept_up"]:
+        assert 15.0 <= shape["achieved_rps"] <= 25.0
+    else:
+        assert shape["max_late_ms"] > SCHEDULE_TOLERANCE_MS
 
 
 def test_the_run_reports_whether_the_generator_kept_up(service) -> None:
@@ -95,8 +101,11 @@ def test_a_ramp_climbs_above_the_rate_it_started_at(service) -> None:
         flat = _with_shape(mock.base_url, "constant:2s@2")
         ramp = _with_shape(mock.base_url, "ramp:2s@2..40")
     assert ramp["profile"].startswith("ramp 2s at 2/s -> 40/s")
+    # A count, not a duration: how many requests the schedule called for is a
+    # fact about the profile, and how long they took is a fact about the
+    # machine.
+    assert ramp["scheduled"] > flat["scheduled"] * 3
     assert ramp["sent"] > flat["sent"] * 3
-    assert 1.5 <= ramp["duration_s"] <= 4.0
 
 
 def test_an_unreachable_target_reports_unreachable() -> None:
