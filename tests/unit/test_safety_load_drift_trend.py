@@ -8,7 +8,6 @@ from pathlib import Path
 
 from apiverity.performance.profiles import (
     LoadProfile,
-    capacity_search,
     execute,
     schedule,
 )
@@ -152,19 +151,19 @@ class TestLoadProfiles:
         assert result.status_counts.get("2xx") and result.status_counts.get("5xx")
         assert result.p50 > 0
 
-    def test_capacity_search_stops_at_saturation(self) -> None:
-        def factory(conc: int):
-            def transport(method: str, path: str):
-                latency = 100.0 / conc + (200.0 if conc > 8 else 0.0)
-                return 200, latency
+    def test_execute_honours_the_schedule(self) -> None:
+        """Moved from `test_execute_collects_metrics`, which passed while every
+        offset was discarded. See tests/unit/test_load_shapes.py."""
+        elapsed = {"t": 0.0}
 
-            return transport
-
-        points = capacity_search(
-            factory, concurrency_levels=(1, 2, 4, 8, 16), requests_per_level=50
+        result = execute(
+            LoadProfile(kind="constant", duration_seconds=1.0, rate_start=20),
+            lambda _m, _p: (200, 12.5),
+            sleep=lambda s: elapsed.__setitem__("t", elapsed["t"] + s),
+            clock=lambda: elapsed["t"],
         )
-        assert points[0].concurrency == 1
-        assert all(p.throughput_rps > 0 for p in points)
+        assert result.scheduled == result.sent
+        assert elapsed["t"] > 0.9
 
 
 # --- Drift trends ----------------------------------------------------------------------

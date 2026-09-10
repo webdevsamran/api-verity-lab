@@ -527,6 +527,136 @@ def _regression_curve(args: argparse.Namespace, service: Service) -> int:
     return EXIT_OK
 
 
+#: Methods a load shape drives without asking. Everything else changes state
+#: at whatever rate the profile names, which is a different conversation from
+#: "measure this endpoint".
+_READ_METHODS = ("GET", "HEAD", "OPTIONS")
+
+
+def _regression_shape(args: argparse.Namespace, service: Service) -> int:
+    """Drive one operation at a declared arrival rate.
+
+    One operation, named, rather than every operation in the contract: a
+    profile states a rate, and running `constant:60s@50` against forty
+    operations means two thousand requests a second at a target the operator
+    asked for fifty.
+    """
+    import httpx
+
+    from apiverity.performance.profiles import execute, parse_profile
+
+    try:
+        profile = parse_profile(str(args.shape))
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    key = getattr(args, "operation", None)
+    if not key:
+        print(
+            "error: --shape needs --operation KEY (for example --operation 'GET /users'). "
+            "A rate is stated for one endpoint; applying it to every operation in the "
+            "contract would multiply it by the size of the API.",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+    operation = service.find_operation(key)
+    if operation is None or not operation.path:
+        known = ", ".join(service.operation_keys()[:8])
+        print(f"error: no operation {key!r} in this contract (it has: {known})", file=sys.stderr)
+        return EXIT_USAGE
+
+    method = (operation.method or "GET").upper()
+    if method not in _READ_METHODS and not getattr(args, "include_mutations", False):
+        print(
+            f"error: {key!r} is a {method}. Driving it at {profile.rate_start:g} requests a "
+            "second writes to the target that many times a second. Pass --include-mutations "
+            "if that is what you mean.",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+
+    path = str(getattr(args, "path", None) or operation.path)
+    if "{" in path:
+        print(
+            f"error: {key!r} is declared at {operation.path!r}, which is a template rather "
+            "than a URL. Pass --path with a concrete one (--path /users/42): a load shape "
+            "sends the same request thousands of times and there is nothing here that "
+            "knows a real id.",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+    with httpx.Client(
+        base_url=str(args.base_url).rstrip("/"),
+        timeout=float(getattr(args, "timeout", 10.0) or 10.0),
+        limits=httpx.Limits(max_connections=256, max_keepalive_connections=256),
+    ) as client:
+
+        def transport(verb: str, target: str) -> tuple[int, float]:
+            started = time.perf_counter()
+            response = client.request(verb, target)
+            return response.status_code, (time.perf_counter() - started) * 1000.0
+
+        try:
+            result = execute(profile, transport, method=method, path=path)
+        except Exception as exc:
+            print(f"error: target unreachable: {exc}", file=sys.stderr)
+            return EXIT_UNREACHABLE
+
+    if result.sent == 0:
+        print(
+            f"error: target unreachable: nothing answered at {args.base_url}{path}",
+            file=sys.stderr,
+        )
+        return EXIT_UNREACHABLE
+
+    payload = {
+        "tool": "apiverity",
+        "command": "regression",
+        "shape": {
+            "profile": result.profile,
+            "operation_key": key,
+            "path": path,
+            "requested_rps": profile.rate_start,
+            "achieved_rps": round(result.achieved_rps, 2),
+            "scheduled": result.scheduled,
+            "sent": result.sent,
+            "errors": result.errors,
+            "status_counts": result.status_counts,
+            "p50_ms": round(result.p50, 2),
+            "p95_ms": round(result.p95, 2),
+            "p99_ms": round(result.p99, 2),
+            "max_late_ms": round(result.max_late_ms, 2),
+            "kept_up": result.kept_up(),
+            "duration_s": round(result.duration_s, 3),
+        },
+    }
+    if getattr(args, "json", False):
+        _emit(payload, True)
+    else:
+        shape = payload["shape"]
+        assert isinstance(shape, dict)
+        print(f"{key}  {result.profile}")
+        print(f"  target: {args.base_url}{path}")
+        print(f"  scheduled {result.scheduled}, sent {result.sent}, errors {result.errors}")
+        print(
+            f"  requested {profile.rate_start:g}/s, achieved {result.achieved_rps:.1f}/s "
+            f"over {result.duration_s:.1f}s"
+        )
+        print(f"  p50 {result.p50:.1f}ms   p95 {result.p95:.1f}ms   p99 {result.p99:.1f}ms")
+        print(f"  statuses: {result.status_counts}")
+        if not result.kept_up():
+            # Printed loudly because the numbers above are not what they look
+            # like: with requests going out this far after they were due, the
+            # latencies describe a load nobody asked for.
+            print(
+                f"  WARNING: this generator fell up to {result.max_late_ms:.0f}ms behind its "
+                "own schedule. The offered load was not the profile above -- lower the rate, "
+                "or drive it from somewhere closer to the target."
+            )
+    return EXIT_OK
+
+
 def cmd_regression(args: argparse.Namespace) -> int:
     from apiverity.performance.engine import (
         compare_baseline,
@@ -544,6 +674,9 @@ def cmd_regression(args: argparse.Namespace) -> int:
 
     if getattr(args, "curve", None):
         return _regression_curve(args, service)
+
+    if getattr(args, "shape", None):
+        return _regression_shape(args, service)
 
     try:
         report = measure(

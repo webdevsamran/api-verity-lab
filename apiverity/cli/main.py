@@ -718,6 +718,38 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     p.add_argument(
+        "--shape",
+        metavar="SPEC",
+        help=(
+            "drive one operation at a declared arrival rate instead of measuring every "
+            "operation: 'constant:30s@10', 'ramp:60s@1..20', 'spike:60s@10x6@50%%', "
+            "'soak:600s@5', each optionally '+poisson' and '+seed=7'. Open loop -- "
+            "requests go out when they are due, whether or not earlier ones came back. "
+            "Requires --operation"
+        ),
+    )
+    p.add_argument(
+        "--operation",
+        metavar="KEY",
+        help="which operation --shape drives, e.g. 'GET /users'",
+    )
+    p.add_argument(
+        "--path",
+        metavar="PATH",
+        help=(
+            "the concrete path --shape sends to, when the operation is declared at a "
+            "template: --path /users/42"
+        ),
+    )
+    p.add_argument(
+        "--include-mutations",
+        action="store_true",
+        help=(
+            "allow --shape to drive a non-read method. A POST at 50 requests a second "
+            "writes to the target fifty times a second"
+        ),
+    )
+    p.add_argument(
         "--tolerance",
         action="append",
         metavar="PCT|METRIC=PCT",

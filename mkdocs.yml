@@ -48,6 +48,7 @@ nav:
       - MCP inventory: mcp-inventory.md
       - Call budgets: call-budgets.md
       - Declared objectives: objectives.md
+      - Load shapes: load-shapes.md
       - Blast radius: blast-radius.md
       - Ghost routes: ghost-routes.md
       - Inferred contracts: inferred-contracts.md

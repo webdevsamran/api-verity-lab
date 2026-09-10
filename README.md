@@ -239,6 +239,20 @@ apiverity regression ... --baseline perf-baseline.json \
     --policy "GET /users bytes_p95 <= 256KB"
 ```
 
+A budget answers "is it fast enough". A **load shape** answers "at what rate
+does it stop being":
+
+```bash
+apiverity regression openapi.yaml --base-url https://staging.example.com     --shape 'ramp:60s@1..20' --operation 'GET /users'
+```
+
+`constant`, `ramp`, `spike` and `soak`, each optionally with `+poisson`
+arrivals, driven **open loop** -- a request goes out when it is due, whether or
+not earlier ones came back, which is the only way to see a queue build. The run
+reports how far behind its own schedule the generator fell, because a p99 from
+a generator that could not keep up describes a load nobody asked for. See
+[docs/load-shapes.md](docs/load-shapes.md).
+
 Stable exit codes make this a CI gate; bundles record p50/p90/p95/p99,
 throughput, timeouts, error rates and **response size** — percentiles rather
 than a mean, because the response that hurts is the largest one a client hit.
@@ -364,6 +378,7 @@ Browsable at **<https://webdevsamran.github.io/api-verity-lab/>**, or as files h
 | [docs/workflow-authoring.md](docs/workflow-authoring.md) · [docs/arazzo.md](docs/arazzo.md) | Writing stateful workflow manifests, and reading and writing them as Arazzo 1.1.0 |
 | [docs/sdk.md](docs/sdk.md) · [docs/self-hosting.md](docs/self-hosting.md) | Using the library directly; running the server |
 | [docs/ci.md](docs/ci.md) | Wiring the contract gate into a pipeline |
+| [docs/load-shapes.md](docs/load-shapes.md) · [docs/objectives.md](docs/objectives.md) | Driving one operation at a declared arrival rate; objectives a contract states |
 | [SAFETY_MODEL.md](SAFETY_MODEL.md) · [docs/privacy.md](docs/privacy.md) | What this tool will and will not do to a target |
 | [docs/mcp-drift.md](docs/mcp-drift.md) · [docs/mcp-poisoning.md](docs/mcp-poisoning.md) · [docs/mcp-lock.md](docs/mcp-lock.md) · [docs/mcp-inventory.md](docs/mcp-inventory.md) · [docs/call-budgets.md](docs/call-budgets.md) · [docs/blast-radius.md](docs/blast-radius.md) · [docs/ghost-routes.md](docs/ghost-routes.md) · [docs/inferred-contracts.md](docs/inferred-contracts.md) · [docs/monorepo-sweep.md](docs/monorepo-sweep.md) · [docs/mcp-exposure.md](docs/mcp-exposure.md) | Governing MCP servers: drift against a live one, a tool description read as executable text, a reviewed baseline, and exposing this one to agents |
 | [docs/compliance-mapping.md](docs/compliance-mapping.md) · [docs/evidence.md](docs/evidence.md) | Findings mapped onto the OWASP MCP, Agentic and API Top 10s, and packaged as dated evidence for SOC 2, ISO 42001, DORA and the EU AI Act -- including what neither can assess |
