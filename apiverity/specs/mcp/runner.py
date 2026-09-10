@@ -27,7 +27,9 @@ There is no handshake any more, and that changes the probe
 Revision 2026-07-28 made MCP stateless: the `initialize` /
 `notifications/initialized` handshake was removed along with protocol-level
 sessions, and every request now carries its protocol version and client
-capabilities in `_meta`. Servers MUST implement `server/discover`.
+capabilities in `params._meta` -- required there, and mirrored in the
+`MCP-Protocol-Version` header, which a server MUST reject the request for if
+the two disagree. Servers MUST implement `server/discover`.
 
 This client never sends `initialize`. Three reasons, and they are all the same
 reason in different clothes: sending a method the current revision removed
@@ -40,6 +42,7 @@ tear down.
 
 from __future__ import annotations
 
+import base64
 import json
 from dataclasses import dataclass, field
 from typing import Any
@@ -52,10 +55,69 @@ SPOKEN_PROTOCOL_VERSION = "2026-07-28"
 
 _META_VERSION = "io.modelcontextprotocol/protocolVersion"
 _META_CAPABILITIES = "io.modelcontextprotocol/clientCapabilities"
+_META_CLIENT_INFO = "io.modelcontextprotocol/clientInfo"
+
+#: Header carrying the revision, required on every POST. The value MUST match
+#: `params._meta["io.modelcontextprotocol/protocolVersion"]`; a server that
+#: finds them different MUST answer 400 with a `HeaderMismatch` error, so the
+#: two are written from the same constant and never assembled separately.
+PROTOCOL_VERSION_HEADER = "MCP-Protocol-Version"
+
+#: `Mcp-Method` is required for all requests and `Mcp-Name` for the three that
+#: name a target, so that gateways and load balancers can route without
+#: parsing the body. Both are REQUIRED for compliance, not hints.
+METHOD_HEADER = "Mcp-Method"
+NAME_HEADER = "Mcp-Name"
+
+#: method -> the params key whose value goes in `Mcp-Name`.
+_NAME_SOURCE = {
+    "tools/call": "name",
+    "prompts/get": "name",
+    "resources/read": "uri",
+}
+
+#: Marks a header value carrying base64 of the UTF-8 bytes. Case-sensitive and
+#: exact, because servers MUST decode it before comparing the header to the
+#: body during their own validation.
+_B64_PREFIX = "=?base64?"
+_B64_SUFFIX = "?="
+
+
+def encode_header_value(value: str) -> str:
+    """Encode a value for `Mcp-Name` / `Mcp-Param-*` per the transport spec.
+
+    RFC 9110 limits header field values to visible ASCII, space and tab. Tool
+    names are only SHOULD-constrained to that set, so a server whose tool is
+    named in Japanese -- or one whose name merely has a trailing space -- must
+    still be reachable. Anything outside the safe set is carried base64-encoded
+    behind an explicit sentinel.
+
+    A plain-ASCII value that happens to *look* like the sentinel is encoded
+    too. Otherwise a tool literally named `=?base64?x?=` would be decoded by
+    the server into something the body never said, which is the kind of
+    ambiguity that turns into an injection.
+    """
+    safe = value and all("\u0020" <= ch <= "\u007e" for ch in value)
+    if safe and value.strip() == value and not value.startswith(_B64_PREFIX):
+        return value
+    encoded = base64.b64encode(value.encode("utf-8")).decode("ascii")
+    return f"{_B64_PREFIX}{encoded}{_B64_SUFFIX}"
+
+
+def decode_header_value(value: str) -> str:
+    """Inverse of `encode_header_value`, for servers and for the tests."""
+    if value.startswith(_B64_PREFIX) and value.endswith(_B64_SUFFIX):
+        inner = value[len(_B64_PREFIX) : -len(_B64_SUFFIX)]
+        return base64.b64decode(inner).decode("utf-8")
+    return value
+
 
 #: JSON-RPC error codes this client reasons about.
 ERR_METHOD_NOT_FOUND = -32601
 ERR_UNSUPPORTED_PROTOCOL_VERSION = -32022
+#: Returned when the headers disagree with the body, or a required one is
+#: missing. Always paired with HTTP 400.
+ERR_HEADER_MISMATCH = -32020
 
 #: Following `nextCursor` forever is a denial of service against ourselves.
 DEFAULT_MAX_PAGES = 50
@@ -173,20 +235,56 @@ class McpClient:
             self._client = None
 
     def _envelope(self, method: str, params: dict[str, Any] | None) -> dict[str, Any]:
+        """Build one JSON-RPC request, with `_meta` where the schema puts it.
+
+        `_meta` was being written as a sibling of `params`. The schema declares
+        it on `RequestParams`, and declares it *required* there along with both
+        of the keys below, so every request this client sent was missing a
+        required field -- against the one revision it claims to speak, in the
+        one code path the drift check depends on. A permissive server ignored
+        it; a conformant one is entitled to reject the lot.
+
+        `clientInfo` is added because a tool that probes other people's servers
+        should say what it is in the request, not only in a user agent. The
+        spec says clients SHOULD send it on every request, and the operator
+        reading their access log is the reason why.
+        """
+        from apiverity import __version__
+
         self._id += 1
+        body = dict(params or {})
+        # Sent unconditionally: a legacy server ignores unknown `_meta` keys
+        # rather than failing, so one shape works for both eras.
+        body["_meta"] = {
+            _META_VERSION: SPOKEN_PROTOCOL_VERSION,
+            _META_CAPABILITIES: {},
+            _META_CLIENT_INFO: {"name": "apiverity", "version": __version__},
+        }
         return {
             "jsonrpc": "2.0",
             "id": self._id,
             "method": method,
-            "params": params or {},
-            # Both keys are required on every request from 2026-07-28. Sent
-            # unconditionally: a legacy server ignores unknown _meta rather
-            # than failing, so one shape works for both eras.
-            "_meta": {
-                _META_VERSION: SPOKEN_PROTOCOL_VERSION,
-                _META_CAPABILITIES: {},
-            },
+            "params": body,
         }
+
+    def _routing_headers(self, method: str, params: dict[str, Any] | None) -> dict[str, str]:
+        """The headers the transport requires, derived from the body.
+
+        Derived rather than passed in, so the header and the body cannot
+        disagree: a server that finds `MCP-Protocol-Version` different from
+        `params._meta` MUST reject the request, and a mismatch assembled in two
+        places is the way that happens.
+        """
+        headers = {
+            PROTOCOL_VERSION_HEADER: SPOKEN_PROTOCOL_VERSION,
+            METHOD_HEADER: method,
+        }
+        source = _NAME_SOURCE.get(method)
+        if source is not None:
+            target = (params or {}).get(source)
+            if isinstance(target, str) and target:
+                headers[NAME_HEADER] = encode_header_value(target)
+        return headers
 
     def call(self, method: str, params: dict[str, Any] | None = None) -> RpcResult:
         if self._client is None:  # pragma: no cover - guarded by __enter__
@@ -198,6 +296,10 @@ class McpClient:
                 headers={
                     "content-type": "application/json",
                     "accept": "application/json",
+                    **self._routing_headers(method, params),
+                    # Caller headers last: an operator overriding one is
+                    # explicit, and the alternative is a flag that silently
+                    # does nothing.
                     **self.headers,
                 },
             )

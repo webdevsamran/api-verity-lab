@@ -22,10 +22,64 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
 from apiverity.specs.mcp.runner import (
+    ERR_HEADER_MISMATCH,
     ERR_METHOD_NOT_FOUND,
     ERR_UNSUPPORTED_PROTOCOL_VERSION,
+    METHOD_HEADER,
+    NAME_HEADER,
+    PROTOCOL_VERSION_HEADER,
     SPOKEN_PROTOCOL_VERSION,
+    decode_header_value,
 )
+
+#: Methods whose target the transport requires in `Mcp-Name`, and the params
+#: key it comes from. Duplicated from the client deliberately: a mock that
+#: imported the client's table would agree with the client by construction and
+#: prove nothing.
+_NAME_REQUIRED = {"tools/call": "name", "prompts/get": "name", "resources/read": "uri"}
+
+
+def _header_complaint(headers: dict[str, str], request: dict[str, Any]) -> str | None:
+    """Return why this request fails header validation, or None if it passes.
+
+    Every check here is a MUST in the Streamable HTTP transport of revision
+    2026-07-28: the version header is required and must equal the one in
+    `params._meta`, `Mcp-Method` is required for all requests, and `Mcp-Name`
+    is required for the three methods that name a target.
+    """
+    lowered = {k.lower(): v for k, v in headers.items()}
+    method = request.get("method")
+    params = request.get("params")
+    params = params if isinstance(params, dict) else {}
+    meta = params.get("_meta")
+    meta = meta if isinstance(meta, dict) else {}
+
+    declared = lowered.get(PROTOCOL_VERSION_HEADER.lower())
+    if declared is None:
+        return f"missing {PROTOCOL_VERSION_HEADER}"
+    in_body = meta.get("io.modelcontextprotocol/protocolVersion")
+    if in_body is None:
+        return "missing params._meta['io.modelcontextprotocol/protocolVersion']"
+    if declared != in_body:
+        return f"{PROTOCOL_VERSION_HEADER} {declared!r} != params._meta {in_body!r}"
+    if "io.modelcontextprotocol/clientCapabilities" not in meta:
+        return "missing params._meta['io.modelcontextprotocol/clientCapabilities']"
+
+    sent_method = lowered.get(METHOD_HEADER.lower())
+    if sent_method is None:
+        return f"missing {METHOD_HEADER}"
+    if sent_method != method:
+        return f"{METHOD_HEADER} {sent_method!r} != method {method!r}"
+
+    source = _NAME_REQUIRED.get(str(method))
+    if source is not None:
+        target = params.get(source)
+        sent_name = lowered.get(NAME_HEADER.lower())
+        if sent_name is None:
+            return f"missing {NAME_HEADER} for {method}"
+        if decode_header_value(sent_name) != target:
+            return f"{NAME_HEADER} does not match params.{source}"
+    return None
 
 
 class McpMockServer:
@@ -55,6 +109,11 @@ class McpMockServer:
         a reduced tool list served to unauthenticated callers instead of a 401
         -- partial exposure, which is the case a probe that only tries
         authenticated requests can never see.
+    ``enforce_headers``
+        validate `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` against
+        the body, which the transport spec requires of a server and which is
+        the only way a mock can prove the client sends them. Set False for the
+        permissive server that hid this for as long as it did.
     """
 
     def __init__(
@@ -72,6 +131,7 @@ class McpMockServer:
         challenge: bool = True,
         anonymous_tools: list[dict[str, Any]] | None = None,
         call_handler: Callable[[str, dict[str, Any]], dict[str, Any]] | None = None,
+        enforce_headers: bool = True,
     ) -> None:
         self.tools = tools or []
         self.host = host
@@ -84,6 +144,10 @@ class McpMockServer:
         self.challenge = challenge
         self.anonymous_tools = anonymous_tools
         self.call_handler = call_handler
+        self.enforce_headers = enforce_headers
+        #: Headers of every POST received, so a test can assert on what was
+        #: actually sent rather than on what the server chose to tolerate.
+        self.received_headers: list[dict[str, str]] = []
         self.calls: list[tuple[str, dict[str, Any]]] = []
         self._list_requests = 0
 
@@ -98,6 +162,7 @@ class McpMockServer:
             def do_POST(self) -> None:  # BaseHTTPRequestHandler dispatches on this name
                 length = int(self.headers.get("content-length", 0))
                 body = self.rfile.read(length) or b"{}"
+                server.received_headers.append({k.lower(): v for k, v in self.headers.items()})
                 presented = self.headers.get("authorization")
                 authorized = (
                     server.require_auth is None or presented == f"Bearer {server.require_auth}"
@@ -110,6 +175,18 @@ class McpMockServer:
                 except json.JSONDecodeError:
                     self._send({"jsonrpc": "2.0", "id": None, "error": {"code": -32700}})
                     return
+                if server.enforce_headers:
+                    complaint = _header_complaint(dict(self.headers), request)
+                    if complaint is not None:
+                        self._send(
+                            {
+                                "jsonrpc": "2.0",
+                                "id": request.get("id"),
+                                "error": {"code": ERR_HEADER_MISMATCH, "message": complaint},
+                            },
+                            status=400,
+                        )
+                        return
                 self._send(server.handle(request, authorized=authorized))
 
             def _unauthorized(self) -> None:
@@ -128,9 +205,9 @@ class McpMockServer:
                 self.end_headers()
                 self.wfile.write(payload)
 
-            def _send(self, payload: dict[str, Any]) -> None:
+            def _send(self, payload: dict[str, Any], *, status: int = 200) -> None:
                 body = json.dumps(payload).encode()
-                self.send_response(200)
+                self.send_response(status)
                 self.send_header("content-type", "application/json")
                 self.send_header("content-length", str(len(body)))
                 self.end_headers()

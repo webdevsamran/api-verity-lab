@@ -85,6 +85,37 @@ categorically different hazard from sending an HTTP request, and doing it
 before any of the existing controls can express it. Run a stdio server behind a
 Streamable HTTP bridge, or wait for the gate to exist first.
 
+### What a request looks like
+
+Revision 2026-07-28 makes four things MUST on every POST, and this client got
+all four wrong until 2026-09-10. They are listed here rather than left implicit
+because a probe that a conformant server rejects reports nothing at all, and
+"the server was unreachable" is the least useful finding this tool can emit.
+
+- `_meta` is a member of **`params`**, where the schema declares it required,
+  along with `io.modelcontextprotocol/protocolVersion` and
+  `io.modelcontextprotocol/clientCapabilities`. It was being written beside
+  `params`, so both required keys sat in a place the schema does not define.
+- `MCP-Protocol-Version` is required on every POST and MUST equal the version
+  in `params._meta`. It is derived from the body here, in one place, because a
+  server that finds them different MUST answer `400` with a `HeaderMismatch`
+  error (`-32020`) and a mismatch assembled twice is how that happens.
+- `Mcp-Method` is required for all requests, so gateways can route without
+  parsing a body.
+- `Mcp-Name` is required for `tools/call`, `resources/read` and `prompts/get`.
+  Tool names are only SHOULD-constrained to header-safe characters, so a name
+  outside visible ASCII is carried as `=?base64?<base64>?=` — including a
+  plain-ASCII name that happens to look like that sentinel, which would
+  otherwise let a tool name decode into something the body never said.
+
+`io.modelcontextprotocol/clientInfo` is sent too, naming `apiverity` and its
+version. The specification says clients SHOULD; the operator reading their
+access log after an unexpected `tools/list` is why it is not optional here.
+
+The mock server in `apiverity/mock/mcp_server.py` validates all of this by
+default, which is how the gap was found: a mock that accepts anything cannot
+prove the client sends anything.
+
 ## Authorization
 
 The specification allows a server's tool set to vary by the authorization
