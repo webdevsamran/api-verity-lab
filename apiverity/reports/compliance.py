@@ -377,7 +377,8 @@ API_TOP_10 = Framework(
             "API4",
             "Unrestricted Resource Consumption",
             rules=(
-                "SEC-RATE-LIMIT-METADATA",
+                "SEC-RATE-LIMIT-",
+                "SEC-ABUSE-",
                 "SEC-ARRAY-UNBOUNDED",
                 "SEC-COLLECTION-UNPAGINATED",
                 "BRK-CONSTRAINT-",
@@ -385,7 +386,8 @@ API_TOP_10 = Framework(
             ),
             caveat=(
                 "undeclared limits from the contract -- an array a caller can send with no "
-                "ceiling, a listing with no pagination -- and observed call volume against a "
+                "ceiling, a listing with no pagination, a page size with no maximum, a 429 "
+                "that never says when to come back -- and observed call volume against a "
                 "declared budget. `apiverity regression` measures latency; none of it "
                 "measures what the service can actually absorb"
             ),

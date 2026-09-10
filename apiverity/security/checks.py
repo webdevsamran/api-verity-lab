@@ -179,6 +179,7 @@ def run_security_checks(
     forbid_additional_properties: bool = False,
 ) -> list[Finding]:
     from apiverity.rules.lifecycle import run_lifecycle_checks
+    from apiverity.security.abuse import run_abuse_checks
     from apiverity.security.hardening import run_hardening_checks
 
     # What the document *declares* that is a problem on its own -- a credential
@@ -189,6 +190,11 @@ def run_security_checks(
     # from its own command because `validate` is where a contract gets read,
     # and a check nobody invokes is a check nobody has.
     findings.extend(run_lifecycle_checks(service))
+    # What a caller is permitted to ask for, and what the contract says happens
+    # when they ask too often. `SEC-RATE-LIMIT-METADATA` below already reports
+    # a contract that mentions no limit anywhere; these report the shape of one
+    # that does.
+    findings.extend(run_abuse_checks(service))
 
     for url in service.servers:
         if (

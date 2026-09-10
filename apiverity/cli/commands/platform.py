@@ -370,6 +370,7 @@ _RULE_GUIDE: tuple[tuple[str, str, str], ...] = (
     ("SEC-ARRAY-", "Security: resource consumption", "docs/check-rules.md"),
     ("SEC-COLLECTION-", "Security: resource consumption", "docs/check-rules.md"),
     ("SEC-RATE-LIMIT-", "Security: resource consumption", "docs/check-rules.md"),
+    ("SEC-ABUSE-", "Security: resource consumption", "docs/check-rules.md"),
     ("SEC-", "Security: shape and transport", "docs/check-rules.md"),
     ("SEMANTIC-", "Behaviour", "docs/check-rules.md"),
     ("LIFECYCLE-", "Lifecycle", "docs/check-rules.md"),

@@ -1,0 +1,191 @@
+openapi: 3.0.3
+info:
+  title: Verity Rate-Limit Fixture
+  version: 1.0.0
+  description: >-
+    An API that rate limits, documents it on some operations and not others,
+    and declares two of the three rate-limit header vocabularies. Every defect
+    here is deliberate; each one is a finding the abuse-surface checks exist
+    to produce.
+servers:
+  - url: https://limits.example.com
+paths:
+  /search:
+    get:
+      operationId: search
+      summary: Documented properly, apart from the page size
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: How many results to return. No `maximum` -- SEC-ABUSE-UNBOUNDED-PAGE-SIZE.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: results
+          headers:
+            RateLimit:
+              schema:
+                type: string
+            RateLimit-Policy:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    maxItems: 100
+                    items:
+                      type: string
+        "429":
+          description: too many requests
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+  /reports:
+    get:
+      operationId: listReports
+      summary: Declares 429 and forgets to say when to come back
+      parameters:
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            maximum: 200
+      responses:
+        "200":
+          description: reports
+          headers:
+            X-RateLimit-Limit:
+              description: Vendor spelling. No specification defines it.
+              schema:
+                type: integer
+            X-RateLimit-Remaining:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    maxItems: 50
+                    items:
+                      type: string
+        "429":
+          description: too many requests, and no Retry-After
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+  /events:
+    get:
+      operationId: listEvents
+      summary: Mid-migration -- the three-field set from an earlier draft revision
+      parameters:
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            enum: [10, 50, 100]
+      responses:
+        "200":
+          description: events
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: integer
+            RateLimit-Remaining:
+              schema:
+                type: integer
+            RateLimit-Reset:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    maxItems: 100
+                    items:
+                      type: string
+        "429":
+          description: too many requests
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+  /exports:
+    post:
+      operationId: createExport
+      summary: The expensive one, with no declared limit at all
+      security:
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [format]
+              properties:
+                format:
+                  type: string
+                  enum: [csv, json]
+      responses:
+        "202":
+          description: accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+        "503":
+          description: busy, and it does not say for how long
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+security:
+  - apiKey: []

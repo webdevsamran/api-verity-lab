@@ -63,7 +63,11 @@ Limits the contract does not declare. Unbounded *strings* are deliberately not c
 |---|---|---|---|---|
 | `SEC-ARRAY-UNBOUNDED` | WARN | `validate` | A request accepts an array with no `maxItems`. | Declare a ceiling. The cost is not the array, it is the work done per element; if the server already enforces a limit, say so in the description so a caller can find it. |
 | `SEC-COLLECTION-UNPAGINATED` | WARN | `validate` | A read returns an array and declares no pagination parameter. | Add `limit` and a cursor. Response size then follows something the caller asked for, instead of following how much data happens to exist. |
+| `SEC-RATE-LIMIT-LEGACY-FIELDS` | INFO | `validate` | The contract declares the three-field `RateLimit-Limit`/`-Remaining`/`-Reset` set. | Nothing, deliberately. Later revisions of the same draft replaced it with the two-field `RateLimit` / `RateLimit-Policy` pair, and the replacement is still a draft -- recommending a move to an unstable target is how a linter gets switched off. Recorded so the choice is a choice. |
 | `SEC-RATE-LIMIT-METADATA` | INFO | `validate` | No rate-limit metadata is declared anywhere in the contract. | Declare the `RateLimit` headers you return, or describe the limits in the description. An undocumented limit is one every client discovers in production. |
+| `SEC-RATE-LIMIT-NO-429` | WARN | `validate` | An operation declares no 429, in a contract where other operations do. | Declare 429 here too, or say in the description that this operation is not limited. A caller cannot tell an operation with no limit from one whose limit nobody wrote down. |
+| `SEC-RATE-LIMIT-NO-RETRY-AFTER` | WARN | `validate` | A declared 429 or 503 carries no `Retry-After`. | Declare `Retry-After` on the response (RFC 9110 section 10.2.3), as a delay in seconds or an HTTP-date. A client that cannot compute a backoff retries immediately, which turns a rate limit into an outage. |
+| `SEC-RATE-LIMIT-VENDOR-HEADERS` | INFO | `validate` | The contract declares `X-RateLimit-*` headers, which no specification defines. | Nothing. Recorded because the standardised spellings are different -- `RateLimit` and `RateLimit-Policy`, from draft-ietf-httpapi-ratelimit-headers-11 (2026-05-23) -- and that document is an active Internet-Draft rather than an RFC, so moving is a judgement call rather than a fix. |
 
 ## Shape and transport
 
@@ -103,6 +107,7 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 
 | Rule | Severity | Produced by | Fires when | Instead |
 |---|---|---|---|---|
+| `SEC-ABUSE-UNBOUNDED-PAGE-SIZE` | WARN | `validate` | A page-size query parameter declares no `maximum`. | Declare `maximum` on the parameter. If the server already caps it, the contract still says otherwise, and a client written against the contract will ask for the number it says is allowed. |
 | `SEC-UNAUTH-WRITE` | WARN | `validate` | A mutating operation has no authentication declaration. | Same edit as SEC-AUTH-MISSING, and more urgent: a POST or DELETE that a reader cannot tell is protected is one nobody will audit. |
 
-_34 check rules._
+_39 check rules._
