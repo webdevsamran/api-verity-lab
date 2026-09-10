@@ -81,22 +81,21 @@ _MODERN_MARKERS = ("resultType", "ttlMs", "cacheScope")
 #: byte-identical across runs (AGENTS.md: determinism).
 ANNOTATION_HINTS = ("readOnlyHint", "destructiveHint", "idempotentHint", "openWorldHint")
 
-#: JSON Schema 2020-12 keywords `OpenApiParser.to_schema` does not model. A
-#: schema using one is parsed with that keyword silently dropped, which would
+#: JSON Schema 2020-12 keywords `OpenApiParser.to_schema` still does not model.
+#: A schema using one is parsed with that keyword silently dropped, which would
 #: mean the diff cannot see changes to it -- so the loader says so rather than
 #: asserting a simpler schema than the document declares.
+#:
+#: This list was thirteen keywords long. `prefixItems`, `if`/`then`/`else`,
+#: `dependentRequired`, `dependentSchemas`, `contains`, `patternProperties` and
+#: `propertyNames` are modelled now; what remains are the two `unevaluated*`
+#: keywords, whose meaning depends on which other keywords have already
+#: matched, and the two `$dynamic*` ones, which need runtime resolution scope.
+#: Both are real work rather than oversights, and saying which is which is the
+#: point of keeping the list.
 _UNMODELLED_KEYWORDS = (
-    "prefixItems",
-    "if",
-    "then",
-    "else",
-    "dependentRequired",
-    "dependentSchemas",
-    "contains",
     "unevaluatedProperties",
     "unevaluatedItems",
-    "patternProperties",
-    "propertyNames",
     "$dynamicRef",
     "$dynamicAnchor",
 )

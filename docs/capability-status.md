@@ -19,7 +19,11 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   them. Fixed alongside: `SecurityScheme.scopes` was declared by the model and
   never populated, so scope coverage had no data for any contract in any
   version — EXISTING (`specs/openapi/parser.py`)
-- JSON Schema 2020-12-aware comparisons — PARTIAL (shared SchemaNode semantics; `$dynamicRef` not modeled)
+- JSON Schema 2020-12-aware comparisons — PARTIAL (`prefixItems`, `contains`,
+  `patternProperties`, `propertyNames`, `dependentRequired`, `dependentSchemas`,
+  `if`/`then`/`else` and `const` are modelled, diffed and enforced; the two
+  `unevaluated*` and two `$dynamic*` keywords are not, and are named with the
+  reason in [spec support](spec-support.md))
 - Canonicalization before diffing (`core/canonical.py`): `allOf` collapsed where
   it can be collapsed without deciding anything, enums deduplicated and ordered,
   properties and `required` sorted. Conjunction semantics are honoured —

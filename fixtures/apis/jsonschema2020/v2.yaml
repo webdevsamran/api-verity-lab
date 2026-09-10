@@ -1,0 +1,92 @@
+openapi: 3.1.0
+info:
+  title: Verity 2020-12 Fixture API
+  version: 2.0.0
+  description: >-
+    Exercises the JSON Schema 2020-12 keywords the model used to parse away and
+    drop. Every one of them states a rule the document makes, so a diff that
+    cannot see it reports a tightened contract as unchanged.
+paths:
+  /shipments:
+    post:
+      operationId: createShipment
+      summary: Book a shipment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reference]
+              properties:
+                reference:
+                  type: string
+                card:
+                  type: string
+                cvv:
+                  type: string
+                mode:
+                  type: string
+                  enum: [air, sea, road]
+                weightKg:
+                  type: number
+              # Sending a card number obliges you to send the code with it.
+              dependentRequired:
+                card: [cvv, billingPostcode]
+              # Vendor extensions on the request are free-form strings.
+              patternProperties:
+                "^x-":
+                  type: string
+                  maxLength: 64
+              # Changed in v2: it is now a *sea* shipment that must declare a
+              # weight. Every request that relied on the old condition is judged
+              # by a different rule.
+              if:
+                type: object
+                required: [mode]
+                properties:
+                  mode:
+                    const: sea
+              then:
+                type: object
+                required: [weightKg]
+      responses:
+        "201":
+          description: Booked
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, route]
+                properties:
+                  id:
+                    type: string
+                  # A route is a tuple: origin, destination, then optional stops.
+                  route:
+                    type: array
+                    prefixItems:
+                      - type: string
+                        description: Origin port code.
+                      - type: string
+                        description: Destination port code.
+                      - type: integer
+                        description: Leg count, added at the end.
+                    items:
+                      type: string
+                    minItems: 2
+                  legs:
+                    type: array
+                    contains:
+                      type: object
+                      required: [carrier]
+                      properties:
+                        carrier:
+                          type: string
+                    minContains: 2
+                  labels:
+                    type: object
+                    propertyNames:
+                      type: string
+                      pattern: "^[a-z]+$"
+                    additionalProperties:
+                      type: string

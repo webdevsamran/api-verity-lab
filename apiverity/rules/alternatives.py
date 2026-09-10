@@ -174,6 +174,44 @@ ALTERNATIVES: dict[str, str] = {
         "an empty string on the other side, which is a bug that looks like data."
     ),
     "BRK-HEADER-ADDED": "Nothing to do: a new response header is additive.",
+    # --- JSON Schema 2020-12 ----------------------------------------------
+    "BRK-DEPENDENT-REQUIRED-ADDED": (
+        "Default the newly-required field server-side when its trigger is present, and make "
+        "the dependency explicit in the next major. A caller that sets one field and not the "
+        "other is sending a request that used to be valid."
+    ),
+    "BRK-DEPENDENT-REQUIRED-REMOVED": (
+        "Harmless in a request. In a response, keep emitting the dependent field until "
+        "consumers stop reading it: they were told it would always accompany the trigger."
+    ),
+    "BRK-DEPENDENT-SCHEMA-CHANGED": (
+        "Keep accepting both shapes for one release. A conditional schema is the hardest kind "
+        "of change for a caller to discover, because the failure only appears when a "
+        "particular field is present."
+    ),
+    "BRK-TUPLE-SHAPE-CHANGED": (
+        "Append rather than insert, and never change a position's type in place. Tuple members "
+        "are read by index, so anything else shifts every reader after that point."
+    ),
+    "BRK-PATTERN-PROPERTIES-CHANGED": (
+        "Widen the pattern rather than narrowing it, or add a second pattern beside the first. "
+        "Narrowing one changes a whole family of fields at once, which is a large blast radius "
+        "for a one-line edit."
+    ),
+    "BRK-PROPERTY-NAMES-CHANGED": (
+        "Keep accepting the old key shape and normalise it internally. A constraint on names "
+        "rejects the whole object rather than one field, so the error a caller sees points at "
+        "the wrong place."
+    ),
+    "BRK-CONTAINS-CHANGED": (
+        "Relax rather than tighten, or validate the new requirement at the edge and leave the "
+        "declared one alone until callers have moved."
+    ),
+    "BRK-CONDITIONAL-SCHEMA-CHANGED": (
+        "Review it by hand: `if`/`then`/`else` is the one construct whose severity cannot be "
+        "read off the diff, because whether it tightens or relaxes depends on the condition. "
+        "Where it tightens, the two-step route applies -- warn first, reject in the next major."
+    ),
     # --- security and lifecycle -------------------------------------------
     "BRK-SECURITY-CHANGED": (
         "Accept both the old and the new scheme for one release, then drop the old one. An "

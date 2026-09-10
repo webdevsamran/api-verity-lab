@@ -111,6 +111,38 @@ class SchemaNode(BaseModel):
     any_of: list[SchemaNode] | None = None
     all_of: list[SchemaNode] | None = None
     not_: SchemaNode | None = Field(default=None, alias="not")
+
+    # --- JSON Schema 2020-12 ------------------------------------------------
+    #
+    # Everything below was parsed away and dropped. A schema using
+    # `dependentRequired` carried a rule the differ could not see, so
+    # tightening it was invisible and `validate_value` accepted data the
+    # document forbids -- the two worst outcomes a contract tool has, in one
+    # keyword. Modeled now, and the keywords still missing are listed in
+    # `docs/spec-support.md` rather than left to be discovered.
+    #
+    #: Positional item schemas. `prefixItems: [string, integer]` is a tuple,
+    #: and is a different contract from `items: {string|integer}`.
+    prefix_items: list[SchemaNode] | None = None
+    #: `contains` with its bounds. An array that must hold at least one member
+    #: of a shape is a constraint no other keyword expresses.
+    contains: SchemaNode | None = None
+    min_contains: int | None = None
+    max_contains: int | None = None
+    #: Regex -> schema for properties whose *name* matches.
+    pattern_properties: dict[str, SchemaNode] = Field(default_factory=dict)
+    #: A schema every property name must satisfy.
+    property_names: SchemaNode | None = None
+    #: Property -> properties it makes required. Adding an entry narrows what
+    #: a caller may send, which is exactly a breaking change.
+    dependent_required: dict[str, list[str]] = Field(default_factory=dict)
+    #: Property -> schema applied when that property is present.
+    dependent_schemas: dict[str, SchemaNode] = Field(default_factory=dict)
+    #: `if`/`then`/`else`. Named with a suffix because two of the three are
+    #: Python keywords; the aliases keep round-tripping honest.
+    if_schema: SchemaNode | None = Field(default=None, alias="if")
+    then_schema: SchemaNode | None = Field(default=None, alias="then")
+    else_schema: SchemaNode | None = Field(default=None, alias="else")
     # provenance
     source_location: SourceLocation | None = None
 
@@ -422,6 +454,16 @@ class ChangeKind(StrEnum):
     DESCRIPTION_CHANGED = "description_changed"
     EXAMPLE_CHANGED = "example_changed"
     SERVER_CHANGED = "server_changed"
+    # JSON Schema 2020-12. Distinct kinds rather than a generic
+    # SCHEMA_CHANGED, so `breaking.py` can classify them structurally instead
+    # of matching on the wording of a description.
+    DEPENDENT_REQUIRED_CHANGED = "dependent_required_changed"
+    DEPENDENT_SCHEMA_CHANGED = "dependent_schema_changed"
+    TUPLE_SHAPE_CHANGED = "tuple_shape_changed"
+    PATTERN_PROPERTIES_CHANGED = "pattern_properties_changed"
+    CONDITIONAL_SCHEMA_CHANGED = "conditional_schema_changed"
+    CONTAINS_CHANGED = "contains_changed"
+    PROPERTY_NAMES_CHANGED = "property_names_changed"
     # GraphQL-specific
     FIELD_REMOVED = "field_removed"
     FIELD_ADDED = "field_added"

@@ -69,6 +69,21 @@ the live catalog at any time with `apiverity rules --json`.
 | `BRK-ENUM-WIDENED` | INFO | Enum values were added (additive). | Nothing to do for senders. Worth telling consumers, because a new response value reaches a client that was written when the set was closed. |
 | `BRK-MEDIA-TYPE-CHANGED` | ERROR | A request/response media type was added or removed. | Keep serving the old media type behind content negotiation and add the new one alongside it. A client sending the old `Content-Type` gets a 415 otherwise. |
 
+## JSON Schema 2020-12
+
+These keywords used to be parsed away and dropped, so a schema using one carried a rule the differ could not see and `validate_value` accepted data the document forbids. `unevaluatedProperties`, `unevaluatedItems`, `$dynamicRef` and `$dynamicAnchor` are still unmodelled and are listed as such in [spec support](spec-support.md) rather than left to be discovered.
+
+| Rule | Severity | Fires when | Instead |
+|---|---|---|---|
+| `BRK-CONDITIONAL-SCHEMA-CHANGED` | WARN | An `if`/`then`/`else` branch was added, removed or changed. What is valid now depends on a condition, and the condition moved. | Review it by hand: `if`/`then`/`else` is the one construct whose severity cannot be read off the diff, because whether it tightens or relaxes depends on the condition. Where it tightens, the two-step route applies -- warn first, reject in the next major. |
+| `BRK-CONTAINS-CHANGED` | WARN | An array's `contains` requirement or its bounds changed; an array that satisfied the old rule may not satisfy the new one. | Relax rather than tighten, or validate the new requirement at the edge and leave the declared one alone until callers have moved. |
+| `BRK-DEPENDENT-REQUIRED-ADDED` | ERROR | Sending one field now requires another. A request that set the first without the second was valid and is not. | Default the newly-required field server-side when its trigger is present, and make the dependency explicit in the next major. A caller that sets one field and not the other is sending a request that used to be valid. |
+| `BRK-DEPENDENT-REQUIRED-REMOVED` | WARN | A field no longer forces another to be present. Harmless in a request; in a response it withdraws a guarantee consumers may read unconditionally. | Harmless in a request. In a response, keep emitting the dependent field until consumers stop reading it: they were told it would always accompany the trigger. |
+| `BRK-DEPENDENT-SCHEMA-CHANGED` | WARN | A schema that applies only when some field is present was added, removed or changed; what is valid now depends on which fields are sent. | Keep accepting both shapes for one release. A conditional schema is the hardest kind of change for a caller to discover, because the failure only appears when a particular field is present. |
+| `BRK-PATTERN-PROPERTIES-CHANGED` | WARN | The schema applied to properties matching a name pattern was added, removed or changed; a whole family of fields changed shape at once. | Widen the pattern rather than narrowing it, or add a second pattern beside the first. Narrowing one changes a whole family of fields at once, which is a large blast radius for a one-line edit. |
+| `BRK-PROPERTY-NAMES-CHANGED` | WARN | The constraint on what property *names* are allowed changed; keys that used to be accepted may not be. | Keep accepting the old key shape and normalise it internally. A constraint on names rejects the whole object rather than one field, so the error a caller sees points at the wrong place. |
+| `BRK-TUPLE-SHAPE-CHANGED` | ERROR | Positional array items changed length or type. Tuple members are read by index, so a change at one position shifts or misparses every reader. | Append rather than insert, and never change a position's type in place. Tuple members are read by index, so anything else shifts every reader after that point. |
+
 ## Lifecycle and security
 
 | Rule | Severity | Fires when | Instead |
@@ -110,4 +125,4 @@ Only changes the shared engine cannot already see are listed here. A removed too
 | `BRK-ONEOF-WIDENED` | INFO | A protobuf field moved out of a oneof; no existing sender can notice. | Nothing to do: no existing sender can observe the difference. |
 | `BRK-RESERVATION-REMOVED` | WARN | A protobuf field number is no longer reserved and can be reused by mistake. | Put the reservation back. It exists to stop a retired number being reused, and removing it re-opens exactly that. |
 
-_57 rules, each with a non-breaking alternative._
+_65 rules, each with a non-breaking alternative._

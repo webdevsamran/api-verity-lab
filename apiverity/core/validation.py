@@ -98,9 +98,29 @@ def validate_value(
             errors.append(f"{path}: {len(value)} items > maxItems {schema.max_items}")
         if schema.unique_items and len({repr(v) for v in value}) != len(value):
             errors.append(f"{path}: items are not unique")
+
+        # `prefixItems` binds positions; `items` then applies to whatever is
+        # left. Applying `items` to a prefixed position would report a tuple's
+        # first member against the wrong schema.
+        prefix = schema.prefix_items or []
+        for index, sub in enumerate(prefix[: len(value)]):
+            errors.extend(validate_value(sub, value[index], path=f"{path}[{index}]"))
         if schema.items is not None:
-            for i, item in enumerate(value):
+            for i, item in enumerate(value[len(prefix) :], start=len(prefix)):
                 errors.extend(validate_value(schema.items, item, path=f"{path}[{i}]"))
+
+        if schema.contains is not None:
+            matching = sum(1 for item in value if not validate_value(schema.contains, item))
+            lower = schema.min_contains if schema.min_contains is not None else 1
+            if matching < lower:
+                errors.append(
+                    f"{path}: {matching} item(s) match `contains`, minContains is {lower}"
+                )
+            if schema.max_contains is not None and matching > schema.max_contains:
+                errors.append(
+                    f"{path}: {matching} item(s) match `contains`, maxContains is "
+                    f"{schema.max_contains}"
+                )
 
     elif schema.type == "object":
         assert isinstance(value, dict)
@@ -110,7 +130,51 @@ def validate_value(
         for name, sub in schema.properties.items():
             if name in value:
                 errors.extend(validate_value(sub, value[name], path=f"{path}.{name}"))
-        declared = set(schema.properties)
+        # `dependentRequired` is a rule the document states and this ignored,
+        # so a payload the schema forbids came back valid. `patternProperties`
+        # and `propertyNames` were in the same position.
+        for trigger, dependents in schema.dependent_required.items():
+            if trigger in value:
+                for dependent in dependents:
+                    if dependent not in value:
+                        errors.append(
+                            f"{path}: '{trigger}' is present, so '{dependent}' is required"
+                        )
+        for trigger, sub in schema.dependent_schemas.items():
+            if trigger in value:
+                errors.extend(validate_value(sub, value, path=path))
+
+        if schema.property_names is not None:
+            for name in value:
+                errors.extend(
+                    validate_value(schema.property_names, name, path=f"{path}.<name:{name}>")
+                )
+
+        matched_by_pattern: set[str] = set()
+        for expression, sub in schema.pattern_properties.items():
+            try:
+                pattern = re.compile(expression)
+            except re.error:
+                # A pattern the document declares and Python cannot compile is
+                # a defect in the contract, not licence to skip the check
+                # silently.
+                errors.append(f"{path}: patternProperties key {expression!r} is not a valid regex")
+                continue
+            for name, item in value.items():
+                if pattern.search(str(name)):
+                    matched_by_pattern.add(str(name))
+                    errors.extend(validate_value(sub, item, path=f"{path}.{name}"))
+
+        if schema.if_schema is not None:
+            branch = (
+                schema.then_schema
+                if not validate_value(schema.if_schema, value)
+                else schema.else_schema
+            )
+            if branch is not None:
+                errors.extend(validate_value(branch, value, path=path))
+
+        declared = set(schema.properties) | matched_by_pattern
         extra = [k for k in value if k not in declared]
         if extra:
             addl = schema.additional_properties

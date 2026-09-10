@@ -341,16 +341,44 @@ def test_duplicate_tool_names_are_an_error() -> None:
 
 
 def test_unmodelled_schema_keywords_are_reported_rather_than_dropped() -> None:
-    """Silently dropping them would assert a simpler schema than the document has."""
+    """Silently dropping them would assert a simpler schema than the document has.
+
+    `unevaluatedProperties` is one of the four that remain: its meaning depends
+    on which other keywords have already matched, which is real work rather
+    than an oversight.
+    """
     tool = _tool(
         inputSchema={
             "type": "object",
             "properties": {"a": {"type": "string"}},
-            "dependentRequired": {"a": ["b"]},
+            "unevaluatedProperties": False,
         }
     )
     _, findings = load_manifest(_manifest(tool))
     assert "MCP-SCHEMA-KEYWORD-UNMODELED" in {f.rule_id for f in findings}
+
+
+def test_a_keyword_that_is_now_modelled_is_no_longer_reported_as_unmodelled() -> None:
+    """`dependentRequired` used to be on that list, and is a rule now.
+
+    The warning existed because the constraint was invisible to the diff and to
+    the validator. Leaving it in place after modelling the keyword would tell a
+    reader to distrust a check that works.
+    """
+    tool = _tool(
+        inputSchema={
+            "type": "object",
+            "properties": {"a": {"type": "string"}, "b": {"type": "string"}},
+            "dependentRequired": {"a": ["b"]},
+        }
+    )
+    service, findings = load_manifest(_manifest(tool))
+    assert "MCP-SCHEMA-KEYWORD-UNMODELED" not in {f.rule_id for f in findings}
+
+    body = service.operations[0].request_body
+    assert body is not None
+    schema = next(iter(body.content.values()))
+    assert schema.dependent_required == {"a": ["b"]}
 
 
 def test_the_response_status_is_not_an_invented_http_code() -> None:

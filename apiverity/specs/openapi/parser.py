@@ -326,7 +326,68 @@ class OpenApiParser:
                 ]
                 setattr(out, attr, variant_schemas)
 
+        self._read_2020_12(root, node, pointer, out)
         return out
+
+    def _read_2020_12(
+        self, root: dict[str, Any], node: dict[str, Any], pointer: str, out: SchemaNode
+    ) -> None:
+        """The 2020-12 keywords that used to be parsed away and dropped.
+
+        Every one of these is a rule the document states. Dropping them meant
+        the differ could not see a change to one and `validate_value` accepted
+        data the schema forbids -- the two worst outcomes a contract tool has,
+        from one silent omission.
+        """
+        prefix = node.get("prefixItems")
+        if isinstance(prefix, list):
+            out.prefix_items = [
+                schema
+                for schema in (
+                    self.to_schema(root, item, f"{pointer}/prefixItems/{index}")
+                    for index, item in enumerate(prefix)
+                )
+                if schema is not None
+            ]
+
+        if isinstance(node.get("contains"), (dict, bool)):
+            out.contains = self.to_schema(root, node["contains"], f"{pointer}/contains")
+        for key, attr in (("minContains", "min_contains"), ("maxContains", "max_contains")):
+            if isinstance(node.get(key), int) and not isinstance(node.get(key), bool):
+                setattr(out, attr, node[key])
+
+        patterns = node.get("patternProperties")
+        if isinstance(patterns, dict):
+            for expression, sub in patterns.items():
+                converted = self.to_schema(
+                    root, sub, f"{pointer}/patternProperties/{self._escape_pointer(expression)}"
+                )
+                if converted is not None:
+                    out.pattern_properties[str(expression)] = converted
+
+        if isinstance(node.get("propertyNames"), dict):
+            out.property_names = self.to_schema(
+                root, node["propertyNames"], f"{pointer}/propertyNames"
+            )
+
+        dependent = node.get("dependentRequired")
+        if isinstance(dependent, dict):
+            for name, names in dependent.items():
+                if isinstance(names, list):
+                    out.dependent_required[str(name)] = sorted(str(n) for n in names)
+
+        schemas = node.get("dependentSchemas")
+        if isinstance(schemas, dict):
+            for name, sub in schemas.items():
+                converted = self.to_schema(
+                    root, sub, f"{pointer}/dependentSchemas/{self._escape_pointer(name)}"
+                )
+                if converted is not None:
+                    out.dependent_schemas[str(name)] = converted
+
+        for key, attr in (("if", "if_schema"), ("then", "then_schema"), ("else", "else_schema")):
+            if isinstance(node.get(key), dict):
+                setattr(out, attr, self.to_schema(root, node[key], f"{pointer}/{key}"))
 
     # -- operations -------------------------------------------------------------
 

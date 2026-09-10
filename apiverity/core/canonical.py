@@ -123,6 +123,8 @@ def canonicalize_schema(schema: SchemaNode, findings: list[Finding], where: str)
                 ],
             )
 
+    node = _canonicalize_2020_12(node, findings, where)
+
     if node.all_of:
         node = _collapse_all_of(node, findings, where)
 
@@ -131,6 +133,51 @@ def canonicalize_schema(schema: SchemaNode, findings: list[Finding], where: str)
     if node.enum is not None:
         node.enum = _stable_unique(node.enum)
     node.required = sorted(set(node.required))
+    return node
+
+
+def _canonicalize_2020_12(node: SchemaNode, findings: list[Finding], where: str) -> SchemaNode:
+    """Recurse into the 2020-12 sub-schemas, and order what is unordered.
+
+    Without this, canonicalization is partial: an `allOf` inside a
+    `patternProperties` branch stays uncollapsed and an enum inside a
+    `prefixItems` position stays unsorted, so two documents that mean the same
+    thing keep diffing -- in exactly the places nobody looks.
+    """
+    if node.prefix_items:
+        node.prefix_items = [
+            canonicalize_schema(item, findings, f"{where}[{index}]")
+            for index, item in enumerate(node.prefix_items)
+        ]
+    if node.contains is not None:
+        node.contains = canonicalize_schema(node.contains, findings, f"{where}/contains")
+    if node.property_names is not None:
+        node.property_names = canonicalize_schema(
+            node.property_names, findings, f"{where}/propertyNames"
+        )
+    if node.pattern_properties:
+        node.pattern_properties = {
+            expression: canonicalize_schema(child, findings, f"{where}/~{expression}")
+            for expression, child in sorted(node.pattern_properties.items())
+        }
+    if node.dependent_schemas:
+        node.dependent_schemas = {
+            name: canonicalize_schema(child, findings, f"{where}?{name}")
+            for name, child in sorted(node.dependent_schemas.items())
+        }
+    if node.dependent_required:
+        # A dependency list is a set written as a list, same as `required`.
+        node.dependent_required = {
+            name: sorted(set(names)) for name, names in sorted(node.dependent_required.items())
+        }
+    for attr, keyword in (
+        ("if_schema", "if"),
+        ("then_schema", "then"),
+        ("else_schema", "else"),
+    ):
+        branch = getattr(node, attr)
+        if branch is not None:
+            setattr(node, attr, canonicalize_schema(branch, findings, f"{where}/{keyword}"))
     return node
 
 
@@ -202,6 +249,23 @@ def _merge_into(target: SchemaNode, branch: SchemaNode, where: str, conflicts: l
 
     if branch.items is not None and target.items is None:
         target.items = branch.items
+
+    # A 2020-12 keyword on a branch is a rule the conjunction has to keep.
+    # Merging them properly means intersecting conditionals, which has no
+    # unambiguous answer, so a branch carrying one is reported as a conflict
+    # and the composition is left standing. Dropping it would be the one
+    # outcome worse than a noisy diff: a constraint silently deleted.
+    for attr, keyword in (
+        ("dependent_required", "dependentRequired"),
+        ("dependent_schemas", "dependentSchemas"),
+        ("pattern_properties", "patternProperties"),
+        ("prefix_items", "prefixItems"),
+        ("if_schema", "if"),
+        ("contains", "contains"),
+        ("property_names", "propertyNames"),
+    ):
+        if getattr(branch, attr):
+            conflicts.append(f"a branch carries `{keyword}`, which cannot be merged unambiguously")
     if branch.nullable:
         # Only a branch that *permits* null widens the parent; conjunction
         # cannot make a non-nullable schema nullable, but every branch agreeing

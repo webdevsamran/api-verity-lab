@@ -45,6 +45,22 @@ _GROUPS: list[tuple[str, tuple[str, ...], str]] = [
     ("Request bodies and fields", ("BRK-REQ-",), ""),
     ("Responses", ("BRK-RESP-", "BRK-HEADER-"), ""),
     ("Schemas and constraints", ("BRK-CONSTRAINT-", "BRK-ENUM-", "BRK-MEDIA-"), ""),
+    (
+        "JSON Schema 2020-12",
+        (
+            "BRK-DEPENDENT-",
+            "BRK-TUPLE-",
+            "BRK-PATTERN-PROPERTIES-",
+            "BRK-PROPERTY-NAMES-",
+            "BRK-CONTAINS-",
+            "BRK-CONDITIONAL-",
+        ),
+        "These keywords used to be parsed away and dropped, so a schema using one "
+        "carried a rule the differ could not see and `validate_value` accepted data "
+        "the document forbids. `unevaluatedProperties`, `unevaluatedItems`, "
+        "`$dynamicRef` and `$dynamicAnchor` are still unmodelled and are listed as "
+        "such in [spec support](spec-support.md) rather than left to be discovered.",
+    ),
     ("Lifecycle and security", ("BRK-DEPRECATION-", "BRK-SECURITY-"), ""),
     (
         "MCP tool manifests",

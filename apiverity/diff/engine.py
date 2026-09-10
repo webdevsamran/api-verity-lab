@@ -33,8 +33,14 @@ from apiverity.core.model import (
     Service,
 )
 
-# JSON-Schema-like constraint attributes compared for constraint changes
+# JSON-Schema-like constraint attributes compared for constraint changes.
+#
+# `const` was missing from this tuple and compared nowhere else, so changing a
+# `const` -- which invalidates every value carrying the old one -- produced no
+# change and no finding, in every protocol. It is listed first because it is
+# the strictest of them: it admits exactly one value.
 _CONSTRAINT_ATTRS = (
+    "const",
     "minimum",
     "maximum",
     "exclusive_minimum",
@@ -59,6 +65,8 @@ def _schema_summary(schema: SchemaNode | None) -> str:
         base += f"({schema.format})"
     if schema.enum is not None:
         base += f" enum{schema.enum}"
+    if schema.const is not None:
+        base += f" const={schema.const!r}"
     return base
 
 
@@ -1093,6 +1101,253 @@ class DiffEngine:
                     self._diff_schema(
                         o_v, n_v, operation_key, where, direction, path=f"{path}/{attr}[{i}]"
                     )
+
+        self._diff_2020_12(old, new, operation_key, where, direction, path)
+
+    def _diff_2020_12(
+        self,
+        old: SchemaNode,
+        new: SchemaNode,
+        operation_key: str,
+        where: str,
+        direction: str,
+        path: str,
+    ) -> None:
+        """Changes to the 2020-12 keywords, each with its own change kind.
+
+        A generic SCHEMA_CHANGED would push classification back onto matching
+        the wording of a description, which is how the parameter-versus-field
+        distinction in this file already had to be made and is not a mistake
+        worth repeating.
+
+        Takes `where` and `path` separately rather than the joined label,
+        because every recursive call has to hand the child its own path. The
+        first version passed the joined label down and produced descriptions
+        with the path in them twice.
+        """
+        label = f"{where}{path}"
+
+        # --- dependentRequired -------------------------------------------
+        for name in sorted(set(old.dependent_required) | set(new.dependent_required)):
+            before = old.dependent_required.get(name, [])
+            after = new.dependent_required.get(name, [])
+            if before == after:
+                continue
+            gained = sorted(set(after) - set(before))
+            lost = sorted(set(before) - set(after))
+            self._add(
+                ChangeKind.DEPENDENT_REQUIRED_CHANGED,
+                operation_key,
+                direction,
+                (
+                    f"{label}: sending {name!r} now also requires {gained}"
+                    if gained and not lost
+                    else f"{label}: sending {name!r} no longer requires {lost}"
+                    if lost and not gained
+                    else f"{label}: the fields {name!r} requires changed {before} -> {after}"
+                ),
+                old_value=before,
+                new_value=after,
+                breaking_hint=(
+                    f"a request that sets {name!r} without {gained} was valid and is not"
+                    if gained and direction == "request"
+                    else None
+                ),
+            )
+
+        # --- dependentSchemas ---------------------------------------------
+        for name in sorted(set(old.dependent_schemas) | set(new.dependent_schemas)):
+            before_schema = old.dependent_schemas.get(name)
+            after_schema = new.dependent_schemas.get(name)
+            if before_schema is None and after_schema is not None:
+                self._add(
+                    ChangeKind.DEPENDENT_SCHEMA_CHANGED,
+                    operation_key,
+                    direction,
+                    f"{label}: a conditional schema now applies when {name!r} is present",
+                    new_value=name,
+                )
+            elif before_schema is not None and after_schema is None:
+                self._add(
+                    ChangeKind.DEPENDENT_SCHEMA_CHANGED,
+                    operation_key,
+                    direction,
+                    f"{label}: the conditional schema for {name!r} was removed",
+                    old_value=name,
+                )
+            elif before_schema is not None and after_schema is not None:
+                self._diff_schema(
+                    before_schema,
+                    after_schema,
+                    operation_key,
+                    where=where,
+                    direction=direction,
+                    path=f"{path}/dependentSchemas/{name}",
+                )
+
+        # --- prefixItems ----------------------------------------------------
+        before_prefix = old.prefix_items or []
+        after_prefix = new.prefix_items or []
+        if len(before_prefix) != len(after_prefix):
+            self._add(
+                ChangeKind.TUPLE_SHAPE_CHANGED,
+                operation_key,
+                direction,
+                (
+                    f"{label}: the tuple went from {len(before_prefix)} positional item(s) to "
+                    f"{len(after_prefix)}"
+                ),
+                old_value=len(before_prefix),
+                new_value=len(after_prefix),
+                breaking_hint=(
+                    "positional items are read by index; adding or removing one shifts every "
+                    "position after it"
+                ),
+            )
+        else:
+            for index, (before_item, after_item) in enumerate(
+                zip(before_prefix, after_prefix, strict=True)
+            ):
+                if before_item.type != after_item.type:
+                    self._add(
+                        ChangeKind.TUPLE_SHAPE_CHANGED,
+                        operation_key,
+                        direction,
+                        (
+                            f"{label}: tuple position {index} changed type "
+                            f"{before_item.type!r} -> {after_item.type!r}"
+                        ),
+                        old_value=before_item.type,
+                        new_value=after_item.type,
+                    )
+                else:
+                    self._diff_schema(
+                        before_item,
+                        after_item,
+                        operation_key,
+                        where=where,
+                        direction=direction,
+                        path=f"{path}/prefixItems[{index}]",
+                    )
+
+        # --- patternProperties ---------------------------------------------
+        for expression in sorted(set(old.pattern_properties) | set(new.pattern_properties)):
+            before_pattern = old.pattern_properties.get(expression)
+            after_pattern = new.pattern_properties.get(expression)
+            if before_pattern is None:
+                self._add(
+                    ChangeKind.PATTERN_PROPERTIES_CHANGED,
+                    operation_key,
+                    direction,
+                    f"{label}: properties matching {expression!r} are now constrained",
+                    new_value=expression,
+                )
+            elif after_pattern is None:
+                self._add(
+                    ChangeKind.PATTERN_PROPERTIES_CHANGED,
+                    operation_key,
+                    direction,
+                    f"{label}: the constraint on properties matching {expression!r} was removed",
+                    old_value=expression,
+                )
+            else:
+                self._diff_schema(
+                    before_pattern,
+                    after_pattern,
+                    operation_key,
+                    where=where,
+                    direction=direction,
+                    path=f"{path}/patternProperties/{expression}",
+                )
+
+        # --- propertyNames ---------------------------------------------------
+        if (old.property_names is None) != (new.property_names is None):
+            self._add(
+                ChangeKind.PROPERTY_NAMES_CHANGED,
+                operation_key,
+                direction,
+                (
+                    f"{label}: property names are now constrained"
+                    if new.property_names is not None
+                    else f"{label}: the constraint on property names was removed"
+                ),
+                old_value=old.property_names is not None,
+                new_value=new.property_names is not None,
+            )
+        elif old.property_names is not None and new.property_names is not None:
+            self._diff_schema(
+                old.property_names,
+                new.property_names,
+                operation_key,
+                where=where,
+                direction=direction,
+                path=f"{path}/propertyNames",
+            )
+
+        # --- contains ---------------------------------------------------------
+        if (old.contains is None) != (new.contains is None):
+            self._add(
+                ChangeKind.CONTAINS_CHANGED,
+                operation_key,
+                direction,
+                (
+                    f"{label}: the array must now contain a matching member"
+                    if new.contains is not None
+                    else f"{label}: the `contains` requirement was removed"
+                ),
+                old_value=old.contains is not None,
+                new_value=new.contains is not None,
+            )
+        elif old.contains is not None and new.contains is not None:
+            self._diff_schema(
+                old.contains,
+                new.contains,
+                operation_key,
+                where=where,
+                direction=direction,
+                path=f"{path}/contains",
+            )
+        for attr, keyword in (("min_contains", "minContains"), ("max_contains", "maxContains")):
+            before_bound, after_bound = getattr(old, attr), getattr(new, attr)
+            if before_bound != after_bound:
+                self._add(
+                    ChangeKind.CONTAINS_CHANGED,
+                    operation_key,
+                    direction,
+                    f"{label}: {keyword} changed {before_bound!r} -> {after_bound!r}",
+                    old_value=before_bound,
+                    new_value=after_bound,
+                )
+
+        # --- if / then / else --------------------------------------------------
+        for attr, keyword in (
+            ("if_schema", "if"),
+            ("then_schema", "then"),
+            ("else_schema", "else"),
+        ):
+            before_branch, after_branch = getattr(old, attr), getattr(new, attr)
+            if (before_branch is None) != (after_branch is None):
+                self._add(
+                    ChangeKind.CONDITIONAL_SCHEMA_CHANGED,
+                    operation_key,
+                    direction,
+                    (
+                        f"{label}: a `{keyword}` branch was added"
+                        if after_branch is not None
+                        else f"{label}: the `{keyword}` branch was removed"
+                    ),
+                    old_value=before_branch is not None,
+                    new_value=after_branch is not None,
+                )
+            elif before_branch is not None and after_branch is not None:
+                self._diff_schema(
+                    before_branch,
+                    after_branch,
+                    operation_key,
+                    where=where,
+                    direction=direction,
+                    path=f"{path}/{keyword}",
+                )
 
 
 def diff_services(old: Service, new: Service, *, canonical: bool = True) -> list[Change]:

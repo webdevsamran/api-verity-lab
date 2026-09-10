@@ -208,6 +208,54 @@ CATALOG: dict[str, RuleSpec] = {
         ),
         RuleSpec("BRK-DEPRECATION-REMOVED", Severity.INFO, "The deprecation marker was removed."),
         RuleSpec(
+            "BRK-DEPENDENT-REQUIRED-ADDED",
+            Severity.ERROR,
+            "Sending one field now requires another. A request that set the first without the "
+            "second was valid and is not.",
+        ),
+        RuleSpec(
+            "BRK-DEPENDENT-REQUIRED-REMOVED",
+            Severity.WARN,
+            "A field no longer forces another to be present. Harmless in a request; in a "
+            "response it withdraws a guarantee consumers may read unconditionally.",
+        ),
+        RuleSpec(
+            "BRK-DEPENDENT-SCHEMA-CHANGED",
+            Severity.WARN,
+            "A schema that applies only when some field is present was added, removed or "
+            "changed; what is valid now depends on which fields are sent.",
+        ),
+        RuleSpec(
+            "BRK-TUPLE-SHAPE-CHANGED",
+            Severity.ERROR,
+            "Positional array items changed length or type. Tuple members are read by index, "
+            "so a change at one position shifts or misparses every reader.",
+        ),
+        RuleSpec(
+            "BRK-PATTERN-PROPERTIES-CHANGED",
+            Severity.WARN,
+            "The schema applied to properties matching a name pattern was added, removed or "
+            "changed; a whole family of fields changed shape at once.",
+        ),
+        RuleSpec(
+            "BRK-PROPERTY-NAMES-CHANGED",
+            Severity.WARN,
+            "The constraint on what property *names* are allowed changed; keys that used to be "
+            "accepted may not be.",
+        ),
+        RuleSpec(
+            "BRK-CONTAINS-CHANGED",
+            Severity.WARN,
+            "An array's `contains` requirement or its bounds changed; an array that satisfied "
+            "the old rule may not satisfy the new one.",
+        ),
+        RuleSpec(
+            "BRK-CONDITIONAL-SCHEMA-CHANGED",
+            Severity.WARN,
+            "An `if`/`then`/`else` branch was added, removed or changed. What is valid now "
+            "depends on a condition, and the condition moved.",
+        ),
+        RuleSpec(
             "BRK-MEDIA-TYPE-CHANGED",
             Severity.ERROR,
             "A request/response media type was added or removed.",
@@ -319,24 +367,52 @@ CATALOG: dict[str, RuleSpec] = {
 
 
 def _constraint_change_is_tightening(attr: str, old: object, new: object) -> bool | None:
-    """Return True (tightened), False (loosened) or None (not comparable)."""
+    """Return True (tightened), False (loosened) or None (not comparable).
+
+    Three things were wrong here and each of them silenced a real finding.
+
+    A constraint *appearing* where there was none read as not-comparable, so
+    adding `maxLength: 64` to a request field that had no limit -- which
+    rejects input that was valid the day before -- produced a `Change` and no
+    finding at all. A constraint disappearing was silent for the same reason,
+    which on a response withdraws a guarantee a consumer was given.
+
+    And the function never returned False, so `BRK-CONSTRAINT-LOOSENED` was
+    unreachable: the same defect as `SEC-UNAUTH-WRITE`, a rule in the published
+    catalogue that no input could ever produce.
+    """
     if attr == "pattern":
         return None  # pattern changes are judged separately as WARN
-    tightened_up = (
-        attr in _TIGHTEN_ON_INCREASE
-        and isinstance(old, (int, float))
-        and isinstance(new, (int, float))
-        and new > old
-    )
-    tightened_down = (
-        attr in _TIGHTEN_ON_DECREASE
-        and isinstance(old, (int, float))
-        and isinstance(new, (int, float))
-        and new < old
-    )
-    if tightened_up or tightened_down:
+
+    if attr == "const":
+        # `const` admits exactly one value. Gaining one rejects everything
+        # else, and moving one rejects the value every existing caller sends;
+        # only losing one accepts more.
+        return new is not None
+
+    if attr == "unique_items":
+        # A bool, not a bound. Requiring uniqueness rejects arrays that were
+        # accepted; dropping the requirement accepts more.
+        if bool(old) == bool(new):
+            return None
+        return bool(new)
+
+    if attr not in _TIGHTEN_ON_INCREASE and attr not in _TIGHTEN_ON_DECREASE:
+        return None
+
+    numeric = (int, float)
+    # A bound that appears constrains what used to be unconstrained, whichever
+    # direction it constrains in; a bound that disappears does the reverse.
+    if old is None and isinstance(new, numeric):
         return True
-    return None
+    if new is None and isinstance(old, numeric):
+        return False
+    if not (isinstance(old, numeric) and isinstance(new, numeric)):
+        return None
+    if old == new:
+        return None
+
+    return (new > old) if attr in _TIGHTEN_ON_INCREASE else (new < old)
 
 
 class BreakingEngine:
@@ -477,6 +553,44 @@ class BreakingEngine:
             if added_vals:
                 return [self._finding("BRK-ENUM-WIDENED", change, change.description)]
             return []
+
+        if kind == ChangeKind.DEPENDENT_REQUIRED_CHANGED:
+            before = change.old_value if isinstance(change.old_value, list) else []
+            after = change.new_value if isinstance(change.new_value, list) else []
+            gained = bool(set(after) - set(before))
+            # Direction inverts, as everywhere else here: tightening a request
+            # breaks senders, relaxing a response breaks readers.
+            if gained:
+                rule = (
+                    "BRK-DEPENDENT-REQUIRED-ADDED"
+                    if direction == "request"
+                    else "BRK-DEPENDENT-REQUIRED-REMOVED"
+                )
+            else:
+                rule = (
+                    "BRK-DEPENDENT-REQUIRED-REMOVED"
+                    if direction == "request"
+                    else "BRK-DEPENDENT-REQUIRED-ADDED"
+                )
+            return [self._finding(rule, change, change.description)]
+
+        if kind == ChangeKind.DEPENDENT_SCHEMA_CHANGED:
+            return [self._finding("BRK-DEPENDENT-SCHEMA-CHANGED", change, change.description)]
+
+        if kind == ChangeKind.TUPLE_SHAPE_CHANGED:
+            return [self._finding("BRK-TUPLE-SHAPE-CHANGED", change, change.description)]
+
+        if kind == ChangeKind.PATTERN_PROPERTIES_CHANGED:
+            return [self._finding("BRK-PATTERN-PROPERTIES-CHANGED", change, change.description)]
+
+        if kind == ChangeKind.PROPERTY_NAMES_CHANGED:
+            return [self._finding("BRK-PROPERTY-NAMES-CHANGED", change, change.description)]
+
+        if kind == ChangeKind.CONTAINS_CHANGED:
+            return [self._finding("BRK-CONTAINS-CHANGED", change, change.description)]
+
+        if kind == ChangeKind.CONDITIONAL_SCHEMA_CHANGED:
+            return [self._finding("BRK-CONDITIONAL-SCHEMA-CHANGED", change, change.description)]
 
         if kind == ChangeKind.REQUEST_SCHEMA_CHANGED:
             desc = change.description
