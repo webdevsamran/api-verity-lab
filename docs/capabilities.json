@@ -383,8 +383,10 @@
       "name": "test",
       "summary": "generate cases from the schema and run them against a live service",
       "options": [
+        "--as",
         "--auth-profile",
         "--auth-profiles",
+        "--authz",
         "--base-url",
         "--collection",
         "--generator",

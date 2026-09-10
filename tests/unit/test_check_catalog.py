@@ -31,15 +31,50 @@ _ROOT = Path(__file__).resolve().parents[2]
 _PACKAGE = _ROOT / "apiverity"
 _DOC = _ROOT / "docs" / "check-rules.md"
 
-#: `rule_id="SEC-..."` anywhere in the package, which is how every one of these
-#: is constructed. Read from the source rather than by running every check,
-#: because a check that needs a live server to fire would otherwise be invisible
-#: to this test and its rule would be the one that goes missing.
+#: A rule id, in any of the families this catalogue covers.
+#:
+#: Matched against **string literals in the package**, found with `ast`, rather
+#: than against `rule_id="..."` -- which is what this required until
+#: `security/authz.py` emitted three ids from a dispatch table:
+#:
+#:     for method, payload, rule in (("GET", None, "AUTHZ-BOLA-READ"), ...):
+#:         findings.append(Finding(rule_id=rule, ...))
+#:
+#: Those ids are produced by code that runs, and requiring one syntactic form
+#: reported them as catalogued-and-dead. Docstrings are excluded, so a rule
+#: merely *described* in prose still counts as unemitted -- which is the case
+#: this test exists to catch.
+#: A trailing hyphen makes it a *prefix*, not an id -- `platform.py` keeps a
+#: table of them for `explain`'s grouping, and matching those would report a
+#: dozen prefixes as rules nothing can explain.
 _EMITTED = re.compile(
-    r'rule_id=(?:")'
-    r"((?:SEC|LIFECYCLE|SEMANTIC|SLO|GOV|LINT|SUPPRESSION|CONFIG)-[A-Z0-9-]+)"
-    r'(?:")'
+    r"^(?:SEC|LIFECYCLE|SEMANTIC|SLO|GOV|LINT|SUPPRESSION|CONFIG|AUTHZ)-[A-Z0-9-]*[A-Z0-9]$"
 )
+
+
+def _string_literals(source: str) -> set[str]:
+    """Every string constant in a module except the docstrings."""
+    import ast
+
+    tree = ast.parse(source)
+    docstrings = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Module | ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef):
+            body = getattr(node, "body", [])
+            if (
+                body
+                and isinstance(body[0], ast.Expr)
+                and isinstance(body[0].value, ast.Constant)
+                and isinstance(body[0].value.value, str)
+            ):
+                docstrings.add(id(body[0].value))
+    return {
+        node.value
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Constant)
+        and isinstance(node.value, str)
+        and id(node) not in docstrings
+    }
 
 
 def _emitted_ids() -> set[str]:
@@ -50,13 +85,18 @@ def _emitted_ids() -> set[str]:
             "check_catalog.py",
             "lifecycle_catalog.py",
             "lint_catalog.py",
+            "authz_catalog.py",
             "gate_catalog.py",
             "policy_catalog.py",
             "semantic_catalog.py",
             "slo_catalog.py",
         }:
             continue
-        found.update(_EMITTED.findall(path.read_text(encoding="utf-8")))
+        found.update(
+            literal
+            for literal in _string_literals(path.read_text(encoding="utf-8"))
+            if _EMITTED.match(literal)
+        )
     return found
 
 

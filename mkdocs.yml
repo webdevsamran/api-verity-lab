@@ -51,6 +51,7 @@ nav:
       - Load shapes: load-shapes.md
       - Virtualization workspaces: virtualization.md
       - Auth profiles: auth-profiles.md
+      - Authorization probes: authorization.md
       - Blast radius: blast-radius.md
       - Ghost routes: ghost-routes.md
       - Inferred contracts: inferred-contracts.md

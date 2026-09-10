@@ -72,6 +72,11 @@ paths:
   /items:
     get:
       operationId: listItems
+      # A declared scope, so `test --authz` has something to check a caller
+      # against. Without one, BFLA has no basis: the contract has to say what
+      # an operation needs before anything can say a caller does not hold it.
+      security:
+        - oauth2: [items:read]
       parameters:
         - name: page
           in: query
@@ -187,6 +192,14 @@ components:
     bearer:
       type: http
       scheme: bearer
+    oauth2:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.example.com/token
+          scopes:
+            items:read: read the item catalogue
+            items:write: change it
   schemas:
     Widget:
       type: object

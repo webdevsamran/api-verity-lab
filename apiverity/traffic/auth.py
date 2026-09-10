@@ -78,6 +78,10 @@ class AuthProfile(BaseModel):
     # mtls
     cert_file: str | None = None
     key_file: str | None = None
+    #: What the operator says this identity is allowed to do, for
+    #: `test --authz`. `None` means unstated, which is not the same as holding
+    #: none -- and only the second is a basis for a finding.
+    scopes: list[str] | None = None
 
     def redacted_summary(self) -> dict[str, Any]:
         """Safe-to-persist view: every field, because every field is a reference.
@@ -97,6 +101,7 @@ class AuthProfile(BaseModel):
             "password_env": self.password_env,
             "cert_file": self.cert_file,
             "key_file": self.key_file,
+            "scopes": self.scopes,
         }
 
     def assert_no_secret_values(self) -> None:

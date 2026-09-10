@@ -105,6 +105,16 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 | `LIFECYCLE-SUNSET-PASSED` | ERROR | `validate` | A declared sunset date has passed and the operation is still here. | Remove the operation, or move the date to one the team still means. A retirement date nobody enforces teaches callers to ignore the next one. |
 | `LIFECYCLE-SUNSET-WITHOUT-DEPRECATION` | WARN | `validate` | An operation declares a retirement date and is not marked deprecated. | Mark it `deprecated: true`. The contract is currently retiring something it never told anyone to stop using. |
 
+## Authorization, between identities
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `AUTHZ-BFLA` | ERROR | `test --authz` | An operation answered for a caller the contract says lacks its scope. | Either the handler does not check the scope, or the profile is wrong about what that identity holds. Both are worth knowing and only one of them is a defect in the service, so check the profile before filing a bug. |
+| `AUTHZ-BOLA-DELETE` | ERROR | `test --authz` | One identity deleted an object another identity created. | The same fix. Reported separately from the read because stopping at the first finding would hide this one, and they are not equally bad. |
+| `AUTHZ-BOLA-READ` | ERROR | `test --authz` | One identity read an object another identity created. | Resolve the object against the caller's tenant, not against the id alone. This is OWASP API1: the request is well-formed, the schema is satisfied, the status is 200, and the data belongs to somebody else -- which is why no schema check and no single-identity run can see it. |
+| `AUTHZ-BOLA-WRITE` | ERROR | `test --authz` | One identity updated an object another identity created. | The same fix as the read, and worse if only this one fires: a service that hides another tenant's object from a GET and accepts a PATCH on it is checking visibility somewhere that is not the write path. |
+| `AUTHZ-SCOPES-UNDECLARED` | INFO | `test --authz` | An identity states no scopes, so nothing checked what it may call. | Add `scopes: []` to the profile if it genuinely holds none. An unstated list is not a basis for a finding -- assuming an identity holds nothing would report every operation it can reach as a defect. |
+
 ## Governance
 
 | Rule | Severity | Produced by | Fires when | Instead |
@@ -158,4 +168,4 @@ The suppressions file, talking about itself. An entry that is not justified and 
 | `SUPPRESSION-INCOMPLETE` | WARN | `breaking` | A suppression is missing a field it needs, so it suppressed nothing. | Add the fields the message names: `owner`, `reason`, and an `expires` date within the project's maximum. The entry fails closed, so the finding it named is still in the run -- this is not a second failure, it is the reason the first one is still there. |
 | `SUPPRESSION-UNSCOPED` | INFO | `breaking` | A suppression silences its rule across every operation. | Nothing, if that is what you meant -- an API with no pagination does not need the pagination rule on forty operations. Add an `operation_key` if it is not: a rule silenced contract-wide will not fire on the operation added next month either. |
 
-_63 check rules._
+_68 check rules._

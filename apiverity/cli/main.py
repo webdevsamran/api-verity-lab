@@ -392,6 +392,22 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="PATH",
         help="only exercise this collection (default: every one the contract declares)",
     )
+    p.add_argument(
+        "--authz",
+        action="store_true",
+        help=(
+            "check authorization between two identities: create a resource as "
+            "--auth-profile and try to read, update and delete it as --as. Also calls "
+            "operations the contract says need a scope --as does not hold. Writes, so "
+            "it needs --include-mutations. See docs/authorization.md"
+        ),
+    )
+    p.add_argument(
+        "--as",
+        dest="other_profile",
+        metavar="NAME",
+        help="the second identity, from the same --auth-profiles file",
+    )
     p.add_argument("--timeout", type=float, default=10.0)
     p.add_argument("--minimize", action="store_true")
     p.add_argument("--json", action="store_true")

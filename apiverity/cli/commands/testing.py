@@ -45,6 +45,9 @@ def cmd_test(args: argparse.Namespace) -> int:
     if getattr(args, "model_based", False):
         return _model_based(args)
 
+    if getattr(args, "authz", False):
+        return _authz(args)
+
     selected = list(getattr(args, "generator", None) or [])
     if "all" in selected:
         selected = sorted(load_generators())
@@ -87,6 +90,137 @@ def cmd_test(args: argparse.Namespace) -> int:
         args.json,
     )
     return EXIT_FINDINGS if failures else EXIT_OK
+
+
+def _authz(args: argparse.Namespace) -> int:
+    """Two identities, and whether the service keeps them apart.
+
+    Everything else in this project reads a contract or watches one identity
+    talk to a service, and neither can see the two failures that matter most:
+    an object one tenant created and another can read, and an operation the
+    contract says needs a scope answered for a caller who does not hold it.
+    """
+    import httpx
+
+    from apiverity.security.authz import (
+        AuthzReport,
+        Identity,
+        probe_function_authorization,
+        probe_object_authorization,
+    )
+    from apiverity.stateful.model_based import discover_collections, payload_for
+    from apiverity.traffic.auth import AuthProfileSet, material
+
+    service, _, _ = _load(args.spec)
+    set_last_target(args.base_url)
+
+    if not getattr(args, "include_mutations", False):
+        print(
+            "error: --authz creates a resource and then attempts unauthorized access to "
+            f"it at {args.base_url}. Pass --include-mutations if that is what you mean.",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+
+    path = getattr(args, "auth_profiles", None)
+    first = getattr(args, "auth_profile", None)
+    second = getattr(args, "other_profile", None)
+    if not (path and first and second):
+        print(
+            "error: --authz needs two identities: --auth-profiles FILE --auth-profile "
+            "alice --as bob. One identity cannot be refused its own data.",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+    if first == second:
+        print(
+            f"error: --auth-profile and --as are both {first!r}. An identity reaching "
+            "its own resource is not a finding.",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+
+    try:
+        profiles = AuthProfileSet.load(str(path))
+        credentials = {name: material(profiles.get(name)) for name in (str(first), str(second))}
+    except (OSError, KeyError, ValueError) as exc:
+        print(f"error: {str(exc).strip(chr(34) + chr(39))}", file=sys.stderr)
+        return EXIT_USAGE
+
+    owner = Identity(str(first), profiles.get(str(first)).scopes)
+    other = Identity(str(second), profiles.get(str(second)).scopes)
+
+    report = AuthzReport()
+    clients: dict[str, Any] = {}
+    try:
+        for name, (headers, cert) in credentials.items():
+            clients[name] = httpx.Client(
+                base_url=str(args.base_url).rstrip("/"),
+                timeout=float(getattr(args, "timeout", 10.0) or 10.0),
+                headers=headers or None,
+                cert=cert,
+            )
+
+        def transport(identity: str, method: str, target: str, body: Any) -> tuple[int, Any]:
+            response = clients[identity].request(method, target, json=body)
+            try:
+                return response.status_code, response.json() if response.content else None
+            except ValueError:
+                return response.status_code, None
+
+        collections = discover_collections(service)
+        wanted = getattr(args, "collection", None)
+        if wanted:
+            collections = [c for c in collections if c.path == wanted]
+        for collection in collections:
+            probe_object_authorization(
+                transport,
+                collection.path,
+                collection.item_path,
+                owner,
+                other,
+                create_payload=payload_for(collection.create_operation) or {"name": "authz-probe"},
+                update_payload=payload_for(collection.update_operation, seed=1) or None,
+                deletable=collection.deletable,
+                report=report,
+            )
+        if not collections:
+            report.not_probed.append(
+                (
+                    "*",
+                    "this contract declares no collection with a POST and a sibling {id} "
+                    "GET, so there is no object for one identity to create and another "
+                    "to be refused",
+                )
+            )
+        probe_function_authorization(transport, service, other, report=report)
+    except httpx.HTTPError as exc:
+        print(f"error: target unreachable: {exc}", file=sys.stderr)
+        return EXIT_UNREACHABLE
+    finally:
+        for client in clients.values():
+            client.close()
+
+    _emit(
+        {
+            "tool": "apiverity",
+            "command": "test",
+            "authz": {
+                "owner": owner.name,
+                "other": other.name,
+                "attempts": report.attempts,
+                "findings": report.findings,
+                # A clean report has to be readable as "twelve attempts, all
+                # refused" rather than as "nothing happened", and everything
+                # the run could not reach has to be visible beside it.
+                "not_probed": [
+                    {"operation_key": key, "reason": reason} for key, reason in report.not_probed
+                ],
+            },
+        },
+        getattr(args, "json", False),
+    )
+    return EXIT_FINDINGS if not report.ok else EXIT_OK
 
 
 def _model_based(args: argparse.Namespace) -> int:

@@ -201,6 +201,7 @@ the list is what stops the question being invisible.
   configured and unexercised
 - Defensive security packs, OAuth scope coverage, sensitive-field redaction — EXISTING
 - Auth profiles on every command that takes `--base-url` (`--auth-profiles FILE --auth-profile NAME`): bearer, API key, basic and mTLS, each naming an environment variable or a file rather than carrying a credential, so a bundle records `token_env: STAGING_TOKEN` and nothing replayable — EXISTING (`traffic/auth.py`). See [Auth profiles](auth-profiles.md)
+- BOLA and BFLA probes between two identities (`test --authz --auth-profile alice --as bob`): create a resource as one identity and try to read, update and delete it as another; call operations the contract says need a scope the second identity does not hold. OWASP API1 and API5, neither of which a schema check or a single-identity run can see — EXISTING (`security/authz.py`). See [Authorization probes](authorization.md)
 - OTLP trace export with attribute redaction — EXISTING (`exporters/otel.py`),
   reachable from the CLI since 2026-09-10 (`drift --otlp-endpoint`) and following the
   OpenTelemetry GenAI conventions for MCP (`exporters/semconv.py`). Before that the

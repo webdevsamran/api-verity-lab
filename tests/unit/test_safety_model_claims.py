@@ -66,6 +66,7 @@ CHECKED_BY: dict[int, str] = {
     19: "tests/integration/test_audit_export.py -- the hash chain",
     20: "tests/integration/test_store_concurrency.py -- backpressure and idempotency",
     21: "tests/integration/test_enterprise_ops.py -- backups exclude credential hashes",
+    22: "tests/integration/test_authorization.py -- two identities, reads only for BFLA",
 }
 
 
@@ -298,6 +299,12 @@ def test_every_numbered_control_has_a_test() -> None:
     )
     stale = sorted(set(CHECKED_BY) - numbered)
     assert stale == [], f"CHECKED_BY names controls {stale} that the page no longer has"
+    # Contiguous from 1, so a control cannot be added by skipping a number.
+    assert sorted(numbered) == list(range(1, max(numbered) + 1))
+    # And not sub-numbered: `7b.` is not matched by the pattern above, so a
+    # control added that way would slip past the whole guard. This was written
+    # after doing exactly that.
+    assert not re.search(r"^\d+[a-z]\. ", _DOC.read_text(encoding="utf-8"), re.MULTILINE)
 
 
 @pytest.mark.parametrize("number", sorted(CHECKED_BY))

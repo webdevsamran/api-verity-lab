@@ -111,6 +111,18 @@ both existed, so this page described a gate no command went through.
     idempotency keys make CI retries safe.
 21. Backups exclude credential hashes; org exports never contain token hashes.
 
+## Authorization probing
+
+22. **Two identities, one object, and reads only where it counts.**
+    `test --authz` creates one resource per collection as the first identity
+    and attempts to read, update and delete it as the second. It needs
+    `--include-mutations`. It escalates nothing and chains nothing: a finding
+    records the operation, the status and which identity called, and there is
+    no payload in it. A BFLA probe issues only `GET`, `HEAD` and `OPTIONS` --
+    one that issued the `DELETE` it was testing for would be indistinguishable
+    from the attack, so an operation that changes state is listed as not
+    probed, with that reason.
+
 ## What we do not claim
 
 - No automatic legal compliance (GDPR/PCI) from PII annotations — they are
