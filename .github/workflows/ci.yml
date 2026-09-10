@@ -71,6 +71,14 @@ jobs:
         # because it is the kind of thing quoted in an evaluation.
         run: python scripts/generate_rule_parity.py --check
 
+      - name: oasdiff migration table matches the mapping
+        # The question a team switching from oasdiff has is "which of my jq
+        # filters will stop matching". A hand-written answer to that goes stale
+        # the first time somebody adds a rule, and a stale migration table is
+        # worse than none: it promises a filter still works after it has
+        # stopped.
+        run: python scripts/generate_oasdiff_map.py --check
+
       - name: Compliance mapping doc matches the code
         # The OWASP control -> rule mapping is published in
         # docs/compliance-mapping.md. A renamed rule would leave that table

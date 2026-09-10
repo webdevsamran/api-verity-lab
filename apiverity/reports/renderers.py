@@ -681,6 +681,12 @@ def _compliance(key: str) -> Callable[[dict[str, Any]], str]:
     return render
 
 
+def _oasdiff_render(data: dict[str, Any]) -> str:
+    from apiverity.reports.oasdiff import render
+
+    return render(data)
+
+
 RENDERERS: dict[str, Callable[[dict[str, Any]], str]] = {
     "terminal": terminal,
     "markdown": markdown,
@@ -690,6 +696,11 @@ RENDERERS: dict[str, Callable[[dict[str, Any]], str]] = {
     "sarif": sarif,
     "json": as_json,
     "yaml": as_yaml,
+    # oasdiff's own changelog shape, so a team already gating on it can point
+    # this at their pipeline without rewriting the `jq` in it. Verified
+    # against oasdiff v1.31.0; see apiverity/reports/oasdiff.py for what maps
+    # and what deliberately does not.
+    "oasdiff": _oasdiff_render,
     # Every control of the framework appears in these, including the ones this
     # tool cannot assess. A mapping report that lists only the controls it hit
     # reads as a clean bill of health for the rest.

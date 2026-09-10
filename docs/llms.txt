@@ -39,6 +39,7 @@ thing they count by a test.
 - [Evidence packs](https://webdevsamran.github.io/api-verity-lab/evidence/): Dated, checksummed records for SOC 2, ISO 42001, DORA, EU AI Act
 - [Audit export](https://webdevsamran.github.io/api-verity-lab/audit-export/): The hash-chained audit log as a document checkable away from the server
 - [Emergency freeze](https://webdevsamran.github.io/api-verity-lab/kill-switch/): Stopping releases during an incident, and what a freeze does not stop
+- [Migrating from oasdiff](https://webdevsamran.github.io/api-verity-lab/oasdiff-migration/): Emitting oasdiff's own JSON shape, and which rules map onto its check ids
 - [CI integration](https://webdevsamran.github.io/api-verity-lab/ci/): Wiring the gate into a pipeline
 - [Safety model](https://webdevsamran.github.io/api-verity-lab/safety-model/): What this tool will and will not do to a target
 - [Privacy](https://webdevsamran.github.io/api-verity-lab/privacy/): What reaches an artifact, and what never does

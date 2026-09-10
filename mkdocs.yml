@@ -39,6 +39,7 @@ nav:
       - Spec support: spec-support.md
       - Protocol support: protocol-support.md
       - Exit codes: exit-codes.md
+      - Migrating from oasdiff: oasdiff-migration.md
       - MCP drift: mcp-drift.md
       - Behavioural drift: behavioural-drift.md
       - MCP tool poisoning: mcp-poisoning.md

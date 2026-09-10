@@ -96,6 +96,11 @@ _GUIDE: tuple[tuple[str, str, str], ...] = (
         "kill-switch.md",
         "Stopping releases during an incident, and what a freeze does not stop",
     ),
+    (
+        "Migrating from oasdiff",
+        "oasdiff-migration.md",
+        "Emitting oasdiff's own JSON shape, and which rules map onto its check ids",
+    ),
     ("CI integration", "ci.md", "Wiring the gate into a pipeline"),
     ("Safety model", "safety-model.md", "What this tool will and will not do to a target"),
     ("Privacy", "privacy.md", "What reaches an artifact, and what never does"),

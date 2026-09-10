@@ -715,11 +715,19 @@ def build_parser() -> argparse.ArgumentParser:
         "report",
         help=(
             "render a result bundle: terminal, markdown, HTML, JUnit, SARIF, "
-            "a pull request comment, or an OWASP mapping"
+            "oasdiff's own JSON shape, a pull request comment, or an OWASP mapping"
         ),
     )
     p.add_argument("bundle")
-    p.add_argument("--format", default="json")
+    p.add_argument(
+        "--format",
+        default="json",
+        help=(
+            "one of the renderers in apiverity.reports.renderers. `oasdiff` writes the "
+            "shape `oasdiff breaking -f json` writes, so an existing filter keeps "
+            "matching -- see docs/oasdiff-migration.md for which rules map"
+        ),
+    )
     p.set_defaults(func=cmd_report)
     p = sub.add_parser(
         "export",
