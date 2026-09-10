@@ -4,6 +4,69 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — pairwise cases, model-based CRUD, and an empty library-only list
+
+- **`apiverity test --generator pairwise`** covers every *combination* of two
+  parameter values at least once. Every other generator varies one thing at a
+  time, so a validator that is right about `page`, right about `per_page`, and
+  wrong about the two together is invisible to all of them — and "wrong
+  together" is the normal shape of a paging bug.
+
+  Five parameters with six values each: 276 cases against a Cartesian product
+  of 7,776, covering all 360 pairs. Measured, not claimed, and not an optimal
+  covering array — an optimal one needs about 36.
+
+- **`apiverity test --model-based`** drives the CRUD invariants a schema check
+  cannot state, because they are about sequences: can what you just created be
+  read back, does an update persist, is a deleted resource actually gone. A
+  service can satisfy its contract on every individual request and fail all
+  three.
+
+  Collections are discovered from the contract — a POST with a sibling `{id}`
+  GET — the update verb comes from the contract, and payloads are derived from
+  its request schema. A collection with no update verb is exercised without
+  those transitions and the run says what it therefore did not check. It
+  writes, so it needs `--include-mutations`.
+
+- **`--list-generators` and `--list-templates` work on their own.** Both are
+  documented as "list … and exit" and argparse required the positional
+  argument to reach either.
+
+### Fixed — boundary values, the mock's CRUD, and a module that shipped twice
+
+- **`boundary_values` returned values that violate the schema it was given** —
+  a length one step outside the range, the exclusive bound itself, and `"A1-"`
+  for any `pattern`. Harmless while the only caller treated every value the
+  same; wrong the moment a generator has to say whether a case is positive. It
+  returns only permitted values now, and everything that violates a constraint
+  is in `near_boundary_invalid_cases`.
+
+- **The mock did create and read and called it CRUD.** An update returned a
+  freshly generated body and stored nothing; a delete stored nothing either, so
+  a resource deleted and read back came back. Every "did that take effect"
+  check in this suite passed against a mock where nothing ever did. State is
+  applied before the body is built now — which is where the delete was lost, a
+  204 has no response schema and `_build_body` returned early — PATCH merges,
+  PUT replaces, and a 204 goes out with no body instead of
+  `{"error": "mock error 204"}`.
+
+### Removed
+
+- **`apiverity/core/model_v2.py`.** The last of the seven library-only
+  capabilities, and the one where the answer was not "wire it up": its
+  CODEOWNERS reader used `fnmatch` where the format is gitignore-shaped and
+  would assign the wrong team, its `migrate_artifact` upgraded to a schema
+  version this project does not emit, its `ContractBundle` was a second
+  `sweep`, its entity ids were a third naming scheme beside `Operation.key`,
+  and its `fingerprint_findings` was published as a capability and called by
+  nothing. Not in `apiverity/sdk.py`, so the documented library surface is
+  unchanged.
+
+  **The library-only list is empty.** It began at seven; five were wired to a
+  command and each of those turned up a defect that had been invisible for the
+  same reason. The check that fails the build when a module *joins* the list
+  stays.
+
 ### Added — credentials, and the graph check before a run
 
 - **`--auth-profiles FILE --auth-profile NAME` on every command that takes
