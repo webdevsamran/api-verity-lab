@@ -233,6 +233,17 @@
       ]
     },
     {
+      "name": "notify",
+      "summary": "route a result artifact's findings to the teams they concern",
+      "options": [
+        "--consumers",
+        "--json",
+        "--root",
+        "--routes",
+        "--send"
+      ]
+    },
+    {
       "name": "plugins",
       "summary": "list installed plugins across the six entry-point groups",
       "options": [

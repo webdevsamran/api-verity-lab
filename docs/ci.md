@@ -223,6 +223,40 @@ than leaving it standing. A pull request from a fork gets a read-only token, so
 there the step skips with a notice instead of failing a run whose findings were
 already reported.
 
+### Telling the right people
+
+A gate that posts everything to one #api-alerts channel produces a channel
+that is muted within a month, and after that the gate is decorative.
+`apiverity notify` routes a result artifact's findings to the teams they
+concern, using two things this project already reads:
+
+```bash
+apiverity breaking old.yaml new.yaml --json > findings.json
+apiverity notify findings.json --routes routes.yaml --consumers consumers.yaml
+```
+
+```yaml
+# routes.yaml
+routes:
+  "@platform-team": https://hooks.slack.com/services/...
+  checkout: {url: "https://outlook.office.com/webhook/...", kind: teams}
+```
+
+**CODEOWNERS** says who owns the contract file; the **consumer registry** says
+who calls the operation. They are two different audiences and they do not want
+the same message: an owner needs to know what they changed, a consumer needs to
+know what is about to break for them. Only ERROR findings reach a consumer — a
+warning is a conversation the owning team has with itself, and forwarding every
+one of them to five other teams recreates the channel this replaces.
+
+Findings that reached nobody are listed under `unrouted`, with which kind of
+gap it was: no CODEOWNERS entry, or an owner with no route configured. A
+routing layer that drops those silently is worse than the shared channel.
+
+**Nothing is sent without `--send`.** A tool that posts to a team's channel as
+a side effect of being run has done something the person running it did not ask
+for — the same reason `replay` and `--invoke-tool` are dry by default.
+
 SARIF results carry `region` line and column information from the spec, so
 GitHub annotates the changed line rather than the repository, and
 `partialFingerprints` keep an alert attached to the same problem when the

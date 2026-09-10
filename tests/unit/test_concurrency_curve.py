@@ -192,9 +192,12 @@ def test_concurrency_is_actually_applied() -> None:
     """The test that would have caught it.
 
     `measure(concurrency=N)` accepted the argument and issued every request in
-    a row. Against a server that sleeps, N in flight finishes in roughly a
-    fraction of the sequential time; with the argument ignored the two runs
-    take the same wall clock, which is what this asserts against.
+    a row. What that change fixes is *overlap*, so overlap is what this
+    asserts: the server records how many requests were in flight at once.
+
+    Deliberately not a wall-clock ratio. A ratio is load-sensitive, and a test
+    that passes alone and fails inside the full suite is worse than no test --
+    it teaches people to re-run the build.
     """
     import threading
     import time
@@ -202,11 +205,21 @@ def test_concurrency_is_actually_applied() -> None:
 
     from apiverity.performance.engine import measure
 
-    class Slow(BaseHTTPRequestHandler):
+    lock = threading.Lock()
+    state = {"in_flight": 0, "peak": 0}
+
+    class Counting(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
 
         def do_GET(self) -> None:
-            time.sleep(0.05)
+            with lock:
+                state["in_flight"] += 1
+                state["peak"] = max(state["peak"], state["in_flight"])
+            # Long enough that overlap is observable, short enough that
+            # sixteen requests cost a fraction of a second.
+            time.sleep(0.03)
+            with lock:
+                state["in_flight"] -= 1
             body = b"[]"
             self.send_response(200)
             self.send_header("content-type", "application/json")
@@ -217,22 +230,25 @@ def test_concurrency_is_actually_applied() -> None:
         def log_message(self, *args: Any) -> None:
             return
 
-    httpd = ThreadingHTTPServer(("127.0.0.1", 0), Slow)
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), Counting)
     thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     thread.start()
     base = f"http://127.0.0.1:{httpd.server_address[1]}"
     try:
-        sequential = measure(_service(), base, iterations=8, concurrency=1)
-        parallel = measure(_service(), base, iterations=8, concurrency=8)
+        measure(_service(), base, iterations=8, concurrency=1)
+        sequential_peak = state["peak"]
+
+        state["peak"] = 0
+        measure(_service(), base, iterations=8, concurrency=4)
+        parallel_peak = state["peak"]
     finally:
         httpd.shutdown()
         httpd.server_close()
 
-    sequential_rps = sequential.operations[0].throughput_rps
-    parallel_rps = parallel.operations[0].throughput_rps
-    assert parallel_rps > sequential_rps * 2, (
-        f"eight in flight against a 50ms endpoint managed {parallel_rps:.1f} rps against "
-        f"{sequential_rps:.1f} sequential -- the concurrency argument is not being applied"
+    assert sequential_peak == 1, f"concurrency=1 put {sequential_peak} requests in flight at once"
+    assert parallel_peak > 1, (
+        "concurrency=4 never had more than one request in flight -- the argument is "
+        "not being applied"
     )
 
 

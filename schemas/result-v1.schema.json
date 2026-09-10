@@ -38,6 +38,7 @@
         "mcp-inventory",
         "mcp-lock",
         "mock",
+        "notify",
         "plugins",
         "regression",
         "replay",

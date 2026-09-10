@@ -6,11 +6,13 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 from apiverity.cli.commands.common import (
     EXIT_INTERNAL,
     EXIT_OK,
     EXIT_USAGE,
+    NL,
     _emit,
     _load,
     active_profile,
@@ -328,3 +330,126 @@ def cmd_self_test(args: argparse.Namespace) -> int:
         args.json,
     )
     return EXIT_OK if ok else EXIT_INTERNAL
+
+
+def cmd_notify(args: argparse.Namespace) -> int:
+    """Route the findings in a result artifact to the teams they concern.
+
+    Sends nothing without `--send`. A tool that posts to a team's channel as a
+    side effect of being run has done something the person running it did not
+    ask for -- the same reason `replay` and `--invoke-tool` are dry by default.
+    """
+    import yaml
+
+    from apiverity.core.ownership import load_ownership
+    from apiverity.reports.routing import load_routes, plan_notifications
+
+    try:
+        artifact = json.loads(Path(args.artifact).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        print(f"error: could not read result artifact '{args.artifact}': {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    try:
+        raw = yaml.safe_load(Path(args.routes).read_text(encoding="utf-8")) or {}
+        routes = load_routes(raw.get("routes", raw))
+    except (OSError, ValueError) as exc:
+        print(f"error: could not read routes '{args.routes}': {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    findings = artifact.get("findings")
+    if not isinstance(findings, list):
+        print(
+            f"error: {args.artifact} has no top-level `findings` array. Produce it with "
+            "`--json` from validate, breaking or drift",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+
+    contract = str(artifact.get("new_spec") or artifact.get("spec") or "")
+    owners: tuple[str, ...] = ()
+    if contract:
+        ownership = load_ownership(getattr(args, "root", ".") or ".")
+        owners = ownership.owners_of(contract)
+
+    consumers_by_operation: dict[str, list[str]] = {}
+    teams_by_consumer: dict[str, str] = {}
+    if getattr(args, "consumers", None):
+        from apiverity.rules.consumers import RegistryError, load_registry
+
+        try:
+            registry = load_registry(args.consumers)
+        except RegistryError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return EXIT_USAGE
+        for consumer in registry.consumers:
+            if consumer.team:
+                teams_by_consumer[consumer.name] = consumer.team
+            for operation in consumer.operations:
+                consumers_by_operation.setdefault(operation, []).append(consumer.name)
+
+    plan = plan_notifications(
+        findings,
+        routes,
+        contract_path=contract,
+        owners=owners,
+        consumers_by_operation=consumers_by_operation,
+        teams_by_consumer=teams_by_consumer,
+    )
+
+    delivered: list[dict[str, Any]] = []
+    if getattr(args, "send", False) and plan.messages:
+        import httpx
+
+        for message in plan.messages:
+            try:
+                response = httpx.post(message.url, json=message.payload(), timeout=10.0)
+                delivered.append(
+                    {
+                        "team": message.team,
+                        "audience": message.audience,
+                        "status": response.status_code,
+                    }
+                )
+            except Exception as exc:
+                # One unreachable webhook must not stop the others: the team
+                # whose endpoint is down is not the team that needs telling
+                # least.
+                delivered.append(
+                    {"team": message.team, "audience": message.audience, "error": str(exc)}
+                )
+
+    payload: dict[str, Any] = {
+        "tool": "apiverity",
+        "command": "notify",
+        "artifact": args.artifact,
+        "contract": contract,
+        "owners": list(owners),
+        "sent": bool(getattr(args, "send", False)),
+        "messages": [
+            {
+                "team": m.team,
+                "audience": m.audience,
+                "kind": m.kind,
+                "subject": m.subject,
+                "body": m.body,
+                "rule_ids": list(m.rule_ids),
+            }
+            for m in plan.messages
+        ],
+        # Both reported. A finding that reached nobody is the one that ends up
+        # nowhere, and a routing layer that drops it silently is worse than the
+        # shared channel it replaced.
+        "unrouted": plan.unrouted,
+        "unknown_teams": plan.unknown_teams,
+        **({"delivered": delivered} if delivered else {}),
+    }
+    _emit(payload, args.json)
+
+    if not args.json and not getattr(args, "send", False) and plan.messages:
+        print(
+            f"{NL}dry run: {len(plan.messages)} message(s) prepared, none sent. "
+            "Add --send to deliver them.",
+            file=sys.stderr,
+        )
+    return EXIT_OK

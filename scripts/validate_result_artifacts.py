@@ -41,6 +41,48 @@ sys.path.insert(0, str(ROOT))
 #: must leave one.
 _SCRATCH = Path(tempfile.mkdtemp(prefix="apiverity-artifacts-"))
 
+
+def _notify_artifact() -> Path:
+    """A minimal findings artifact for `notify` to route.
+
+    Written rather than produced by running `breaking` first, because this
+    script checks artifact *shapes* and chaining one command's output into
+    another's input would make a failure here ambiguous about which command
+    caused it.
+    """
+    directory = _SCRATCH / "notify"
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / "findings.json"
+    path.write_text(
+        json.dumps(
+            {
+                "new_spec": "openapi.yaml",
+                "findings": [
+                    {
+                        "rule_id": "BRK-RESP-FIELD-REMOVED",
+                        "severity": "ERROR",
+                        "operation_key": "GET /users",
+                        "message": "a response field was removed",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    owners = directory / ".github"
+    owners.mkdir(parents=True, exist_ok=True)
+    (owners / "CODEOWNERS").write_text("openapi.yaml @platform\n", encoding="utf-8")
+    return path
+
+
+def _notify_routes() -> Path:
+    directory = _SCRATCH / "notify"
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / "routes.yaml"
+    path.write_text("routes:\n  '@platform': https://hooks.invalid/x\n", encoding="utf-8")
+    return path
+
+
 COMMANDS: list[tuple[str, list[str]]] = [
     (
         "diff",
@@ -160,6 +202,18 @@ COMMANDS: list[tuple[str, list[str]]] = [
             str(_SCRATCH / "pack"),
             "--as-of",
             "2026-01-01T00:00:00Z",
+            "--json",
+        ],
+    ),
+    (
+        "notify",
+        [
+            "notify",
+            str(_notify_artifact()),
+            "--routes",
+            str(_notify_routes()),
+            "--root",
+            str(_SCRATCH / "notify"),
             "--json",
         ],
     ),

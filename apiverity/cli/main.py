@@ -41,6 +41,7 @@ from apiverity.cli.commands.governance import (
 )
 from apiverity.cli.commands.platform import (
     cmd_explain,
+    cmd_notify,
     cmd_plugins,
     cmd_rules,
     cmd_self_test,
@@ -86,6 +87,7 @@ __all__ = [
     "cmd_mcp_inventory",
     "cmd_mcp_lock",
     "cmd_mock",
+    "cmd_notify",
     "cmd_plugins",
     "cmd_regression",
     "cmd_replay",
@@ -759,6 +761,40 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--org-id", type=int, help="org id for export")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_server_db)
+    p = sub.add_parser(
+        "notify",
+        help="route a result artifact's findings to the teams they concern",
+    )
+    p.add_argument("artifact", help="a result-v1 JSON artifact with a top-level `findings` array")
+    p.add_argument(
+        "--routes",
+        required=True,
+        metavar="FILE",
+        help="YAML mapping a team to a webhook: `routes: {backend: https://...}`",
+    )
+    p.add_argument(
+        "--consumers",
+        metavar="FILE",
+        help=(
+            "a consumer registry, so the teams that call a broken operation are told too. "
+            "Without it only the contract's CODEOWNERS are notified"
+        ),
+    )
+    p.add_argument(
+        "--root",
+        default=".",
+        help="repository root to read CODEOWNERS from (default: the working directory)",
+    )
+    p.add_argument(
+        "--send",
+        action="store_true",
+        help=(
+            "actually POST the messages. Off by default: a tool that posts to a team's "
+            "channel as a side effect of being run has done something nobody asked for"
+        ),
+    )
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_notify)
     p = sub.add_parser(
         "plugins",
         help="list installed plugins across the six entry-point groups",
