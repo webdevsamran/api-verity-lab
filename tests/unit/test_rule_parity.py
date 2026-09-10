@@ -1,7 +1,7 @@
 """The matrix is derived by making the rules fire, not written down.
 
-Sixty-nine rules and seven formats, and nothing told a GraphQL user which of
-the sixty-nine could apply to them. The obvious answer is a hand-written table, and
+Seventy rules and seven formats, and nothing told a GraphQL user which of
+the seventy could apply to them. The obvious answer is a hand-written table, and
 it is the one answer this project cannot accept: a matrix asserting coverage
 nobody demonstrated is worse than no matrix, because it is exactly the kind of
 thing quoted in an evaluation.

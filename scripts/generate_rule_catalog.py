@@ -117,7 +117,7 @@ def render() -> str:
         out.append("")
     out.append("## Severity profiles\n")
     out.append(
-        "Nobody writes sixty-nine overrides. A profile is a starting position that "
+        "Nobody writes seventy overrides. A profile is a starting position that "
         "every other setting -- the config's own `severity_overrides`, and "
         "`--severity-override` on the command line -- takes precedence over. It sets "
         "both the severities and the threshold that fails a run, because either half "

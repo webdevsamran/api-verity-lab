@@ -113,6 +113,7 @@ oasdiff reads OpenAPI. A protobuf field number, an MCP annotation and a SOAPActi
 - `BRK-REQ-FIELD-OPTIONALIZED` — A request body field became optional; senders are unaffected.
 - `BRK-REQ-FIELD-REMOVED` — A request body field was removed.
 - `BRK-RESERVATION-REMOVED` — A protobuf field number is no longer reserved and can be reused by mistake.
+- `BRK-RESP-CONSTRAINT-LOOSENED` — A bound on a response field was relaxed or removed; the service may now return values a consumer written against the old bound rejects.
 - `BRK-RESP-CONSTRAINT-TIGHTENED` — A response constraint was tightened; returned values may fall outside what clients expect.
 - `BRK-RPC-STREAMING-CHANGED` — An RPC changed streaming cardinality; generated clients call it wrongly.
 - `BRK-SOAP-ACTION-CHANGED` — The SOAPAction header changed. Gateways and ESBs route on it and generated stubs send the old one, with an unchanged body that now reaches nothing.
@@ -131,4 +132,4 @@ oasdiff reads OpenAPI. A protobuf field number, an MCP annotation and a SOAPActi
 
 Every finding from a gRPC, GraphQL, AsyncAPI, MCP or WSDL contract is namespaced, whatever its rule. A removed gRPC RPC really is an endpoint removal, but emitting `api-removed-without-deprecation` for one would make a consumer's tooling report an OpenAPI endpoint removal that never happened.
 
-_24 of 69 rules map onto an oasdiff check id; the other 45 are namespaced._
+_24 of 70 rules map onto an oasdiff check id; the other 46 are namespaced._

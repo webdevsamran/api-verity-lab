@@ -1,6 +1,6 @@
-"""Severity profiles: three names instead of sixty-nine overrides.
+"""Severity profiles: three names instead of seventy overrides.
 
-The catalogue has sixty-nine rules and a severity for each. A team that wants
+The catalogue has seventy rules and a severity for each. A team that wants
 to be stricter than the default has, until now, had one route: write out an
 override per rule. Nobody does that. They either accept the defaults or turn
 the gate off, and the second is the outcome this whole tool exists to avoid.

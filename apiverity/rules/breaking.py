@@ -147,6 +147,12 @@ CATALOG: dict[str, RuleSpec] = {
             "undeclared values at runtime.",
         ),
         RuleSpec("BRK-ENUM-WIDENED", Severity.INFO, "Enum values were added (additive)."),
+        RuleSpec(
+            "BRK-RESP-CONSTRAINT-LOOSENED",
+            Severity.WARN,
+            "A bound on a response field was relaxed or removed; the service may now return "
+            "values a consumer written against the old bound rejects.",
+        ),
         RuleSpec("BRK-REQ-FIELD-REMOVED", Severity.ERROR, "A request body field was removed."),
         RuleSpec(
             "BRK-REQ-FIELD-OPTIONALIZED",
@@ -725,7 +731,13 @@ class BreakingEngine:
         if change.direction == "request":
             rule = "BRK-CONSTRAINT-TIGHTENED" if tightening else "BRK-CONSTRAINT-LOOSENED"
         else:
-            rule = "BRK-RESP-CONSTRAINT-TIGHTENED" if tightening else "BRK-ENUM-WIDENED"
+            # Not `BRK-ENUM-WIDENED`. This branch handles numeric and length
+            # bounds, and a `min_length` dropped from 1 was reported under a
+            # rule about enum values -- so `explain` answered with advice
+            # about enums for a finding about string length. Found by
+            # benchmarking against oasdiff, which reports the same change and
+            # calls it `response-property-min-length-unset`.
+            rule = "BRK-RESP-CONSTRAINT-TIGHTENED" if tightening else "BRK-RESP-CONSTRAINT-LOOSENED"
         return [self._finding(rule, change, desc)]
 
 

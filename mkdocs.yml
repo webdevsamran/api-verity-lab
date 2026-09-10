@@ -65,6 +65,7 @@ nav:
       - Capability status: capability-status.md
       - Product gaps: product-gaps.md
       - Competitive analysis: competitive-analysis.md
+      - Benchmark vs oasdiff: benchmark.md
   - Project:
       - Contributing: contributing.md
       - Security policy: security.md

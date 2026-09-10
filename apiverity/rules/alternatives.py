@@ -118,6 +118,11 @@ ALTERNATIVES: dict[str, str] = {
         "breaks an exhaustive switch on the other side, which fails at the point of parse "
         "rather than at the point of use."
     ),
+    "BRK-RESP-CONSTRAINT-LOOSENED": (
+        "Keep the bound, or widen it in a release consumers are told about. A caller that "
+        "validated the old bound -- or sized a column to it -- now receives values it "
+        "rejects, and nothing in the response says the rule changed."
+    ),
     "BRK-ENUM-WIDENED": (
         "Nothing to do for senders. Worth telling consumers, because a new response value "
         "reaches a client that was written when the set was closed."

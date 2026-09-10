@@ -76,6 +76,10 @@ _PHRASES: tuple[tuple[str, str], ...] = (
     ("BRK-ENUM-WIDENED", "enum values were added"),
     # Responses.
     ("BRK-RESP-CONSTRAINT-TIGHTENED", "response constraints were tightened"),
+    (
+        "BRK-RESP-CONSTRAINT-LOOSENED",
+        "response bounds were relaxed, so values a consumer rejects may now arrive",
+    ),
     ("BRK-RESP-TYPE-CHANGED", "response field types changed, so consumers may misparse them"),
     ("BRK-RESP-FIELD-ADDED", "response body fields were added"),
     ("BRK-RESP-FIELD-GUARANTEED", "response fields that were optional are now always sent"),

@@ -122,6 +122,11 @@ _GUIDE: tuple[tuple[str, str, str], ...] = (
         "competitive-analysis.md",
         "Verified, dated comparison with other tools",
     ),
+    (
+        "Benchmark vs oasdiff",
+        "benchmark.md",
+        "Both engines over the same contracts, including where this one is behind",
+    ),
 )
 
 _SITE = "https://webdevsamran.github.io/api-verity-lab"

@@ -1,0 +1,290 @@
+{
+  "generated_at": "2026-09-10T10:10:39.379176+00:00",
+  "apiverity_version": "0.2.0",
+  "oasdiff_module_version": "v1.31.0",
+  "oasdiff_self_reported": "oasdiff version main",
+  "pairs": [
+    {
+      "pair": "versioned",
+      "old": "apis/versioned/v1.yaml",
+      "new": "apis/versioned/v2.yaml",
+      "ours": [
+        {
+          "rule_id": "BRK-OP-REMOVED",
+          "severity": "ERROR",
+          "operation": "DELETE /users/{id}",
+          "text": "operation 'DELETE /users/{id}' was removed"
+        },
+        {
+          "rule_id": "BRK-PARAM-REQUIRED",
+          "severity": "ERROR",
+          "operation": "GET /users",
+          "text": "parameter 'limit' (query) requiredness changed False -> True"
+        },
+        {
+          "rule_id": "BRK-CONSTRAINT-TIGHTENED",
+          "severity": "ERROR",
+          "operation": "GET /users",
+          "text": "request parameter 'limit': constraint 'minimum' changed 1 -> 10"
+        },
+        {
+          "rule_id": "BRK-CONSTRAINT-TIGHTENED",
+          "severity": "ERROR",
+          "operation": "GET /users",
+          "text": "request parameter 'limit': constraint 'maximum' changed 100 -> 50"
+        },
+        {
+          "rule_id": "BRK-ENUM-NARROWED-RESPONSE",
+          "severity": "WARN",
+          "operation": "GET /users",
+          "text": "response 200 body (application/json)[].role: enum changed (removed ['guest'], added [])"
+        },
+        {
+          "rule_id": "BRK-ENUM-NARROWED-RESPONSE",
+          "severity": "WARN",
+          "operation": "GET /users/{id}",
+          "text": "response 200 body (application/json).role: enum changed (removed ['guest'], added [])"
+        },
+        {
+          "rule_id": "BRK-ENUM-NARROWED-REQUEST",
+          "severity": "ERROR",
+          "operation": "POST /users",
+          "text": "request body (application/json).role: enum changed (removed ['guest'], added [])"
+        },
+        {
+          "rule_id": "BRK-REQ-BODY-REQUIRED",
+          "severity": "ERROR",
+          "operation": "POST /users",
+          "text": "request body requiredness changed False -> True"
+        }
+      ],
+      "theirs": [
+        {
+          "id": "request-parameter-became-required",
+          "level": 3,
+          "operation": "GET /users",
+          "text": "the `query` request parameter `limit` became required"
+        },
+        {
+          "id": "request-parameter-max-decreased",
+          "level": 3,
+          "operation": "GET /users",
+          "text": "for the `query` request parameter `limit`, the max was decreased from `100.00` to `50.00`"
+        },
+        {
+          "id": "request-parameter-min-increased",
+          "level": 3,
+          "operation": "GET /users",
+          "text": "for the `query` request parameter `limit`, the min was increased from `1.00` to `10.00`"
+        },
+        {
+          "id": "request-body-became-required",
+          "level": 3,
+          "operation": "POST /users",
+          "text": "request body became required"
+        },
+        {
+          "id": "request-property-enum-value-removed",
+          "level": 3,
+          "operation": "POST /users",
+          "text": "removed the enum value `guest` of the request property `role`"
+        },
+        {
+          "id": "api-removed-without-deprecation",
+          "level": 3,
+          "operation": "DELETE /users/{id}",
+          "text": "api removed without deprecation"
+        }
+      ]
+    },
+    {
+      "pair": "json-schema 2020-12",
+      "old": "apis/jsonschema2020/v1.yaml",
+      "new": "apis/jsonschema2020/v2.yaml",
+      "ours": [
+        {
+          "rule_id": "BRK-DEPENDENT-REQUIRED-ADDED",
+          "severity": "ERROR",
+          "operation": "POST /shipments",
+          "text": "request body (application/json): sending 'card' now also requires ['billingPostcode']"
+        },
+        {
+          "rule_id": "BRK-CONSTRAINT-TIGHTENED",
+          "severity": "ERROR",
+          "operation": "POST /shipments",
+          "text": "request body (application/json)/patternProperties/^x-: constraint 'max_length' changed None -> 64"
+        },
+        {
+          "rule_id": "BRK-CONSTRAINT-TIGHTENED",
+          "severity": "ERROR",
+          "operation": "POST /shipments",
+          "text": "request body (application/json)/if.mode: constraint 'const' changed 'road' -> 'sea'"
+        },
+        {
+          "rule_id": "BRK-RESP-CONSTRAINT-TIGHTENED",
+          "severity": "WARN",
+          "operation": "POST /shipments",
+          "text": "response 201 body (application/json).labels/propertyNames: constraint 'pattern' changed '^[a-z][a-z0-9-]*$' -> '^[a-z]+$'"
+        },
+        {
+          "rule_id": "BRK-CONTAINS-CHANGED",
+          "severity": "WARN",
+          "operation": "POST /shipments",
+          "text": "response 201 body (application/json).legs: minContains changed 1 -> 2"
+        },
+        {
+          "rule_id": "BRK-TUPLE-SHAPE-CHANGED",
+          "severity": "ERROR",
+          "operation": "POST /shipments",
+          "text": "response 201 body (application/json).route: the tuple went from 2 positional item(s) to 3"
+        }
+      ],
+      "theirs": [
+        {
+          "id": "request-body-dependent-required-changed",
+          "level": 3,
+          "operation": "POST /shipments",
+          "text": "the request body dependentRequired for `card` was updated: `billingPostcode added`"
+        },
+        {
+          "id": "request-property-const-changed",
+          "level": 3,
+          "operation": "POST /shipments",
+          "text": "the `mode` request property const value changed from `road` to `sea`"
+        },
+        {
+          "id": "request-property-max-length-set",
+          "level": 3,
+          "operation": "POST /shipments",
+          "text": "the `/patternProperties[^x-]/` request property's maxLength was set to `64`"
+        },
+        {
+          "id": "response-property-pattern-changed",
+          "level": 2,
+          "operation": "POST /shipments",
+          "text": "the `labels/propertyNames/` response's property pattern was changed from `^[a-z][a-z0-9-]*$` to `^[a-z]+$` for the status `201`"
+        },
+        {
+          "id": "response-property-prefix-items-added",
+          "level": 2,
+          "operation": "POST /shipments",
+          "text": "added `subschema #3` to the `route` response property 'prefixItems' list for the response status `201`"
+        }
+      ]
+    },
+    {
+      "pair": "crud against drift",
+      "old": "apis/crud/openapi.yaml",
+      "new": "apis/drift/openapi.yaml",
+      "ours": [
+        {
+          "rule_id": "BRK-OP-REMOVED",
+          "severity": "ERROR",
+          "operation": "DELETE /users/{id}",
+          "text": "operation 'DELETE /users/{id}' was removed"
+        },
+        {
+          "rule_id": "BRK-OP-REMOVED",
+          "severity": "ERROR",
+          "operation": "GET /users",
+          "text": "operation 'GET /users' was removed"
+        },
+        {
+          "rule_id": "BRK-OP-REMOVED",
+          "severity": "ERROR",
+          "operation": "POST /users",
+          "text": "operation 'POST /users' was removed"
+        },
+        {
+          "rule_id": "BRK-OP-ADDED",
+          "severity": "INFO",
+          "operation": "GET /reports",
+          "text": "operation 'GET /reports' was added"
+        },
+        {
+          "rule_id": "BRK-RESP-STATUS-REMOVED",
+          "severity": "ERROR",
+          "operation": "GET /users/{id}",
+          "text": "response status '404' was removed"
+        },
+        {
+          "rule_id": "BRK-HEADER-ADDED",
+          "severity": "INFO",
+          "operation": "GET /users/{id}",
+          "text": "response 200 header 'X-Request-Id' was added"
+        },
+        {
+          "rule_id": "BRK-RESP-FIELD-REMOVED",
+          "severity": "ERROR",
+          "operation": "GET /users/{id}",
+          "text": "response 200 body (application/json): field 'age' was removed"
+        },
+        {
+          "rule_id": "BRK-RESP-FIELD-REMOVED",
+          "severity": "ERROR",
+          "operation": "GET /users/{id}",
+          "text": "response 200 body (application/json): field 'role' was removed"
+        },
+        {
+          "rule_id": "BRK-RESP-FIELD-ADDED",
+          "severity": "INFO",
+          "operation": "GET /users/{id}",
+          "text": "response 200 body (application/json): field 'plan' was added"
+        },
+        {
+          "rule_id": "BRK-RESP-TYPE-CHANGED",
+          "severity": "WARN",
+          "operation": "GET /users/{id}",
+          "text": "response 200 body (application/json).email: format changed 'email' -> 'None'"
+        },
+        {
+          "rule_id": "BRK-RESP-CONSTRAINT-LOOSENED",
+          "severity": "WARN",
+          "operation": "GET /users/{id}",
+          "text": "response 200 body (application/json).name: constraint 'min_length' changed 1 -> None"
+        },
+        {
+          "rule_id": "BRK-RESP-FIELD-GUARANTEED",
+          "severity": "INFO",
+          "operation": "GET /users/{id}",
+          "text": "response 200 body (application/json): field 'email' became required"
+        }
+      ],
+      "theirs": [
+        {
+          "id": "api-path-removed-without-deprecation",
+          "level": 3,
+          "operation": "GET /users",
+          "text": "api path removed without deprecation"
+        },
+        {
+          "id": "api-path-removed-without-deprecation",
+          "level": 3,
+          "operation": "POST /users",
+          "text": "api path removed without deprecation"
+        },
+        {
+          "id": "api-removed-without-deprecation",
+          "level": 3,
+          "operation": "DELETE /users/{id}",
+          "text": "api removed without deprecation"
+        },
+        {
+          "id": "response-property-min-length-unset",
+          "level": 3,
+          "operation": "GET /users/{id}",
+          "text": "the `name` response property's minLength was unset from `1` for the response status `200`"
+        },
+        {
+          "id": "response-property-type-changed",
+          "level": 3,
+          "operation": "GET /users/{id}",
+          "text": "the `email` response's property `format` changed from `email` to `none` for status `200`"
+        }
+      ]
+    }
+  ],
+  "not_run": {
+    "Specmatic": "needs a JVM, and this machine has none. Listed rather than left out: a benchmark naming two competitors and measuring one has said something about the second by omission"
+  }
+}

@@ -1,7 +1,7 @@
 """Which rules can fire for which protocol, found by making them fire.
 
-The catalogue has sixty-nine rules and the tool speaks seven formats, and nothing
-told a GraphQL user which of the sixty-nine could ever apply to them. The
+The catalogue has seventy rules and the tool speaks seven formats, and nothing
+told a GraphQL user which of the seventy could ever apply to them. The
 obvious way to answer that is a hand-written table, which is the one answer this
 project will not accept: a matrix asserting coverage it does not have is worse
 than no matrix, because it is quoted.

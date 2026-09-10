@@ -56,7 +56,7 @@ class Config:
     contracts: list[str] = field(default_factory=list)
     #: One of `strict` / `balanced` / `advisory`, or None for the shipped
     #: defaults. A starting position, under everything below it: nobody writes
-    #: sixty-nine overrides, so without a name for the position they want, a
+    #: seventy overrides, so without a name for the position they want, a
     #: team either accepts the defaults or turns the gate off.
     profile: str | None = None
     #: Rule id -> severity, the persistent form of `--severity-override`.

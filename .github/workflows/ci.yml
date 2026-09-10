@@ -79,6 +79,14 @@ jobs:
         # stopped.
         run: python scripts/generate_oasdiff_map.py --check
 
+      - name: oasdiff benchmark doc matches its evidence
+        # Rendered from data/benchmark-oasdiff.json, which a maintainer
+        # regenerates with `--run` on a machine that has Go. CI has no Go
+        # toolchain and should not grow one to render a document -- and a
+        # benchmark that silently re-ran on every push would publish numbers
+        # nobody looked at. Freshness is carried by the date in the evidence.
+        run: python scripts/benchmark_oasdiff.py --check
+
       - name: Compliance mapping doc matches the code
         # The OWASP control -> rule mapping is published in
         # docs/compliance-mapping.md. A renamed rule would leave that table

@@ -1,4 +1,4 @@
-"""Three names instead of sixty-nine overrides.
+"""Three names instead of seventy overrides.
 
 A team that wants to be stricter than the catalogue has had exactly one route:
 write an override per rule. Nobody does that. They accept the defaults or they

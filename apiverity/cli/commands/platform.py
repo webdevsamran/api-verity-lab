@@ -355,7 +355,7 @@ def cmd_rules(args: argparse.Namespace) -> int:
 
     if getattr(args, "profiles", False):
         # Listed on request rather than appended to every `rules` run: the
-        # catalogue is sixty-nine rows and three more at the bottom is where a
+        # catalogue is seventy rows and three more at the bottom is where a
         # reader stops looking.
         profiles = [
             {
