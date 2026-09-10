@@ -144,6 +144,13 @@ def test_a_removed_tool_fires_the_shared_removal_rule() -> None:
 
 
 def test_a_newly_required_argument_fires_the_shared_rule() -> None:
+    """A tool's `inputSchema` argument is a body field, not a parameter.
+
+    This asserted `BRK-PARAM-ADDED-REQUIRED` while the rules that name a body
+    field were reachable from no input at all -- so it was pinning the wrong
+    answer rather than catching it. An agent author reading "a request
+    parameter was added" about a tool argument has nowhere to go with that.
+    """
     widened = _tool(
         inputSchema={
             "type": "object",
@@ -151,7 +158,7 @@ def test_a_newly_required_argument_fires_the_shared_rule() -> None:
             "properties": {"query": {"type": "string"}, "tenant": {"type": "string"}},
         }
     )
-    assert "BRK-PARAM-ADDED-REQUIRED" in _rules(_manifest(_tool()), _manifest(widened))
+    assert "BRK-REQ-FIELD-ADDED-REQUIRED" in _rules(_manifest(_tool()), _manifest(widened))
 
 
 def test_a_narrowed_enum_fires_the_shared_rule() -> None:

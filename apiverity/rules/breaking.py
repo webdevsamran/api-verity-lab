@@ -366,6 +366,26 @@ CATALOG: dict[str, RuleSpec] = {
 }
 
 
+def _is_body_field(change: Change) -> bool:
+    """Is this change about a request body field, or a query/path parameter?
+
+    The distinction is not cosmetic. Three rules in the published catalogue --
+    `BRK-REQ-FIELD-REMOVED`, `BRK-REQ-FIELD-ADDED-REQUIRED` and
+    `BRK-REQ-FIELD-ADDED-OPTIONAL` -- were emitted by no code path at all,
+    because the two branches that handle added and removed properties reported
+    every one of them as a *parameter*. A reviewer reading "a request parameter
+    was removed" about a field in a JSON body goes and looks at the query
+    string.
+
+    The signal is the differ's own wording, because a body property and a
+    parameter arrive here under the same `ChangeKind`. It was already being
+    tested this way one branch below; the bug was that only that branch did it.
+    `engine.py` writes `field '<name>'` for a schema property and
+    `parameter '<name>' (<location>)` for a parameter, in one place each.
+    """
+    return "field '" in change.description
+
+
 def _constraint_change_is_tightening(attr: str, old: object, new: object) -> bool | None:
     """Return True (tightened), False (loosened) or None (not comparable).
 
@@ -503,11 +523,17 @@ class BreakingEngine:
             return [self._finding("BRK-RPC-ADDED", change, change.description)]
 
         if kind == ChangeKind.PARAMETER_REMOVED:
-            return [self._finding("BRK-PARAM-REMOVED", change, change.description)]
+            rule = "BRK-REQ-FIELD-REMOVED" if _is_body_field(change) else "BRK-PARAM-REMOVED"
+            return [self._finding(rule, change, change.description)]
 
         if kind == ChangeKind.PARAMETER_ADDED:
             required = "(required)" in change.description
-            rule = "BRK-PARAM-ADDED-REQUIRED" if required else "BRK-PARAM-ADDED-OPTIONAL"
+            if _is_body_field(change):
+                rule = (
+                    "BRK-REQ-FIELD-ADDED-REQUIRED" if required else "BRK-REQ-FIELD-ADDED-OPTIONAL"
+                )
+            else:
+                rule = "BRK-PARAM-ADDED-REQUIRED" if required else "BRK-PARAM-ADDED-OPTIONAL"
             return [self._finding(rule, change, change.description)]
 
         if kind == ChangeKind.PARAMETER_REQUIREDNESS:
@@ -517,8 +543,7 @@ class BreakingEngine:
             # way is breaking: tightening a request breaks senders, relaxing a
             # response breaks readers. Distinguishing them by description was
             # the only signal available without changing the change model.
-            is_body_field = "field '" in change.description
-            if is_body_field:
+            if _is_body_field(change):
                 if direction == "response":
                     rule = (
                         "BRK-RESP-FIELD-ADDED" if became_required else "BRK-RESP-FIELD-OPTIONALIZED"
