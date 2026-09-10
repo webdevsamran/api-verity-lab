@@ -475,6 +475,58 @@ def cmd_baseline(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _regression_curve(args: argparse.Namespace, service: Service) -> int:
+    """Sweep concurrency and report the shape, rather than one point.
+
+    A separate path rather than a flag inside the measurement, because a curve
+    is not a measurement with a tolerance: comparing it against a baseline
+    would mean deciding what "the same shape" is, and this reports the shape
+    instead of judging it.
+    """
+    from apiverity.performance.curve import measure_curve, parse_levels
+
+    try:
+        levels = parse_levels(str(args.curve))
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    try:
+        report = measure_curve(
+            service,
+            args.base_url,
+            levels=levels,
+            iterations=args.iterations,
+            warmup=getattr(args, "warmup", 0) or 0,
+        )
+    except Exception as exc:
+        print(f"error: target unreachable: {exc}", file=sys.stderr)
+        return EXIT_UNREACHABLE
+
+    if args.json:
+        _emit({"tool": "apiverity", "command": "regression", "curve": report}, True)
+        return EXIT_OK
+
+    print(f"target: {report.target}")
+    print(f"  levels swept: {', '.join(str(level) for level in report.levels)}")
+    print(f"  {report.iterations_per_level} requests per operation per level")
+    print(
+        "  measures this client and that service together; numbers below the service's "
+        "own ceiling are expected"
+    )
+    for curve in report.curves:
+        print()
+        print(f"{curve.operation_key}: {curve.summary()}")
+        print(f"  {'conc':>5}  {'p50':>8}  {'p95':>8}  {'p99':>8}  {'rps':>8}  {'err%':>6}")
+        for point in curve.points:
+            print(
+                f"  {point.concurrency:>5}  {point.p50_ms:>8.1f}  {point.p95_ms:>8.1f}  "
+                f"{point.p99_ms:>8.1f}  {point.throughput_rps:>8.1f}  "
+                f"{point.error_rate_pct:>6.2f}"
+            )
+    return EXIT_OK
+
+
 def cmd_regression(args: argparse.Namespace) -> int:
     from apiverity.performance.engine import (
         compare_baseline,
@@ -489,12 +541,17 @@ def cmd_regression(args: argparse.Namespace) -> int:
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_USAGE
+
+    if getattr(args, "curve", None):
+        return _regression_curve(args, service)
+
     try:
         report = measure(
             service,
             args.base_url,
             iterations=args.iterations,
             warmup=getattr(args, "warmup", 0) or 0,
+            concurrency=max(1, int(getattr(args, "concurrency", 1) or 1)),
         )
     except Exception as exc:
         print(f"error: target unreachable: {exc}", file=sys.stderr)

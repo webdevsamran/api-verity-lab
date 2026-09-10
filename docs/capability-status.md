@@ -122,6 +122,13 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   separate report
 - Local reverse-proxy capture mode — BLOCKED (interface specified; socket-level work outstanding)
 - Load profiles incl. Poisson + capacity search, p50–p99 metrics, budgets/regressions — EXISTING
+- Concurrent measurement and concurrency curves (`regression --concurrency N`,
+  `regression --curve 1,2,4,8`) — NEW. `measure` accepted a `concurrency`
+  argument from the beginning and never read it, so every report described a
+  service under a load of one. The curve reports where throughput stops rising
+  and where latency starts climbing, and names a plateau at the top of the
+  sweep as a sweep that did not go far enough rather than as the service's
+  ceiling
 - Response-size/bandwidth metrics, TLS timing breakdown, GraphQL op budgets, gRPC latency metrics — PARTIAL
 
 ## Mock & virtualization

@@ -670,6 +670,27 @@ def build_parser() -> argparse.ArgumentParser:
         default=0,
         help="requests made before measuring and excluded from the samples",
     )
+    p.add_argument(
+        "--concurrency",
+        type=int,
+        default=1,
+        metavar="N",
+        help=(
+            "requests in flight at once. A p95 measured one-at-a-time answers "
+            "'is it fast right now' and not 'what happens when more arrive'"
+        ),
+    )
+    p.add_argument(
+        "--curve",
+        metavar="LEVELS",
+        nargs="?",
+        const="1,2,4,8",
+        help=(
+            "sweep concurrency and report the shape: where throughput stops rising and "
+            "where latency starts climbing. Comma-separated levels, or bare for 1,2,4,8. "
+            "Measures this client and that service together, and says so"
+        ),
+    )
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_regression)
     p = sub.add_parser(

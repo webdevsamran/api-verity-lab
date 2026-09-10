@@ -107,7 +107,11 @@ what this pass built.
 
 - GraphQL/gRPC testing parity with OpenAPI is partial: conformance harnesses
   exist as interfaces; live validation needs real servers (BLOCKED).
-- Performance measurement is sequential; concurrency curves are not built.
+- Performance measurement runs concurrently and sweeps concurrency levels
+  (`regression --concurrency N`, `regression --curve 1,2,4,8`). It measures the
+  client and the service together, and says so: a plateau at the top of the
+  sweep is reported as "the sweep did not go far enough", not as the service's
+  ceiling.
 - Consumer impact is per operation, not per field: a `Change` carries a field
   name only inside a human-readable description, so attributing a removed
   response field to whoever reads *that field* would mean parsing a message.

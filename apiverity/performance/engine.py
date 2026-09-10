@@ -79,8 +79,16 @@ class OperationStats(BaseModel):
 
 
 class PerformanceReport(BaseModel):
+    """A measurement, and the load it was taken under.
+
+    `concurrency` is recorded because a p95 with no load level beside it is not
+    comparable to anything -- including a later run of the same command.
+    """
+
     target: str = ""
     duration_s: float = 0.0
+    #: Requests in flight at once during this measurement.
+    concurrency: int = 1
     operations: list[OperationStats] = Field(default_factory=list)
     policy_violations: list[str] = Field(default_factory=list)
     #: Differences the run could not resolve: over tolerance, but with
@@ -153,6 +161,41 @@ def _timed_request(
     return (time.perf_counter() - start) * 1000.0, outcome
 
 
+def _run(
+    client: httpx.Client,
+    method: str,
+    path: str,
+    query: dict[str, Any],
+    body: Any,
+    iterations: int,
+    concurrency: int,
+) -> list[tuple[float, str]]:
+    """Issue `iterations` requests, at most `concurrency` of them in flight.
+
+    `concurrency` was a parameter of `measure` from the beginning and nothing
+    read it: every request went out in a row, and a report from
+    `--concurrency 16` described a service under a load of one. A knob that
+    does nothing is worse than a missing one, because the number it produces
+    gets quoted.
+
+    Threads rather than asyncio because `httpx.Client` is what the rest of this
+    module already uses, and it is safe to share across threads. The
+    connection pool is sized to the level so the client is not the thing being
+    measured -- though it may still be: see `_client_bound` on the report.
+    """
+    if concurrency <= 1:
+        return [_timed_request(client, method, path, query, body) for _ in range(iterations)]
+
+    from concurrent.futures import ThreadPoolExecutor
+
+    with ThreadPoolExecutor(max_workers=concurrency) as pool:
+        futures = [
+            pool.submit(_timed_request, client, method, path, query, body)
+            for _ in range(iterations)
+        ]
+        return [f.result() for f in futures]
+
+
 def measure(
     service: Service,
     base_url: str,
@@ -168,11 +211,18 @@ def measure(
     imports and an empty cache -- not the thing under test. They are made
     (the warming is the point) and then dropped, so `samples` is `iterations`
     and `requests` is `iterations + warmup`.
+
+    `concurrency` is the number of requests in flight at once. It is honoured
+    now; it was accepted and ignored before.
     """
     started = time.monotonic()
-    report = PerformanceReport(target=base_url)
+    report = PerformanceReport(target=base_url, concurrency=max(1, concurrency))
     rng = __import__("random").Random(7)
-    with httpx.Client(base_url=base_url, timeout=timeout) as client:
+    limits = httpx.Limits(
+        max_connections=max(concurrency * 2, 10),
+        max_keepalive_connections=max(concurrency, 10),
+    )
+    with httpx.Client(base_url=base_url, timeout=timeout, limits=limits) as client:
         for op in service.operations:
             if not op.method or not op.path:
                 continue
@@ -194,8 +244,9 @@ def measure(
                 _timed_request(client, method, path, query, body)
 
             t0 = time.monotonic()
-            for _ in range(iterations):
-                duration, outcome = _timed_request(client, method, path, query, body)
+            outcomes = _run(client, method, path, query, body, iterations, concurrency)
+            elapsed = max(time.monotonic() - t0, 1e-9)
+            for duration, outcome in outcomes:
                 latencies.append(duration)
                 if outcome == "timeout":
                     timeouts += 1
@@ -204,7 +255,6 @@ def measure(
                     unreachable += 1
                 elif outcome == "error":
                     errors += 1
-            elapsed = max(time.monotonic() - t0, 1e-9)
 
             def _ci(pct: float, values: list[float] = latencies) -> tuple[float, float] | None:
                 return _bounds(bootstrap_percentile_ci(values, pct))

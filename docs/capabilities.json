@@ -245,6 +245,8 @@
       "options": [
         "--base-url",
         "--baseline",
+        "--concurrency",
+        "--curve",
         "--iterations",
         "--json",
         "--policy",
