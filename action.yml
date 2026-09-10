@@ -80,6 +80,23 @@ inputs:
     description: Directory to run in, for monorepos.
     required: false
     default: "."
+  comment:
+    description: >-
+      Post the findings as a pull request comment, editing the previous one
+      rather than adding another. Off by default: it writes to the pull
+      request, and a step that does that without being asked is a surprise.
+      Requires `permissions: pull-requests: write` on the calling job and a
+      `pull_request` event.
+    required: false
+    default: "false"
+  github-token:
+    description: >-
+      Token used to post the comment. Defaults to the job's `github.token`,
+      which is enough for a pull request in the same repository. A fork's
+      `pull_request` event gets a read-only token, so the comment is skipped
+      there with a notice rather than a failure.
+    required: false
+    default: ${{ github.token }}
 
 outputs:
   result:
@@ -91,6 +108,11 @@ outputs:
   findings-count:
     description: Findings at or above `fail-on`.
     value: ${{ steps.gate.outputs.findings_count }}
+  comment-url:
+    description: >-
+      API URL of the comment that was posted or updated. Empty when commenting
+      was off, or when the token could not write to the pull request.
+    value: ${{ steps.comment.outputs.comment_url }}
   artifacts-dir:
     description: >-
       Directory of per-contract `result-v1` JSON artifacts. Upload it, or read
@@ -196,12 +218,13 @@ runs:
 
           if [ -n "$BASE" ] && git show "origin/${BASE}:$spec" > "$ARTIFACTS/.base-spec" 2>/dev/null; then
             echo "::group::breaking $spec"
-            # --summary and --suggest-version cost nothing here and turn the
-            # artifact into something a PR comment can quote directly: a
-            # verdict, what changed grouped and counted, and the version to
-            # release it as. Both are deterministic templates, no model call.
+            # --summary, --suggest-version and --suggest-fix cost nothing
+            # here and turn the artifact into something a PR comment can quote
+            # directly: a verdict, what changed grouped and counted, the
+            # version to release it as, and the non-breaking route to the same
+            # change. All deterministic templates, no model call.
             apiverity breaking "$ARTIFACTS/.base-spec" "$spec" $SEMVER_FLAG \
-              --summary --suggest-version --json \
+              --summary --suggest-version --suggest-fix --json \
               > "$ARTIFACTS/${SAFE}.json"
             CODE=$?
             # Exit 1 means ERROR-severity findings, which is the gate working.
@@ -242,3 +265,50 @@ runs:
           exit 1
         fi
         echo "result=pass" >> "$GITHUB_OUTPUT"
+
+    # Runs even when the gate failed, which is the point: the comment is most
+    # useful on the pull request that was just blocked. `always()` rather than
+    # `failure()`, so a clear run replaces yesterday's red comment instead of
+    # leaving it standing.
+    - name: Comment on the pull request
+      id: comment
+      if: ${{ always() && inputs.comment == 'true' && github.event_name == 'pull_request' }}
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        ACTION_PATH: ${{ github.action_path }}
+        REPO: ${{ github.repository }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+      run: |
+        set -uo pipefail
+        ARTIFACTS=".apiverity-artifacts"
+        BODY="$ARTIFACTS/.pr-comment.md"
+
+        # A comment that cannot be rendered must not fail a run whose
+        # findings are already established and already reported.
+        python "$ACTION_PATH/scripts/build_pr_comment.py" "$ARTIFACTS" "$BODY" || {
+          echo "::warning::could not render the pull request comment"
+          exit 0
+        }
+
+        # Find this action's own previous comment and edit it. One comment per
+        # pull request, not one per push: a bot with twelve comments on a busy
+        # branch gets muted, and a muted gate is the same as no gate.
+        EXISTING=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" --paginate \
+          --jq '[.[] | select(.body | contains("<!-- apiverity:pr-comment:v1 -->"))] | first | .id' 2>/dev/null || true)
+
+        if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
+          URL=$(gh api -X PATCH "repos/$REPO/issues/comments/$EXISTING" \
+            -F body=@"$BODY" --jq .url 2>/dev/null || true)
+        else
+          URL=$(gh api -X POST "repos/$REPO/issues/$PR_NUMBER/comments" \
+            -F body=@"$BODY" --jq .url 2>/dev/null || true)
+        fi
+
+        if [ -z "$URL" ]; then
+          echo "::notice::Could not post the comment. A pull request from a fork gets a read-only token; grant the pull-requests: write permission on the calling job, or pass a token that has it."
+          exit 0
+        fi
+        echo "comment_url=$URL" >> "$GITHUB_OUTPUT"
+        echo "::notice::Findings posted to $URL"

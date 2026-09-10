@@ -50,6 +50,59 @@ _PHRASES: tuple[tuple[str, str], ...] = (
     ("BRK-CONSTRAINT-TIGHTENED", "constraints were tightened, so previously valid input now fails"),
     ("BRK-ENUM-NARROWED-REQUEST", "accepted enum values were removed"),
     ("BRK-ENUM-NARROWED-RESPONSE", "returned enum values were removed"),
+    # JSON Schema 2020-12. Without these the summary fell back to
+    # "BRK-TUPLE-SHAPE-CHANGED fired", which is accurate and tells a reviewer
+    # nothing -- and a summary exists precisely for the reader who will not
+    # look a rule up.
+    ("BRK-DEPENDENT-REQUIRED-ADDED", "sending one field now requires another"),
+    ("BRK-DEPENDENT-REQUIRED-REMOVED", "a field no longer forces another to be present"),
+    ("BRK-DEPENDENT-SCHEMA-", "what is valid now depends on which fields are sent"),
+    ("BRK-TUPLE-SHAPE-", "positional array items changed, so readers by index shift"),
+    ("BRK-PATTERN-PROPERTIES-", "a whole family of pattern-matched fields changed shape"),
+    ("BRK-PROPERTY-NAMES-", "the constraint on what property names are allowed changed"),
+    ("BRK-CONTAINS-", "an array's `contains` requirement or its bounds changed"),
+    ("BRK-CONDITIONAL-SCHEMA-", "an if/then/else branch moved, so a different rule now applies"),
+    # Request parameters and bodies, in both directions. A summary that only
+    # names the breaking half reads as though nothing else happened.
+    ("BRK-PARAM-ADDED-OPTIONAL", "optional request parameters were added"),
+    ("BRK-PARAM-OPTIONALIZED", "required request parameters became optional"),
+    ("BRK-REQ-FIELD-ADDED-REQUIRED", "required request body fields were added"),
+    ("BRK-REQ-FIELD-ADDED-OPTIONAL", "optional request body fields were added"),
+    ("BRK-REQ-FIELD-OPTIONALIZED", "request body fields became optional"),
+    ("BRK-REQ-BODY-ADDED-REQUIRED", "a request body became mandatory where there was none"),
+    ("BRK-REQ-BODY-ADDED-OPTIONAL", "an optional request body was added"),
+    ("BRK-REQ-BODY-REMOVED", "the request body was removed"),
+    ("BRK-CONSTRAINT-LOOSENED", "constraints were loosened, so previously invalid input passes"),
+    ("BRK-ENUM-WIDENED", "enum values were added"),
+    # Responses.
+    ("BRK-RESP-CONSTRAINT-TIGHTENED", "response constraints were tightened"),
+    ("BRK-RESP-TYPE-CHANGED", "response field types changed, so consumers may misparse them"),
+    ("BRK-RESP-FIELD-ADDED", "response body fields were added"),
+    ("BRK-RESP-STATUS-ADDED", "new response statuses were declared"),
+    ("BRK-HEADER-REMOVED", "declared response headers were removed"),
+    ("BRK-HEADER-ADDED", "new response headers were declared"),
+    ("BRK-DEPRECATION-REMOVED", "a deprecation marker was withdrawn"),
+    # gRPC / protobuf. The wire format punishes these far out of proportion to
+    # how they read in a diff, which is exactly why they need a sentence.
+    (
+        "BRK-RPC-STREAMING-CHANGED",
+        "an RPC changed streaming cardinality, so generated clients call it wrongly",
+    ),
+    (
+        "BRK-FIELD-NUMBER-REUSED",
+        "a protobuf field number now names a different field, so stored data misdecodes",
+    ),
+    ("BRK-FIELD-NUMBER-UNRESERVED", "a protobuf field was removed without reserving its number"),
+    (
+        "BRK-FIELD-PRESENCE-LOST",
+        "a protobuf field lost explicit presence, so unset and default are now the same",
+    ),
+    ("BRK-ONEOF-NARROWED", "a protobuf field became exclusive with the others in its oneof"),
+    ("BRK-ONEOF-WIDENED", "a protobuf field left its oneof"),
+    (
+        "BRK-RESERVATION-REMOVED",
+        "a protobuf field number is no longer reserved and can be reused by mistake",
+    ),
     ("BRK-SECURITY-", "authentication requirements changed"),
     ("BRK-DEPRECATION-ADDED", "operations were deprecated"),
     ("BRK-MEDIA-TYPE", "media types changed"),

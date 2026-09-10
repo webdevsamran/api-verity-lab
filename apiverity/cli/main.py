@@ -601,7 +601,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_regression)
     p = sub.add_parser(
         "report",
-        help="render a result bundle: terminal, markdown, HTML, JUnit, SARIF, or an OWASP mapping",
+        help=(
+            "render a result bundle: terminal, markdown, HTML, JUnit, SARIF, "
+            "a pull request comment, or an OWASP mapping"
+        ),
     )
     p.add_argument("bundle")
     p.add_argument("--format", default="json")

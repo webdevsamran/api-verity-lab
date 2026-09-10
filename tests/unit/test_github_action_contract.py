@@ -92,15 +92,25 @@ def test_the_action_installs_the_revision_the_caller_pinned() -> None:
     )
 
 
-def test_declared_outputs_are_all_produced_by_the_gate_step() -> None:
+def test_declared_outputs_are_all_produced_by_a_step_that_writes_them() -> None:
+    """An output is a promise, and YAML will not check it.
+
+    Every declared output must name a step that exists and must map to a key
+    that step actually writes to `$GITHUB_OUTPUT`. Nothing else catches a
+    renamed step or a typo -- the action still parses, still runs, and hands
+    the consumer an empty string.
+    """
     action = _action()
-    gate = next(s for s in action["runs"]["steps"] if s.get("id") == "gate")
-    script = gate["run"]
+    scripts = {step["id"]: step["run"] for step in action["runs"]["steps"] if step.get("id")}
     for name, spec in action["outputs"].items():
-        assert "steps.gate.outputs." in spec["value"], f"output {name} does not come from the gate"
-        key = spec["value"].split("steps.gate.outputs.")[1].split("}")[0].strip()
-        assert f"{key}=" in script, (
-            f"output {name!r} maps to `{key}`, which the gate step never writes to $GITHUB_OUTPUT"
+        value = spec["value"]
+        assert "steps." in value, f"output {name} does not come from a step"
+        step_id = value.split("steps.")[1].split(".outputs.")[0].strip()
+        assert step_id in scripts, f"output {name!r} names step {step_id!r}, which does not exist"
+        key = value.split(".outputs.")[1].split("}")[0].strip()
+        assert f"{key}=" in scripts[step_id], (
+            f"output {name!r} maps to `{key}`, which step {step_id!r} never writes to "
+            "$GITHUB_OUTPUT"
         )
 
 

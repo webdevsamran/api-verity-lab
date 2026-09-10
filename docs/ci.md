@@ -139,8 +139,56 @@ release gate. Use `--severity-override` to tune strictness per repo.
 - `apiverity report <bundle> --format junit` → JUnit test reporting.
 - `apiverity report <bundle> --format sarif` → upload with
   `github/codeql-action/upload-sarif` or `actions/upload-artifact`.
-- `apiverity report <bundle> --format markdown` → paste into the PR summary
-  (keep it to one comment; update it on push instead of adding new ones).
+- `apiverity report <bundle> --format markdown` → paste into the PR summary.
+- `apiverity report <bundle> --format pr-comment` → a review comment that
+  leads with the non-breaking route to the same change. See below.
+
+### The pull request comment
+
+`--format pr-comment` is not the markdown report with a different heading. Two
+things make a review comment a different document, and both follow from one
+observation: **a gate that only says no gets switched off.**
+
+The non-breaking alternative leads. Every rule in the catalogue has one, and
+the objection is the evidence for it rather than the point of the comment. Run
+`breaking --suggest-fix` so the artifact carries them; without that flag the
+comment still renders, with the objection alone.
+
+Findings are grouped by **rule**, not by severity. Forty rows saying a required
+field was added, each followed by the same paragraph, is noise; one group of
+forty with one instruction is a review comment.
+
+The body opens with `<!-- apiverity:pr-comment:v1 -->` so a workflow can find
+its own previous comment and edit it. One comment per pull request, not one per
+push — a bot with twelve comments on a busy branch gets muted, and a muted gate
+is the same as no gate. It also stays inside GitHub's 65,536-character limit
+and says how many findings it dropped to get there, because silent truncation
+reads as "that was everything".
+
+The bundled action does all of this with one input:
+
+```yaml
+permissions:
+  contents: read
+  pull-requests: write     # required for `comment: true`
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: webdevsamran/api-verity-lab@v1
+        with:
+          comment: "true"
+```
+
+The comment step runs even when the gate failed — that is the pull request it
+is most useful on — and a clear run replaces yesterday's red comment rather
+than leaving it standing. A pull request from a fork gets a read-only token, so
+there the step skips with a notice instead of failing a run whose findings were
+already reported.
 
 SARIF results carry `region` line and column information from the spec, so
 GitHub annotates the changed line rather than the repository, and

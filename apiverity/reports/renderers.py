@@ -158,6 +158,206 @@ def markdown(data: dict[str, Any]) -> str:
     return NL.join(lines)
 
 
+# --- pull request comment ---------------------------------------------------
+
+#: Lets a workflow find its own previous comment and edit it, instead of
+#: adding one per push. A bot that posts twelve comments on a busy branch gets
+#: muted, and a muted gate is the same as no gate.
+PR_MARKER = "<!-- apiverity:pr-comment:v1 -->"
+
+#: GitHub refuses an issue comment body over 65,536 characters. Budgeting a
+#: little under it leaves room for the marker and the footer, and truncation
+#: says how much it dropped rather than trailing off.
+PR_COMMENT_BUDGET = 60_000
+
+_VERDICT = {
+    "blocked": ("Blocked", "This change breaks consumers of the contract."),
+    "review": ("Needs review", "Nothing here blocks, but some of it is worth a look."),
+    "clear": ("Clear", "No breaking changes found."),
+}
+
+
+def _instead(finding: dict[str, Any]) -> str:
+    """The non-breaking alternative a finding carries, if it carries one.
+
+    Written by `breaking --suggest-fix` into `metadata.instead`. Read
+    defensively: an artifact from a run without that flag simply has none, and
+    a renderer that raised on it would make the flag load-bearing.
+    """
+    metadata = finding.get("metadata")
+    if isinstance(metadata, dict):
+        value = metadata.get("instead")
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    # Deliberately no fallback to `hint`. A hint says *why* the change breaks
+    # ("enum values removed: ['guest']"); printing that under "Instead:" tells
+    # an author to do the thing they were just told not to do.
+    return ""
+
+
+def _pr_verdict(findings: list[dict[str, Any]]) -> str:
+    if any(_severity(f) == "ERROR" for f in findings):
+        return "blocked"
+    if any(_severity(f) == "WARN" for f in findings):
+        return "review"
+    return "clear"
+
+
+def pr_comment(data: dict[str, Any]) -> str:
+    """A pull request comment: the verdict, then what to ship instead.
+
+    Deliberately not the markdown report with a different header. Two things
+    make a review comment different from a report, and both come from the same
+    observation -- a bot that only says no gets switched off:
+
+    Findings are grouped by *rule*, not by severity, and each group carries its
+    non-breaking alternative once. Forty rows of "a required field was added"
+    followed by the same paragraph forty times is noise; one group of forty
+    with one instruction is a review comment.
+
+    And the alternative leads. The objection is one line; the route to shipping
+    the same change without breaking anyone is the part the author came for.
+    """
+    findings = _findings(data)
+    verdict = _pr_verdict(findings)
+    title, subtitle = _VERDICT[verdict]
+
+    counts = {sev: len(items) for sev, items in _by_severity(findings)}
+    tally = ", ".join(f"{count} {sev.lower()}" for sev, count in counts.items())
+
+    subject = _subject(data)
+    old_spec, new_spec = data.get("old_spec"), data.get("new_spec")
+    lines = [
+        PR_MARKER,
+        f"## apiverity - {title}",
+        "",
+        subtitle,
+        "",
+    ]
+    if old_spec and new_spec:
+        lines.append(f"`{_md_cell(old_spec)}` -> `{_md_cell(new_spec)}`")
+    elif subject:
+        lines.append(f"`{_md_cell(subject)}`")
+    if tally:
+        lines.append("")
+        lines.append(f"**{len(findings)} finding(s)**: {tally}")
+
+    summary = data.get("summary")
+    advice = data.get("version_advice")
+    # Only when `--summary` did not run: its `what_to_do` already opens with
+    # the version to release as, and saying it twice in one comment reads as a
+    # template that was never looked at.
+    if isinstance(advice, dict) and not isinstance(summary, dict):
+        suggested = advice.get("suggested_version")
+        bump = advice.get("required_bump")
+        if suggested:
+            note = f"Release this as **{_md_cell(suggested)}**"
+            lines += ["", note + (f" (a {_md_cell(bump)} bump)." if bump else ".")]
+
+    # `breaking --summary` already produces the three things a reviewer wants
+    # in this order -- the verdict, what changed grouped, and what to do -- so
+    # this renders that rather than writing a second, divergent version of it.
+    if isinstance(summary, dict):
+        lines += _pr_summary(summary)
+    elif isinstance(summary, str) and summary.strip():
+        lines += ["", "> " + summary.strip().replace(NL, NL + "> ")]
+
+    if not findings:
+        lines += ["", "---", _pr_footer(data)]
+        return NL.join(lines)
+
+    # Rule order follows severity, then how many findings the rule produced:
+    # the thing that broke most is the thing to read first.
+    ordered: list[tuple[str, list[dict[str, Any]]]] = []
+    for sev in SEV_ORDER + tuple(sorted(set(counts) - set(SEV_ORDER))):
+        by_rule: dict[str, list[dict[str, Any]]] = {}
+        for finding in findings:
+            if _severity(finding) != sev:
+                continue
+            by_rule.setdefault(str(finding.get("rule_id", "")), []).append(finding)
+        ordered += sorted(by_rule.items(), key=lambda item: (-len(item[1]), item[0]))
+
+    body: list[str] = []
+    dropped = 0
+    used = sum(len(line) + 1 for line in lines)
+    for rule_id, group in ordered:
+        block = _pr_rule_block(rule_id, group)
+        cost = sum(len(line) + 1 for line in block)
+        if used + cost > PR_COMMENT_BUDGET:
+            dropped += len(group)
+            continue
+        used += cost
+        body += block
+
+    lines += body
+    if dropped:
+        lines += [
+            "",
+            f"_{dropped} further finding(s) omitted to fit GitHub's comment size limit. "
+            "The full set is in the uploaded `result-v1` artifacts._",
+        ]
+    lines += ["", "---", _pr_footer(data)]
+    return NL.join(lines)
+
+
+def _pr_summary(summary: dict[str, Any]) -> list[str]:
+    """The `--summary` block, rendered for a reviewer rather than a terminal."""
+    lines: list[str] = []
+    verdict = summary.get("verdict")
+    if isinstance(verdict, str) and verdict.strip():
+        lines += ["", verdict.strip()]
+    for key, heading in (("what_changed", "What changed"), ("what_to_do", "What to do")):
+        items = summary.get(key)
+        if not isinstance(items, list) or not items:
+            continue
+        lines += ["", f"**{heading}**", ""]
+        lines += [f"- {item}" for item in items if isinstance(item, str)]
+    return lines
+
+
+def _pr_rule_block(rule_id: str, group: list[dict[str, Any]]) -> list[str]:
+    sev = _severity(group[0])
+    # GitHub emoji shortcodes rather than the characters themselves. They
+    # render identically there and the file stays pure ASCII, which matters
+    # because this text is written to disk by CI and read back on runners
+    # whose default encoding is not always UTF-8 -- the same trap that made
+    # `apiverity validate` exit 4 on a contract titled in Japanese.
+    icon = {
+        "ERROR": ":red_circle:",
+        "WARN": ":large_orange_diamond:",
+    }.get(sev, ":small_blue_diamond:")
+    plural = "s" if len(group) != 1 else ""
+    block = [
+        "",
+        f"### {icon} `{rule_id}` - {len(group)} finding{plural}",
+    ]
+
+    instead = next((_instead(f) for f in group if _instead(f)), "")
+    if instead:
+        # First, and in bold: this is the line the author acts on. The
+        # objection below is the evidence for it.
+        block += ["", f"**Instead:** {instead}"]
+
+    block += ["", "<details><summary>What changed</summary>", ""]
+    for finding in group:
+        where = _where(finding)
+        message = _md_cell(finding.get("message", ""))
+        block.append(f"- {message}" + (f" (`{_md_cell(where)}`)" if where else ""))
+    block += ["", "</details>"]
+    return block
+
+
+def _pr_footer(data: dict[str, Any]) -> str:
+    version = data.get("tool_version", "")
+    rule = "`apiverity explain <RULE-ID>`"
+    suffix = f" v{version}" if version else ""
+    return (
+        f"<sub>apiverity{suffix} - every rule has a documented non-breaking route; "
+        f"run {rule} for one. Severity is configurable per rule, and an accepted "
+        "change can be recorded rather than argued.</sub>"
+    )
+
+
 # --- junit ------------------------------------------------------------------
 
 
@@ -484,6 +684,7 @@ def _compliance(key: str) -> Callable[[dict[str, Any]], str]:
 RENDERERS: dict[str, Callable[[dict[str, Any]], str]] = {
     "terminal": terminal,
     "markdown": markdown,
+    "pr-comment": pr_comment,
     "junit": junit,
     "html": html,
     "sarif": sarif,

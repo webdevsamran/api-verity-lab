@@ -264,7 +264,7 @@
     },
     {
       "name": "report",
-      "summary": "render a result bundle: terminal, markdown, HTML, JUnit, SARIF, or an OWASP mapping",
+      "summary": "render a result bundle: terminal, markdown, HTML, JUnit, SARIF, a pull request comment, or an OWASP mapping",
       "options": [
         "--format"
       ]
