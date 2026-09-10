@@ -44,9 +44,14 @@ REACHED_OTHERWISE = {
 
 #: Implemented, tested, and reached by no command. Published in
 #: docs/capability-status.md under "Library-only capabilities".
-LIBRARY_ONLY = {
-    "apiverity.core.model_v2",
-}
+#:
+#: **Empty**, and that is the interesting part. It began at seven: five were
+#: wired to a command, one -- `core.model_v2` -- was deleted as a parallel
+#: implementation of things this project already ships, and the page it is
+#: pinned against says so. An empty list is not the end of the check: the test
+#: below fails the build when a module joins it, which is what the mechanism is
+#: for.
+LIBRARY_ONLY: set[str] = set()
 
 
 def _walk() -> Any:
@@ -109,12 +114,22 @@ def test_every_entry_appears_on_the_page() -> None:
     assert missing == [], f"docs/capability-status.md does not mention {missing}"
 
 
-def test_the_page_says_what_import_only_does_and_does_not_mean() -> None:
-    """Without both sentences the list reads as either an accusation or a
-    roadmap, and it is neither."""
+def test_the_page_says_the_list_is_empty_while_it_is() -> None:
+    """An empty section with a table header and no rows reads as an oversight.
+    While there is nothing in the list, the page has to say so in words."""
     text = _DOC.read_text(encoding="utf-8")
-    assert 'is not "broken"' in text or 'is not "broken"' in text
-    assert "It is also not a plan" in text
+    if LIBRARY_ONLY:
+        return
+    assert "is empty" in text
+
+
+def test_the_page_says_what_import_only_would_mean() -> None:
+    """The two sentences that keep the list from reading as either an
+    accusation or a roadmap. Kept while the list is empty, because the next
+    entry arrives with them already written."""
+    text = _DOC.read_text(encoding="utf-8")
+    assert 'is not "broken"' in text
+    assert "not a plan" in text
 
 
 def test_every_exception_carries_a_reason() -> None:

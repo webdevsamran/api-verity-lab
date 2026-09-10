@@ -1,26 +1,18 @@
-"""Tests for protocol v2 (entity IDs, hashes, migrations, bundles) and the
-Swagger 2.0 / AsyncAPI adapters."""
+"""The Swagger 2.0 and AsyncAPI adapters, and lifecycle transitions.
+
+This file also tested `core/model_v2.py` -- entity ids, canonical hashes,
+artifact migration, bundles and a second CODEOWNERS reader -- until that module
+was deleted. Every part of it was a parallel implementation of something this
+project already ships, and the ownership half got the CODEOWNERS matching rules
+wrong. See the commit that removed it.
+"""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
-import pytest
-
 from apiverity.core.model import LIFECYCLE_TRANSITIONS, LifecycleState, Operation, OperationKind
-from apiverity.core.model_v2 import (
-    ARTIFACT_SCHEMA_VERSION,
-    ContractBundle,
-    apply_ownership,
-    build_catalog_index,
-    entity_hash,
-    fingerprint_findings,
-    load_ownership_mapping,
-    migrate_artifact,
-    operation_entity_id,
-    service_id,
-)
 from apiverity.specs.asyncapi import load_asyncapi
 from apiverity.specs.loader import detect_and_load
 from apiverity.specs.swagger2 import load_swagger2
@@ -187,109 +179,6 @@ class TestAsyncApi:
 
 
 # --- Protocol v2 -------------------------------------------------------------
-
-
-class TestEntityIdsAndHashes:
-    def test_operation_entity_id_stable_across_reorder(self) -> None:
-        a = Operation(method="GET", path="/users")
-        b = Operation(method="get", path="/users", summary="x")
-        assert operation_entity_id(a) == operation_entity_id(b)
-        assert operation_entity_id(a).startswith("op:http:get-users")
-
-    def test_service_id_includes_version(self) -> None:
-        from apiverity.core.model import Protocol, Service
-
-        s = Service(title="Users API", version="1.0.0", protocol=Protocol.OPENAPI)
-        assert service_id(s) == "svc:openapi:users-api:1.0.0"
-
-    def test_entity_hash_excludes_source_location(self) -> None:
-        from apiverity.core.model import SourceLocation
-
-        a = Operation(method="GET", path="/users")
-        b = Operation(
-            method="GET",
-            path="/users",
-            source_location=SourceLocation(file="x.yaml", line=9),
-        )
-        assert entity_hash(a) == entity_hash(b)
-
-    def test_fingerprint_dedupes_repeats(self) -> None:
-        base = {"rule_id": "R1", "severity": "ERROR", "operation_key": "GET /a", "message": "m"}
-        dup = dict(base)
-        other = {**base, "rule_id": "R2"}
-        prints = fingerprint_findings([base, dup, other])
-        assert prints[0] == prints[1] != prints[2]
-
-
-class TestMigration:
-    def test_migrates_v1_artifact(self) -> None:
-        artifact = {
-            "result_schema_version": "1.0",
-            "findings": [
-                {"rule_id": "R1", "severity": "ERROR", "operation_key": "GET /a", "message": "m"}
-            ],
-        }
-        migrated, rec = migrate_artifact(artifact)
-        assert migrated["artifact_schema_version"] == ARTIFACT_SCHEMA_VERSION
-        assert migrated["superseded_schema_version"] == "1.0"
-        assert migrated["findings"][0]["fingerprint"]
-        assert rec.lossy is False
-
-    def test_current_version_is_noop(self) -> None:
-        artifact = {"artifact_schema_version": ARTIFACT_SCHEMA_VERSION}
-        migrated, rec = migrate_artifact(artifact)
-        assert migrated == artifact
-        assert rec.notes == ["already current"]
-
-    def test_unsupported_version_raises(self) -> None:
-        with pytest.raises(ValueError):
-            migrate_artifact({"result_schema_version": "9.9"})
-
-
-class TestBundlesCatalogOwnership:
-    def _service(self, title: str, product: str | None, team: str | None, file: str):
-        from apiverity.core.model import Protocol, Service
-
-        return Service(
-            title=title,
-            version="1.0.0",
-            protocol=Protocol.OPENAPI,
-            product=product,
-            team=team,
-            source_file=file,
-        )
-
-    def test_bundle_from_services(self) -> None:
-        from apiverity.core.model import Protocol, Service
-
-        svcs = [
-            Service(title="A", version="1.0.0", protocol=Protocol.OPENAPI),
-            Service(title="B", version="2.0.0", protocol=Protocol.GRPC),
-        ]
-        bundle = ContractBundle.from_services("platform", "2026.08", svcs)
-        data = bundle.to_dict()
-        assert data["name"] == "platform"
-        assert {e.protocol for e in bundle.entries} == {"openapi", "grpc"}
-
-    def test_catalog_grouping(self) -> None:
-        svcs = [
-            self._service("A", "checkout", "payments", "specs/a.yaml"),
-            self._service("B", "checkout", "identity", "specs/b.yaml"),
-            self._service("C", None, None, "specs/c.yaml"),
-        ]
-        by_product = build_catalog_index(svcs, group_by="product")
-        assert set(by_product) == {"checkout", "ungrouped"}
-        by_team = build_catalog_index(svcs, group_by="team")
-        assert set(by_team) == {"payments", "identity", "ungrouped"}
-
-    def test_ownership_mapping_applied(self, tmp_path: Path) -> None:
-        owner_file = tmp_path / "OWNERS"
-        owner_file.write_text("# comment\nspecs/payments/** @payments-team", encoding="utf-8")
-        mapping = load_ownership_mapping(owner_file)
-        svc = self._service("Pay", None, None, "specs\\payments\\api.yaml")
-        applied = apply_ownership([svc], mapping)
-        assert applied == ["specs/payments/**"]
-        assert svc.owner == "payments-team"
 
 
 class TestLifecycle:

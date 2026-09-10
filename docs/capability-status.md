@@ -7,7 +7,6 @@ pass; "EXISTING" items were already present and verified by tests.
 Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) · BLOCKED (external validation required) 
 
 ## Core model & protocols
-- Protocol v2 normalized model, stable entity IDs, canonical hashes, artifact migration — EXISTING (`core/model_v2.py`)
 - Swagger 2.0 import with loss warnings; bundles + catalog index; ownership mapping — EXISTING
 - AsyncAPI 2.x and 3.x adapter, registered under `apiverity.specs` — EXISTING (`specs/asyncapi.py`); direction normalized to the application's point of view so a 2.x document and its 3.x migration compare as equivalent
 - OpenAPI 3.0/3.1 deepening (callbacks/webhooks/discriminators/security inheritance) — PARTIAL (parser-level support; compat coverage for callbacks is partial)
@@ -49,7 +48,6 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
 - GraphQL breaking rules + dangerous-change category — NEW (`diff/protocol_compat.py`)
 - gRPC wire compatibility (type swaps, width changes, enum removals, field retirement guidance) — NEW
 - Contract lint, policy rule packs, expiring suppressions, deprecation lifecycle, semver engine, lifecycle states/transitions — EXISTING
-- Diff fingerprints dedup across revisions — EXISTING (`model_v2.fingerprint_findings`)
 - Release-sequence changelog aggregation, git blame linking, PR baseline discovery — BLOCKED (needs multi-version corpus + repo context in CI; interfaces documented)
 - Consumer registry & blast radius (`rules/consumers.py`, `breaking --consumers`)
   — NEW. A finding gains the services it breaks, and the artifact gains a
@@ -159,29 +157,38 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
 ## Library-only capabilities
 
 Every entry above is graded EXISTING when the capability is implemented and
-tested. One of them is implemented, tested, and **reachable from no
+tested. A capability can be implemented, tested, and **reachable from no
 command** -- importable from Python, absent from the CLI. That is a different
-thing from EXISTING and a reader will not distinguish them unless told, so it
-is listed here.
+thing from EXISTING and a reader will not distinguish them unless told, so any
+that are get listed here.
 
-They are found mechanically: `tests/unit/test_check_catalog.py` walks imports
-from `apiverity.cli.main` and `apiverity.mcp.server`, and
-`tests/unit/test_library_only.py` pins this list against that walk. A module
-cannot join or leave it quietly.
+**The list is empty.** It began at seven, found by a reachability walk that
+went looking. Five were wired to a command -- `--auth-profile`,
+`mock --workspace`, `regression --shape`, `test --generator pairwise`,
+`test --model-based`, and the graph check `workflow` now runs before its first
+request -- and one, `core.model_v2`, was deleted: every part of it was a
+parallel implementation of something this project already ships, and its
+CODEOWNERS reader used glob semantics where the format uses gitignore ones, so
+it would have assigned the wrong team.
 
-| Module | What it provides | Reachable from |
-|---|---|---|
-| `apiverity.core.model_v2` | Stable entity ids, canonical entity hashes, `result-v1` -> `2.0` artifact migration, and `ContractBundle` -- several services combined into one versioned surface | import only |
+An empty list is not the end of the check. It is found mechanically --
+`tests/unit/test_check_catalog.py` walks imports from `apiverity.cli.main` and
+`apiverity.mcp.server`, and `tests/unit/test_library_only.py` pins this section
+against that walk -- and the build fails when a module joins it. That is a
+feature written and never connected, which is how four published rules came to
+be unreachable and how "Lint -- VERIFIED" came to be published about an engine
+nothing ran.
 
-Two notes on how to read that.
+Two notes for the next entry, written while there is none.
 
-**"Import only" is not "broken".** It has tests that run in CI, and the SDK is
-a supported surface. What it means is that no flag on any command reaches it.
+**"Import only" is not "broken".** Anything listed here has tests that run in
+CI, and the SDK is a supported surface. What it means is that no flag on any
+command reaches it.
 
-**It is also not a plan.** It should probably be wired up or deleted, and
+**A list here is not a plan.** An entry should be wired up or deleted, and
 deciding which is a judgement about the product rather than a fact about the
-code. Publishing the list is what stops the question being invisible -- which
-it was until a reachability walk went looking. It began at seven.
+code -- one that needs evidence, which is what the walk produces. Publishing
+the list is what stops the question being invisible.
 
 ## Security & privacy
 - SBOM, SLSA provenance and release checksums — NEW. A tagged release now

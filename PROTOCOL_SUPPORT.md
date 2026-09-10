@@ -37,10 +37,10 @@ server / broker, which this project does not ship or impersonate. Nothing here f
   value 2.0 does not define.
 
   This table said "via v2 normalization" in eight cells and the paragraph here
-  said the same. There is a `core/model_v2.py`, and it is about stable entity
-  ids, canonical hashes, artifact migration and contract bundles -- nothing to
-  do with Swagger, and `specs/swagger2.py` does not import it. The mechanism
-  named was not the mechanism involved.
+  said the same. There was a `core/model_v2.py` -- stable entity ids, canonical
+  hashes, artifact migration and contract bundles, nothing to do with Swagger,
+  and `specs/swagger2.py` did not import it. The mechanism named was not the
+  mechanism involved, and that module has since been deleted.
 
   `fixtures/apis/swagger2/petstore.yaml` is the document these cells are now
   measured against; there was no Swagger 2.0 fixture at all before it.

@@ -4,10 +4,11 @@
 a paragraph saying imports were "normalized into the protocol-v2 model with
 explicit loss/ambiguity findings". Two things were wrong with that.
 
-The mechanism named was not the mechanism involved: `core/model_v2.py` is
+The mechanism named was not the mechanism involved: `core/model_v2.py` was
 about stable entity ids, canonical hashes, artifact migration and contract
-bundles, and `specs/swagger2.py` does not import it. And there was no Swagger
-2.0 document anywhere in `fixtures/`, so nothing measured the column at all.
+bundles, `specs/swagger2.py` did not import it, and it has since been deleted.
+And there was no Swagger 2.0 document anywhere in `fixtures/`, so nothing
+measured the column at all.
 
 What is true is simpler and is what the page says now: a 2.0 document compiles
 into the *same* normalized model as OpenAPI 3, so the column is the OpenAPI
