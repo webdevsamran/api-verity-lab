@@ -6,32 +6,53 @@ export function HomePage({ data }: { data: PageProps['data'] }) {
   // A skeleton, not an empty state: "no results" and "results are on their
   // way" look identical to a reader, and only one of them is worth waiting on.
   if (!data) return <Skeleton rows={4} cards={6} />
-  const breaking = data.breaking.findings.filter((f) => f.severity === 'ERROR').length
+  /* A stat whose section is absent shows an em dash, not a zero.
+   *
+   * This is the page where the difference matters most: "0 drift findings" and
+   * "nobody has run drift" are the same six pixels, and the first is the one a
+   * reader acts on. `tone` is dropped along with the number -- a green tile
+   * over an em dash still reads as reassurance. */
+  const absent = { value: '—', suffix: 'not gathered' } as const
   const stats: Stat[] = [
-    { label: 'Changes detected', value: data.diff.changes.length },
-    {
-      label: 'Breaking findings',
-      value: breaking,
-      tone: breaking > 0 ? 'error' : 'success',
-    },
-    {
-      label: 'Test cases',
-      value: `${data.test.passed}/${data.test.total}`,
-      suffix: 'passed',
-      tone: data.test.failed > 0 ? 'warn' : 'success',
-    },
-    {
-      label: 'Drift findings',
-      value: data.drift.findings.length,
-      tone: data.drift.findings.length > 0 ? 'warn' : 'success',
-    },
-    {
-      label: 'Contract coverage',
-      value: data.coverage.overall_percent,
-      suffix: '%',
-      tone: data.coverage.overall_percent >= 80 ? 'success' : 'warn',
-    },
-    { label: 'Services in catalog', value: data.catalog?.services.length ?? 0 },
+    data.diff
+      ? { label: 'Changes detected', value: data.diff.changes.length }
+      : { label: 'Changes detected', ...absent },
+    data.breaking
+      ? (() => {
+          const errors = data.breaking.findings.filter((f) => f.severity === 'ERROR').length
+          return {
+            label: 'Breaking findings',
+            value: errors,
+            tone: errors > 0 ? ('error' as const) : ('success' as const),
+          }
+        })()
+      : { label: 'Breaking findings', ...absent },
+    data.test
+      ? {
+          label: 'Test cases',
+          value: `${data.test.passed}/${data.test.total}`,
+          suffix: 'passed',
+          tone: data.test.failed > 0 ? ('warn' as const) : ('success' as const),
+        }
+      : { label: 'Test cases', ...absent },
+    data.drift
+      ? {
+          label: 'Drift findings',
+          value: data.drift.findings.length,
+          tone: data.drift.findings.length > 0 ? ('warn' as const) : ('success' as const),
+        }
+      : { label: 'Drift findings', ...absent },
+    data.coverage
+      ? {
+          label: 'Contract coverage',
+          value: data.coverage.overall_percent,
+          suffix: '%',
+          tone: data.coverage.overall_percent >= 80 ? ('success' as const) : ('warn' as const),
+        }
+      : { label: 'Contract coverage', ...absent },
+    data.catalog
+      ? { label: 'Services in catalog', value: data.catalog.services.length }
+      : { label: 'Services in catalog', ...absent },
   ]
   return (
     <>

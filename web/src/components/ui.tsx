@@ -10,7 +10,8 @@
  * library: `scripts/check-bundle.mjs` budgets the entry chunk at 210 kB, and
  * a charting dependency costs more than every page in this app combined.
  */
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import type { DataSource } from '../data'
 
 /* ------------------------------------------------------------- badges */
 
@@ -43,7 +44,37 @@ export function DemoTag() {
   return <span className="badge badge-neutral">DEMO DATA</span>
 }
 
+/**
+ * Which source the app is reading, for the components that describe it.
+ *
+ * A context rather than a prop threaded through twenty `PageHead` calls: the
+ * note under every heading said "static demo artifacts generated from bundled
+ * fixtures", which becomes a false statement on every page the moment the
+ * dashboard is pointed at a real server -- and a dashboard that misdescribes
+ * its own data is the one defect this project cannot afford.
+ */
+export const SourceContext = createContext<DataSource | undefined>(undefined)
+
 /* --------------------------------------------------------- page frame */
+
+/** One line describing where the numbers on this page came from. */
+export function SourceNote() {
+  const source = useContext(SourceContext)
+  if (source?.kind === 'live') {
+    return (
+      <>
+        <span className="badge badge-live">LIVE</span> read from{' '}
+        <code>{source.label}</code> just now.
+      </>
+    )
+  }
+  return (
+    <>
+      <DemoTag /> static demo artifacts generated from bundled fixtures — run the CLI for your
+      own APIs.
+    </>
+  )
+}
 
 export function PageHead({ title, sub, note }: { title: string; sub?: string; note?: ReactNode }) {
   return (
@@ -51,14 +82,7 @@ export function PageHead({ title, sub, note }: { title: string; sub?: string; no
       <h2>
         {title} {sub && <span className="muted">{sub}</span>}
       </h2>
-      <p className="muted">
-        {note ?? (
-          <>
-            <DemoTag /> static demo artifacts generated from bundled fixtures — run the CLI for your
-            own APIs.
-          </>
-        )}
-      </p>
+      <p className="muted">{note ?? <SourceNote />}</p>
     </>
   )
 }
@@ -140,6 +164,35 @@ export function Empty({ msg, hint }: { msg: string; hint?: ReactNode }) {
       <h3>{msg}</h3>
       {hint && <p className="muted">{hint}</p>}
     </div>
+  )
+}
+
+/**
+ * A section the current data source does not carry.
+ *
+ * Distinct from `Empty`, and the distinction is the point: "no findings" is
+ * good news, and "this source has no findings section" is no news at all. They
+ * render identically as a blank table, which is how six pages sat on a loading
+ * state against a stale artifact for months.
+ *
+ * The hint depends on where the data came from. Telling someone pointed at a
+ * live server to regenerate a demo file sends them somewhere that cannot help.
+ */
+export function Missing({ section, source }: { section: string; source?: DataSource }) {
+  const live = source?.kind === 'live'
+  return (
+    <Empty
+      msg={
+        live
+          ? `A live server has no '${section}' data.`
+          : `This artifact carries no '${section}' section.`
+      }
+      hint={
+        live
+          ? 'It is the output of a run, not server state. Run the command and publish the artifact, or switch this dashboard back to an artifact source.'
+          : 'Regenerate it with scripts/generate-demo-data.py, or point the dashboard at a run that produced one.'
+      }
+    />
   )
 }
 

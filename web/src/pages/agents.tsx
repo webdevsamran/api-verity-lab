@@ -9,7 +9,7 @@
  * observations and are shown as such, because the fleet view has to be usable
  * as evidence that a server was checked and was fine, not only as an alarm.
  */
-import { Badge, Empty, PageHead, SevBadge, StatGrid } from "../components/ui";
+import { Badge, Empty, Missing, PageHead, SevBadge, StatGrid } from "../components/ui";
 import type { AgentFinding } from "../data";
 import type { PageProps } from "./types";
 
@@ -18,15 +18,6 @@ type Data = PageProps["data"];
 /* A section that was never generated is not a section that is loading. The
  * demo artifact went stale for months and six pages sat on "Loading…" the
  * whole time, which reads as a broken app rather than an absent input. */
-function Missing({ section }: { section: string }) {
-  return (
-    <Empty
-      msg={`This artifact carries no '${section}' section.`}
-      hint="Regenerate it with scripts/generate-demo-data.py, or point the dashboard at a run that produced one."
-    />
-  );
-}
-
 /* Badge classes, which are the CSS token names: error / warn / info / success. */
 function tone(severity: string): string {
   return severity === "ERROR" ? "error" : severity === "WARN" ? "warn" : "info";
@@ -59,7 +50,7 @@ function anonymousTone(server: {
 
 export function FleetPage({ data }: { data: Data }) {
   if (!data) return <Empty msg="Loading…" />;
-  if (!data.agents) return <Missing section="agents" />;
+  if (!data.agents) return <Missing source={data.source} section="agents" />;
   const fleet = data.agents.fleet;
 
   const errors = fleet.filter((s) => worst(s.findings) === "ERROR").length;
@@ -196,7 +187,7 @@ export function FleetPage({ data }: { data: Data }) {
 
 export function PoisoningPage({ data }: { data: Data }) {
   if (!data) return <Empty msg="Loading…" />;
-  if (!data.agents) return <Missing section="agents" />;
+  if (!data.agents) return <Missing source={data.source} section="agents" />;
   const scan = data.agents.poisoning;
 
   const byTool = new Map<string, typeof scan.findings>();
@@ -257,7 +248,7 @@ export function PoisoningPage({ data }: { data: Data }) {
 
 export function BudgetsPage({ data }: { data: Data }) {
   if (!data) return <Empty msg="Loading…" />;
-  if (!data.agents) return <Missing section="agents" />;
+  if (!data.agents) return <Missing source={data.source} section="agents" />;
   const budget = data.agents.budget;
 
   return (

@@ -1,15 +1,26 @@
 /* Runtime pages: drift, replay, performance, mock. */
-import { BarChart, Badge, CopyCmd, Empty, MethodTag, PageHead, StatusBadge } from '../components/ui'
+import {
+  BarChart,
+  Badge,
+  CopyCmd,
+  Empty,
+  MethodTag,
+  Missing,
+  PageHead,
+  StatusBadge,
+} from '../components/ui'
 import type { PageProps } from './types'
 
 export function DriftPage({ data }: { data: PageProps['data'] }) {
   if (!data) return <Empty msg="Loading…" />
+  const drift = data.drift
+  if (!drift) return <Missing section="drift" source={data.source} />
   return (
     <>
       <PageHead title="Runtime Drift" sub="declared contract vs observed behavior" />
-      {data.drift.findings.length === 0 ? <Empty msg="No drift detected." /> : (
+      {drift.findings.length === 0 ? <Empty msg="No drift detected." /> : (
         <table><thead><tr><th>Rule</th><th>Operation</th><th>Message</th></tr></thead>
-          <tbody>{data.drift.findings.map((d, i) => (
+          <tbody>{drift.findings.map((d, i) => (
             <tr key={i}><td><code>{d.rule_id}</code></td><td>{d.operation_key}</td><td>{d.message}</td></tr>
           ))}</tbody></table>
       )}
@@ -39,6 +50,7 @@ export function ReplayPage({ data }: { data: PageProps['data'] }) {
 
 export function PerfPage({ data }: { data: PageProps['data'] }) {
   if (!data) return <Empty msg="Loading…" />
+  if (!data.performance) return <Missing section="performance" source={data.source} />
   const ops = data.performance.operations
   const max = Math.max(...ops.map((o) => o.p99_ms), 1)
   return (
@@ -61,12 +73,14 @@ export function PerfPage({ data }: { data: PageProps['data'] }) {
 
 export function MockPage({ data }: { data: PageProps['data'] }) {
   if (!data) return <Empty msg="Loading…" />
+  const contract = data.contract
+  if (!contract) return <Missing section="contract" source={data.source} />
   return (
     <>
       <PageHead title="Mock / Virtualization" sub="deterministic schema-driven mock server" />
       <CopyCmd cmd="apiverity mock serve fixtures/apis/crud/openapi.yaml --port 8090 --seed 42" />
       <table><thead><tr><th>Operation</th><th>Method</th><th>Path</th><th>Deterministic responses</th></tr></thead>
-        <tbody>{data.contract.operations.map((o) => (
+        <tbody>{contract.operations.map((o) => (
           <tr key={o.key}><td>{o.key}</td><td><MethodTag method={o.method} /></td>
             <td><code>{o.path}</code></td><td>{o.responses.join(', ')}</td></tr>
         ))}</tbody></table>

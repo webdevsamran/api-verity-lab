@@ -12,12 +12,13 @@
  */
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react'
 import ChunkBoundary from './components/ChunkBoundary'
-import { Skeleton } from './components/ui'
+import { SourceContext, Skeleton } from './components/ui'
 import { useData } from './hooks/useData'
 import { NAV, prefetchGroup, resolvePage } from './pages'
 import { useRoute } from './router'
 
 const CommandPalette = lazy(() => import('./components/CommandPalette'))
+const SourcePicker = lazy(() => import('./components/SourcePicker'))
 
 type ThemeMode = 'dark' | 'light' | 'system'
 
@@ -83,10 +84,11 @@ function withTransition(apply: () => void) {
 
 export default function App() {
   const route = useRoute()
-  const { data, error, retry } = useData()
+  const { data, error, retry, live, setLive } = useData()
   const [theme, setTheme] = useState<ThemeMode>(storedTheme)
   const [menuOpen, setMenuOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [sourceOpen, setSourceOpen] = useState(false)
 
   /* The attribute write is what gets cross-faded, not the state update.
    *
@@ -175,6 +177,17 @@ export default function App() {
           </button>
           <button
             type="button"
+            className={'btn btn-ghost' + (live ? ' btn-live' : '')}
+            onClick={() => setSourceOpen(true)}
+            aria-label={
+              live ? `Data source: live at ${live.baseUrl}. Activate to change.` : 'Data source: bundled artifact. Activate to change.'
+            }
+          >
+            <span aria-hidden="true">{live ? '\u25CF' : '\u25CB'}</span>{' '}
+            {live ? 'Live' : 'Demo data'}
+          </button>
+          <button
+            type="button"
             className="btn btn-ghost"
             onClick={cycleTheme}
             aria-label={`Theme: ${theme}. Activate to change.`}
@@ -218,9 +231,21 @@ export default function App() {
               </button>
             </div>
           )}
+          {/* Sections the server was asked for and refused. Shown once, at the
+            * top, rather than as an error on each page that happens to want
+            * one: a token without audit permission is an ordinary token, and
+            * seven pages each reporting the same 403 is noise. */}
+          {data?.source?.failed && data.source.failed.length > 0 && (
+            <div className="banner warn" role="status">
+              <strong>Some sections did not load.</strong>{' '}
+              {data.source.failed.map((f) => `${f.section} (${f.reason})`).join(', ')}
+            </div>
+          )}
           <div className="page-enter" key={route.page}>
             <ChunkBoundary what="This page" key={route.page}>
-              <Suspense fallback={<Skeleton rows={6} cards={4} />}>{content}</Suspense>
+              <SourceContext.Provider value={data?.source}>
+                <Suspense fallback={<Skeleton rows={6} cards={4} />}>{content}</Suspense>
+              </SourceContext.Provider>
             </ChunkBoundary>
           </div>
         </main>
@@ -234,9 +259,23 @@ export default function App() {
         </ChunkBoundary>
       )}
 
+      {sourceOpen && (
+        <ChunkBoundary what="The data source picker">
+          <Suspense fallback={null}>
+            <SourcePicker
+              live={live}
+              onChange={setLive}
+              onClose={() => setSourceOpen(false)}
+            />
+          </Suspense>
+        </ChunkBoundary>
+      )}
+
       <footer>
-        Created by @webdevsamran · Apache-2.0 · demo artifacts generated locally from bundled
-        fixtures
+        Created by @webdevsamran · Apache-2.0 ·{' '}
+        {live
+          ? `live data from ${live.baseUrl}`
+          : 'demo artifacts generated locally from bundled fixtures'}
       </footer>
     </div>
   )

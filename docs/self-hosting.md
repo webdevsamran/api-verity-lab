@@ -79,6 +79,43 @@ Local token auth works out of the box. For OIDC/SAML, implement the
 and pass instances via `create_app(store, providers=[...])`. A real IdP
 integration requires an environment we do not ship; see ISSUES.md.
 
+## Reading the server from the dashboard
+
+`web/` can point at a running server instead of the bundled `demo-data.json`.
+Two things had to exist first, and neither did:
+
+**CORS.** The server sent no cross-origin headers at all, so a dashboard on
+another origin got a console error and a blank page rather than a server that
+said no. It is opt-in, and there is deliberately no wildcard:
+
+```python
+app = create_app(store, cors_origins=["https://verity-dash.internal"])
+```
+
+Every route here is authenticated, and `Access-Control-Allow-Origin: *` cannot
+carry credentials — a server that sent one anyway would be relying on the
+browser to enforce the difference. `create_app` refuses `"*"` outright, and
+`Vary: Origin` is always set, because a cache that saw one allowed origin's
+response would otherwise serve it to every other origin.
+
+**List routes.** `GET /v1/runs`, `GET /v1/approvals` and `GET /v1/policies`
+did not exist. An approval queue could be created and decided and never
+listed; `Store.list_policies` was written and called by nothing, so a policy
+could only be fetched by a name you already knew.
+
+In the dashboard, the source picker in the top bar takes a base URL, a token
+and an org id. The token is stored in that browser only and never placed in a
+URL — a shareable live-dashboard link would write a bearer token into browser
+history, the access log, and every outbound `Referer` on the page, which is
+what `SEC-APIKEY-IN-QUERY` reports about other people's contracts.
+
+A live server fills the org, contract, environment, policy, approval, run,
+audit and webhook views. It does **not** fill the test, drift, performance,
+coverage or workflow views, and those render "not gathered" rather than zero:
+they are outputs of a run, not server state, and a dashboard reporting
+"0 failures, 100% coverage" for a service nobody has tested is worse than a
+blank one and much harder to notice.
+
 ## Observability
 
 Prometheus text metrics at `/metrics`; structured request counters and

@@ -163,12 +163,33 @@ class Store:
         )
         self.conn.commit()
 
+    def list_runs(self, org_id: int, limit: int = 100) -> list[dict[str, Any]]:
+        """Recent runs for one org, newest first.
+
+        `result_json` is deliberately not decoded here. A listing of a hundred
+        runs would then carry a hundred full result payloads -- megabytes of
+        findings for a table that shows a status column. `get_run` returns the
+        whole thing for the one run somebody opened.
+        """
+        rows = self.conn.execute(
+            "SELECT id, kind, status, requested_by, verification_for, environment,"
+            " worker_name, created_at, updated_at FROM runs WHERE org_id = ?"
+            " ORDER BY id DESC LIMIT ?",
+            (org_id, limit),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
     def get_run(self, run_id: int) -> dict[str, Any] | None:
         row = self.conn.execute("SELECT * FROM runs WHERE id = ?", (run_id,)).fetchone()
         if not row:
             return None
         d = dict(row)
-        d["result"] = json.loads(d["result_json"]) if d.pop("result_json") else None
+        # Popped first, then read. Written as a conditional expression, `pop`
+        # ran before the lookup and every run that actually had a result
+        # raised KeyError -- the one case nothing exercised, because no test
+        # had ever fetched a run with a stored result.
+        raw = d.pop("result_json")
+        d["result"] = json.loads(raw) if raw else None
         return d
 
     def cancel_run(self, run_id: int) -> bool:
@@ -298,7 +319,12 @@ class Store:
 
     def _run_row(self, row: sqlite3.Row) -> dict[str, Any]:
         d = dict(row)
-        d["result"] = json.loads(d["result_json"]) if d.pop("result_json") else None
+        # Popped first, then read. Written as a conditional expression, `pop`
+        # ran before the lookup and every run that actually had a result
+        # raised KeyError -- the one case nothing exercised, because no test
+        # had ever fetched a run with a stored result.
+        raw = d.pop("result_json")
+        d["result"] = json.loads(raw) if raw else None
         return d
 
     # --- environments ------------------------------------------------------
@@ -383,6 +409,27 @@ class Store:
         )
         self.conn.commit()
         return cur.rowcount > 0
+
+    def list_approvals(
+        self, org_id: int, *, status: str | None = None, limit: int = 100
+    ) -> list[dict[str, Any]]:
+        """The approval queue, newest first, optionally filtered by status.
+
+        An approval queue nobody can list is an approval queue nobody works:
+        every route here could create one and decide one, and none could show
+        you what was waiting.
+        """
+        if status:
+            rows = self.conn.execute(
+                "SELECT * FROM approvals WHERE org_id = ? AND status = ? ORDER BY id DESC LIMIT ?",
+                (org_id, status, limit),
+            ).fetchall()
+        else:
+            rows = self.conn.execute(
+                "SELECT * FROM approvals WHERE org_id = ? ORDER BY id DESC LIMIT ?",
+                (org_id, limit),
+            ).fetchall()
+        return [dict(r) for r in rows]
 
     def get_approval(self, approval_id: int) -> dict[str, Any] | None:
         row = self.conn.execute("SELECT * FROM approvals WHERE id = ?", (approval_id,)).fetchone()

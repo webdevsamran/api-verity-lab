@@ -40,8 +40,29 @@ def create_app(
     secret_resolver: Any = None,
     rate_limit_per_minute: int | None = None,
     max_active_jobs: int = 4,
+    cors_origins: list[str] | None = None,
 ) -> Flask:
+    """Build the server application.
+
+    `cors_origins` is the list of browser origins allowed to call this API.
+    It exists because the dashboard reads these routes from a browser, and
+    without it the reader gets a blank page and a console error rather than a
+    server that says no.
+
+    Off by default, and there is deliberately no wildcard. Every route here is
+    authenticated, and `Access-Control-Allow-Origin: *` cannot carry
+    credentials -- a server that sent one anyway would be relying on the
+    browser to enforce the difference. It is also the exact configuration this
+    project's own `SEC-CORS-WILDCARD` rule objects to in other people's
+    contracts.
+    """
     app = Flask("apiverity-server")
+    allowed_origins = [o.rstrip("/") for o in (cors_origins or []) if o and o != "*"]
+    if cors_origins and len(allowed_origins) != len(cors_origins):
+        raise ValueError(
+            "cors_origins must name origins explicitly; '*' cannot be used with "
+            "credentialed requests and is refused here"
+        )
     if providers is None:
         providers = [LocalTokenProvider(store)]
 
@@ -69,6 +90,26 @@ def create_app(
                 for stale in [k for k in _RATE_BUCKETS if k[1] != window]:
                     del _RATE_BUCKETS[stale]
         return None
+
+    @app.after_request
+    def _cors(resp: Response) -> Response:
+        """Answer a browser only for an origin the operator named.
+
+        The `Vary: Origin` header is not optional: without it a cache that saw
+        one allowed origin's response would serve it to every other origin,
+        which turns an allowlist into a wildcard one deployment at a time.
+        """
+        if not allowed_origins:
+            return resp
+        origin = request.headers.get("Origin", "").rstrip("/")
+        resp.headers["Vary"] = "Origin"
+        if origin in allowed_origins:
+            resp.headers["Access-Control-Allow-Origin"] = origin
+            resp.headers["Access-Control-Allow-Credentials"] = "true"
+            resp.headers["Access-Control-Allow-Headers"] = "authorization, content-type, accept"
+            resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PATCH, DELETE, OPTIONS"
+            resp.headers["Access-Control-Max-Age"] = "600"
+        return resp
 
     @app.after_request
     def _record(resp: Response) -> Response:
@@ -267,6 +308,14 @@ def create_app(
         )
         return jsonify({"run_id": run_id}), 201
 
+    @app.get("/v1/runs")
+    def list_runs() -> Any:
+        g.identity, err = current_identity("read")
+        if err:
+            return err
+        limit = min(int(request.args.get("limit", 100)), 500)
+        return jsonify({"runs": store.list_runs(g.identity.org_id, limit=limit)})
+
     @app.get("/v1/runs/<int:run_id>")
     def get_run(run_id: int) -> Any:
         g.identity, err = current_identity("read")
@@ -428,6 +477,18 @@ def create_app(
         store.audit_append(g.identity.org_id, g.identity.subject, "policy.updated", name)
         return jsonify({"ok": True})
 
+    @app.get("/v1/policies")
+    def list_policies() -> Any:
+        """`Store.list_policies` was written and called by nothing.
+
+        A policy could be fetched by name, which is only useful to someone who
+        already knows the name.
+        """
+        g.identity, err = current_identity("read")
+        if err:
+            return err
+        return jsonify({"policies": store.list_policies(g.identity.org_id)})
+
     @app.get("/v1/policies/<name>")
     def get_policy(name: str) -> Any:
         g.identity, err = current_identity("read")
@@ -453,6 +514,17 @@ def create_app(
         )
         notify("approval.requested", {"approval_id": approval_id})
         return jsonify({"approval_id": approval_id}), 201
+
+    @app.get("/v1/approvals")
+    def list_approvals() -> Any:
+        g.identity, err = current_identity("read")
+        if err:
+            return err
+        status = request.args.get("status") or None
+        limit = min(int(request.args.get("limit", 100)), 500)
+        return jsonify(
+            {"approvals": store.list_approvals(g.identity.org_id, status=status, limit=limit)}
+        )
 
     @app.post("/v1/approvals/<int:approval_id>/decision")
     def decide_approval(approval_id: int) -> Any:

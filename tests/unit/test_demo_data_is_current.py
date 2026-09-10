@@ -27,15 +27,24 @@ _TYPES = _ROOT / "web" / "src" / "data.ts"
 _GENERATOR = _ROOT / "scripts" / "generate-demo-data.py"
 
 
+#: Keys the *app* stamps at load time rather than the generator writing.
+#:
+#: `source` says where the data came from -- a file, or a live server -- so it
+#: is a property of the load, not of the artifact. An artifact that carried one
+#: would be asserting how it would later be read.
+_STAMPED_BY_THE_APP = {"source"}
+
+
 def _declared_sections() -> set[str]:
     """Top-level keys `DemoData` declares, required and optional alike."""
     source = _TYPES.read_text(encoding="utf-8")
     body = source[source.index("export interface DemoData {") :]
-    body = body[: body.index("\n}")]
+    body = body[: body.index(chr(10) + "}")]
     # `name?: T` and `name: T`, ignoring comment lines.
-    return {
+    declared = {
         match.group(1) for line in body.splitlines() if (match := re.match(r"\s{2}(\w+)\??:", line))
     }
+    return declared - _STAMPED_BY_THE_APP
 
 
 def _artifact() -> dict[str, object]:

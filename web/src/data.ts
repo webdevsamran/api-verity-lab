@@ -48,17 +48,44 @@ export interface AgentsSection {
   budget: { window: string; limits: BudgetLimit[]; calls_observed: number; findings: AgentFinding[] }
 }
 
+/** Where this data came from, and which sections it really carries.
+ *
+ * Added when the dashboard learned to read a live server. The distinction it
+ * records is the one every page needs and none of them could make: "this
+ * section is empty" and "this source has no such section" look identical in a
+ * rendered table, and only one of them means the API is fine.
+ */
+export interface DataSource {
+  kind: 'artifact' | 'live'
+  /** Shown to the reader: a file name, or a server URL. */
+  label: string
+  /** Sections this source actually filled. */
+  available: string[]
+  /** Sections that were asked for and failed, with the reason. */
+  failed?: { section: string; reason: string }[]
+}
+
+/* Sections below `meta` are optional on purpose.
+ *
+ * They were all required, which made the type assert that any artifact carries
+ * a fuzz result set, a latency percentile table and a coverage matrix. An
+ * artifact from `apiverity validate` carries none of those, and a live server
+ * holds none of them either: they are outputs of a run rather than state.
+ * Requiring them did not make them present -- it made every page render zeros
+ * for data nobody had gathered, which reads as "0 failures, 100% coverage" for
+ * a service nobody has tested. */
 export interface DemoData {
   meta: { tool: string; generated_from: string; label: string }
-  diff: { old_version: string; new_version: string; changes: Change[] }
-  breaking: { findings: Finding[] }
-  test: { total: number; passed: number; failed: number; results: TestResultRow[] }
-  drift: { findings: DriftRow[] }
-  performance: { operations: PerfOp[] }
-  coverage: { overall_percent: number; operations: OpCoverage[] }
-  rules: { count: number; catalog: RuleRow[] }
-  workflow: WorkflowData
-  contract: { title: string; version: string; operations: ContractOp[] }
+  source?: DataSource
+  diff?: { old_version: string; new_version: string; changes: Change[] }
+  breaking?: { findings: Finding[] }
+  test?: { total: number; passed: number; failed: number; results: TestResultRow[] }
+  drift?: { findings: DriftRow[] }
+  performance?: { operations: PerfOp[] }
+  coverage?: { overall_percent: number; operations: OpCoverage[] }
+  rules?: { count: number; catalog: RuleRow[] }
+  workflow?: WorkflowData
+  contract?: { title: string; version: string; operations: ContractOp[] }
   semver?: SemverVerdict
   changelog?: { markdown: string }
   minimizer?: { attempted: number; results: TestResultRow[] }

@@ -1,5 +1,14 @@
 /* Contract pages: explorer, version history, diff, breaking, semver, rules, changelog. */
-import { Badge, Empty, Filters, MethodTag, PageHead, SevBadge, StatusBadge } from '../components/ui'
+import {
+  Badge,
+  Empty,
+  Filters,
+  MethodTag,
+  Missing,
+  PageHead,
+  SevBadge,
+  StatusBadge,
+} from '../components/ui'
 import { navigate, setParam, useRoute } from '../router'
 import type { PageProps } from './types'
 
@@ -7,13 +16,15 @@ export function ExplorerPage({ data }: { data: PageProps['data'] }) {
   const route = useRoute()
   const selected = route.params.get('op')
   if (!data) return <Empty msg="Loading…" />
-  const op = data.contract.operations.find((o) => o.key === selected)
+  const contract = data.contract
+  if (!contract) return <Missing section="contract" source={data.source} />
+  const op = contract.operations.find((o) => o.key === selected)
   return (
     <>
-      <PageHead title="Contract Explorer" sub={`${data.contract.title} v${data.contract.version}`} />
+      <PageHead title="Contract Explorer" sub={`${contract.title} v${contract.version}`} />
       <div className="split">
         <div>
-          {data.contract.operations.map((o) => (
+          {contract.operations.map((o) => (
             <div key={o.key} onClick={() => navigate('explorer', { op: o.key })}
               onKeyDown={(e) => e.key === 'Enter' && navigate('explorer', { op: o.key })}
               role="button" tabIndex={0} className={'op-row' + (selected === o.key ? ' selected' : '')}>
@@ -56,11 +67,13 @@ export const HistoryPage = HistoryPageImpl
 
 export function DiffPage({ data }: { data: PageProps['data'] }) {
   if (!data) return <Empty msg="Loading…" />
+  const diff = data.diff
+  if (!diff) return <Missing section="diff" source={data.source} />
   return (
     <>
-      <PageHead title="Semantic Diff Review" sub={`${data.diff.old_version} → ${data.diff.new_version}`} />
+      <PageHead title="Semantic Diff Review" sub={`${diff.old_version} → ${diff.new_version}`} />
       <table><thead><tr><th>ID</th><th>Kind</th><th>Direction</th><th>Description</th></tr></thead>
-        <tbody>{data.diff.changes.map((c) => (
+        <tbody>{diff.changes.map((c) => (
           <tr key={c.id}><td><code>{c.id}</code></td><td>{c.kind}</td><td>{c.direction}</td><td>{c.description}</td></tr>
         ))}</tbody></table>
     </>
@@ -70,6 +83,7 @@ export function DiffPage({ data }: { data: PageProps['data'] }) {
 export function BreakingPage({ data, route }: PageProps) {
   const filter = route.params.get('sev') ?? 'ALL'
   if (!data) return <Empty msg="Loading…" />
+  if (!data.breaking) return <Missing section="breaking" source={data.source} />
   const shown = data.breaking.findings.filter((f) => filter === 'ALL' || f.severity === filter)
   return (
     <>
@@ -106,11 +120,13 @@ export function SemverPage({ data }: { data: PageProps['data'] }) {
 
 export function RulesPage({ data }: { data: PageProps['data'] }) {
   if (!data) return <Empty msg="Loading…" />
+  const rules = data.rules
+  if (!rules) return <Missing section="rules" source={data.source} />
   return (
     <>
-      <PageHead title="Rule Catalog" sub={`${data.rules.count} direction-aware rules`} />
+      <PageHead title="Rule Catalog" sub={`${rules.count} direction-aware rules`} />
       <table><thead><tr><th>Rule</th><th>Severity</th><th>Description</th></tr></thead>
-        <tbody>{data.rules.catalog.map((r) => (
+        <tbody>{rules.catalog.map((r) => (
           <tr key={r.rule_id}><td><code>{r.rule_id}</code></td><td><SevBadge sev={r.severity} /></td><td>{r.description}</td></tr>
         ))}</tbody></table>
     </>

@@ -811,3 +811,24 @@ kbd {
   body { background: #fff; color: #000; }
   .card, table { break-inside: avoid; }
 }
+
+/* Data source picker. Reuses the palette's backdrop and panel so a second
+ * modal costs no new layout, only the form inside it. */
+.source-form { display: grid; gap: var(--s2); padding: var(--s4); }
+.source-form h3 { margin: 0; }
+.source-form label { font-size: var(--text-sm); font-weight: 600; }
+.source-form input {
+  width: 100%;
+  padding: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+}
+.source-form .muted { margin: 0; font-size: var(--text-sm); }
+.source-actions { display: flex; gap: var(--s2); margin-top: var(--s2); }
+/* A live source is a different mode, and the reader should be able to see
+ * which one they are in without opening the dialog. */
+.btn-live { color: var(--success); }
+.badge-live { background: var(--success-subtle); color: var(--success); }
