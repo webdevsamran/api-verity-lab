@@ -4,6 +4,71 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — credentials, and the graph check before a run
+
+- **`--auth-profiles FILE --auth-profile NAME` on every command that takes
+  `--base-url`** — `test`, `workflow`, `drift`, `mcp-lock`, `ghosts`, `replay`,
+  `baseline`, `regression`. Bearer, API key, basic and mTLS.
+
+  A profile names *where* a credential lives — an environment variable, or a
+  file — and never holds one, so a result bundle records
+  `token_env: STAGING_TOKEN` and nothing anybody who finds it could replay.
+  Bundles get attached to pull requests and uploaded as CI artifacts; one
+  carrying the token would be a second copy of it in all of those places.
+
+  `apiverity/traffic/auth.py` has held the whole mechanism since the beginning
+  and no flag reached it. A tool for checking APIs that could only check
+  unauthenticated ones is most of a tool.
+
+- **`--header NAME=VALUE` on the other six commands.** It existed on `drift`
+  and `mcp-lock` only. A profile carries the credential and a header carries
+  the tenant id beside it; they were never alternatives.
+
+- **`workflow` validates the manifest as a graph before the first request.** A
+  variable nothing fills, a duplicate step name, or cleanup deleting something
+  nothing created stops the run — by the time somebody notices a literal
+  `{user_id}` in a path, the steps before it have already been sent, and one of
+  them is usually a POST. Warnings print and the run continues.
+  `--no-preflight` skips it.
+
+### Fixed — the workflow variable syntax, and two things in the auth module
+
+- **Three modules agreed on a variable syntax the engine does not read.**
+  `WorkflowEngine` substitutes `{name}`; `stateful/graph.py` looked for
+  `{{ name }}` and `stateful/templates.py` wrote `{{ name }}`.
+
+  So all four built-in templates were unrunnable. `apiverity workflow
+  --template crud-lifecycle`, run as printed, failed on its **first request**
+  with *"could not extract 'widget_id' from id"* — `extract` values were bare
+  field names where the engine reads `$.id`, `assert_jsonpath` keys were the
+  same mistake in the other direction, and the paths it never reached carried
+  `{{ widget_id }}`.
+
+  And the validator reported the opposite of the truth in both directions:
+  `WF-MISSING-VAR` could never fire, and `WF-INCOMPLETE-CLEANUP` fired on every
+  created resource — including the bundled manifest, whose cleanup deletes
+  exactly the resource it was warning about. `VARIABLE_RE` and `placeholder`
+  now live in `stateful/models.py`, which the engine also uses.
+
+- **`resolve_verify` named the wrong httpx parameter.** It returned
+  `(cert_file, key_file)` as httpx's `verify=`, which is the *server*
+  certificate setting; a client certificate goes in `cert=`. httpx stores the
+  tuple without complaint, so the certificate is never presented and the
+  failure arrives somewhere that says nothing about mTLS. It is
+  `resolve_client_cert` now.
+
+- **The auth redaction redacted references and printed references.**
+  `redacted_summary` blanked `password_env` and `key_file` while printing
+  `token_env`, `key_env`, `username_env` and `cert_file` — all the same kind of
+  thing, the name of an environment variable or a path. Nothing there is a
+  secret, so nothing there is redacted, and a value that is not a valid
+  environment variable name is refused when the file loads.
+
+- **`--shape` reported an offered rate a third below what it offered.**
+  `achieved_rps` divided by a window that included the response drain, so a
+  two-second profile whose tail took another second looked exactly like a
+  generator falling behind — the one thing that report exists to distinguish.
+
 ### Added — Arazzo, load shapes and virtualization workspaces
 
 - **`apiverity workflow --to-arazzo`**, and an Arazzo description runs
