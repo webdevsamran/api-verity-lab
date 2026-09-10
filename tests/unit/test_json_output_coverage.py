@@ -33,6 +33,17 @@ _DELIBERATE_EXCLUSIONS = {
     "report": "has --format json|sarif|junit|html|yaml, which is strictly more expressive",
 }
 
+#: Commands that emit no artifact of their own, because they run another
+#: command and that command's `--json` is the one a caller wants.
+#:
+#: A separate list from the one above, and checked differently. Parking `watch`
+#: beside `report` would mean asserting it has `--format`, which it does not
+#: and should not -- and an exclusion list whose entries are not each checked
+#: for their *own* reason is a place oversights go to sleep.
+_WRAPPERS = {
+    "watch": "runs another apiverity command; pass --json to that command",
+}
+
 
 def _subcommands() -> dict[str, argparse.ArgumentParser]:
     parser = build_parser()
@@ -47,7 +58,9 @@ def test_every_command_can_emit_structured_output() -> None:
     without = {
         name
         for name, sub in _subcommands().items()
-        if "--json" not in _flags(sub) and name not in _DELIBERATE_EXCLUSIONS
+        if "--json" not in _flags(sub)
+        and name not in _DELIBERATE_EXCLUSIONS
+        and name not in _WRAPPERS
     }
     assert not without, (
         f"commands with no structured output: {sorted(without)}. Either add --json or "
@@ -61,6 +74,24 @@ def test_an_excluded_command_really_does_have_something_better(name: str) -> Non
     sub = _subcommands()[name]
     assert "--format" in _flags(sub), (
         f"{name} is excluded from --json on the grounds that it has --format, and it does not"
+    )
+
+
+@pytest.mark.parametrize("name", sorted(_WRAPPERS))
+def test_a_wrapper_forwards_the_command_it_wraps(name: str) -> None:
+    """The exclusion holds only if `--json` actually reaches the inner command.
+
+    `nargs=REMAINDER` is what makes `apiverity watch -- validate spec --json`
+    hand `--json` to `validate` rather than consuming it here. Without it the
+    exclusion would be an excuse rather than a design.
+    """
+    sub = _subcommands()[name]
+    remainder = [
+        action for action in sub._actions if getattr(action, "nargs", None) == argparse.REMAINDER
+    ]
+    assert remainder, (
+        f"{name} is excluded from --json on the grounds that it forwards to another "
+        "command, and it takes no forwarded argv"
     )
 
 

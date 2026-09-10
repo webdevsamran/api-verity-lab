@@ -385,6 +385,14 @@
       ]
     },
     {
+      "name": "watch",
+      "summary": "re-run a command whenever the files it names change",
+      "options": [
+        "--interval",
+        "--path"
+      ]
+    },
+    {
       "name": "workflow",
       "summary": "run a multi-step workflow manifest, or infer a draft from a contract",
       "options": [

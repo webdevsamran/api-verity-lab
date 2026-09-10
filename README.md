@@ -31,7 +31,7 @@ fuzzing, drift detection, mocking and performance budgets. Each has its own
 result format, its own CI wiring and its own mental model — so findings never
 compose: you can't ask "which endpoints are both under-tested *and* drifting?"
 
-api-verity-lab answers twenty-nine questions from one place:
+api-verity-lab answers thirty-two questions from one place:
 
 | Question | Command |
 |---|---|
@@ -44,6 +44,7 @@ api-verity-lab answers twenty-nine questions from one place:
 | What version *should* this be? | `apiverity breaking --suggest-version` |
 | Can I paste this into a PR description? | `apiverity breaking --summary` |
 | What does this rule mean and how do I change it? | `apiverity explain BRK-RESP-FIELD-REMOVED` |
+| Can it re-run itself while I edit the spec? | `apiverity watch -- breaking old.yaml new.yaml` |
 | Does the running API match its contract? | `apiverity drift --base-url` |
 | How often did real traffic disagree with it? | `apiverity drift --corpus traffic.har` |
 | Is a route we deleted still answering? | `apiverity ghosts spec.yaml --was v1.yaml --base-url` |
@@ -54,6 +55,8 @@ api-verity-lab answers twenty-nine questions from one place:
 | Which MCP servers is this machine even configured to reach? | `apiverity mcp-inventory --include-home` |
 | Is an agent calling something more often than anyone agreed to? | `apiverity budget calls.json --budget budgets.yaml` |
 | Can I hand an auditor a dated, checksummed record of all of it? | `apiverity evidence run-*.json -o evidence/` |
+| Can somebody else verify the audit log without trusting my server? | `apiverity audit export --db server.db --org-id 1` |
+| Something is wrong — how do I stop releases right now? | `apiverity freeze on --reason ...` |
 | Can an agent ask *this* whether its change is breaking? | `apiverity-mcp --root .` |
 | Can schema-derived edge cases break it? | `apiverity test` |
 | Do multi-step workflows fail? | `apiverity workflow run` |

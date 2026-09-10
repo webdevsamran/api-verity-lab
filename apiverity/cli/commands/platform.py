@@ -265,6 +265,82 @@ def cmd_freeze(args: argparse.Namespace) -> int:
     return EXIT_FINDINGS if state.get("frozen") else EXIT_OK
 
 
+def cmd_watch(args: argparse.Namespace) -> int:
+    """Re-run a command whenever the files it names change.
+
+    The watched paths are the command's own arguments, not a separate list.
+    Two lists drift, and the failure is silent: you edit a file, nothing
+    re-runs, and the output on screen is stale while looking current.
+    """
+    import time
+
+    from apiverity.cli.commands.common import reset_provenance
+    from apiverity.cli.watch import DEFAULT_INTERVAL, Change, expand, watch
+
+    argv = list(args.argv or [])
+    if argv and argv[0] == "--":
+        argv = argv[1:]
+    if not argv:
+        print(
+            "error: nothing to run. Usage: apiverity watch -- breaking old.yaml new.yaml",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+
+    # The command's own file arguments, plus anything named with --path. A
+    # token counts as a path when it exists or carries an extension, which
+    # keeps the subcommand name itself ("breaking") out of the watch list
+    # without needing to know what the subcommands are called.
+    candidates = [
+        token
+        for token in argv
+        if not token.startswith("-") and (Path(token).exists() or Path(token).suffix)
+    ]
+    watched, skipped = expand(list(args.path or []) + candidates)
+    if not watched:
+        print(
+            "error: none of those arguments name a file to watch. Add --path to name a directory.",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+    if skipped:
+        # Reported, not applied quietly: a watcher silently ignoring the file
+        # you are editing is worse than one that refuses.
+        print(
+            f"note: watching the first {len(watched)} files; {skipped} more were skipped. "
+            "Narrow --path to include them.",
+            file=sys.stderr,
+        )
+
+    print(f"watching {len(watched)} file(s); ctrl-c to stop", file=sys.stderr)
+
+    from apiverity.cli.main import main as run_cli
+
+    def run() -> int:
+        code = run_cli(argv)
+        print(f"-- exit {code}", file=sys.stderr)
+        return code
+
+    def announce(changes: list[Change]) -> None:
+        stamp = time.strftime("%H:%M:%S")
+        for change in changes:
+            print(f"-- {stamp} {change}", file=sys.stderr)
+
+    try:
+        summary = watch(
+            watched,
+            run,
+            interval=max(0.05, float(args.interval or DEFAULT_INTERVAL)),
+            on_change=announce,
+            reset=reset_provenance,
+        )
+    except KeyboardInterrupt:
+        print("", file=sys.stderr)
+        return EXIT_OK
+    print(f"-- stopped after {summary.runs} run(s)", file=sys.stderr)
+    return EXIT_OK
+
+
 def cmd_plugins(args: argparse.Namespace) -> int:
     from apiverity.plugins.registry import list_entry_points
 

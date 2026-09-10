@@ -48,6 +48,7 @@ from apiverity.cli.commands.platform import (
     cmd_rules,
     cmd_self_test,
     cmd_server_db,
+    cmd_watch,
 )
 from apiverity.cli.commands.project import cmd_config, cmd_init
 from apiverity.cli.commands.runtime import (
@@ -104,6 +105,7 @@ __all__ = [
     "cmd_test",
     "cmd_validate",
     "cmd_verify",
+    "cmd_watch",
     "cmd_workflow",
     "main",
 ]
@@ -842,6 +844,31 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_freeze)
+    p = sub.add_parser(
+        "watch",
+        help="re-run a command whenever the files it names change",
+    )
+    p.add_argument(
+        "--interval",
+        type=float,
+        help="seconds between polls (default 0.4)",
+    )
+    p.add_argument(
+        "--path",
+        action="append",
+        metavar="PATH",
+        help=(
+            "an extra file or directory to watch. A directory is walked for "
+            "contract-shaped files only, so pointing at a repository does not re-run on "
+            "every .pyc"
+        ),
+    )
+    p.add_argument(
+        "argv",
+        nargs=argparse.REMAINDER,
+        help="-- followed by the command to run, e.g. `-- breaking old.yaml new.yaml`",
+    )
+    p.set_defaults(func=cmd_watch)
     p = sub.add_parser(
         "notify",
         help="route a result artifact's findings to the teams they concern",

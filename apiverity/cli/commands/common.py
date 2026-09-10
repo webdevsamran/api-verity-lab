@@ -53,6 +53,24 @@ _LAST_SEED: int | None = None
 _LAST_PROTOCOL: str | None = None
 
 
+def reset_provenance() -> None:
+    """Forget which spec, target and seed the last command used.
+
+    These are process globals set as a side effect of loading a contract, which
+    is right for one command per process and wrong for N.
+    `apiverity/mcp/tools.py` documents the same hazard and avoids it by not
+    using them at all; `apiverity watch` re-enters `main()` in a loop, so it
+    clears them instead. Without this, a run that fails *before* loading a spec
+    stamps its artifact with the previous run's spec path -- an artifact
+    describing a file it never read.
+    """
+    global _LAST_SPEC, _LAST_TARGET, _LAST_SEED, _LAST_PROTOCOL
+    _LAST_SPEC = None
+    _LAST_TARGET = None
+    _LAST_SEED = None
+    _LAST_PROTOCOL = None
+
+
 def set_allow_remote_refs(allowed: bool) -> None:
     global _ALLOW_REMOTE_REFS
     _ALLOW_REMOTE_REFS = bool(allowed)
