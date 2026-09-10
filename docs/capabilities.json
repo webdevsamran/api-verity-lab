@@ -47,6 +47,18 @@
   ],
   "commands": [
     {
+      "name": "audit",
+      "summary": "export the hash-chained audit log, or verify an exported one",
+      "options": [
+        "--against",
+        "--db",
+        "--hmac-key-env",
+        "--json",
+        "--org-id",
+        "-o"
+      ]
+    },
+    {
       "name": "baseline",
       "summary": "measure latency percentiles and store them for later comparison",
       "options": [

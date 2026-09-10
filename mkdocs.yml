@@ -51,6 +51,7 @@ nav:
       - Monorepo sweep: monorepo-sweep.md
       - Compliance mapping: compliance-mapping.md
       - Evidence packs: evidence.md
+      - Audit export: audit-export.md
       - MCP exposure: mcp-exposure.md
   - Guides:
       - CI contract gate: ci.md

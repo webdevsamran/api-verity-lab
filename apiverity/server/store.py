@@ -16,6 +16,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from apiverity.server.audit_export import ChainStatus, build_export, verify_chain
 from apiverity.server.schema import SCHEMA as _SCHEMA
 from apiverity.server.schema import hash_token as _hash_token
 from apiverity.server.schema import now_utc as _now
@@ -593,23 +594,50 @@ class Store:
         ).fetchall()
         return [dict(r) for r in rows]
 
-    def audit_verify_chain(self, org_id: int) -> bool:
+    def audit_all(self, org_id: int) -> list[dict[str, Any]]:
+        """Every entry, oldest first, with no limit.
+
+        `audit_list` caps at a hundred and returns newest-first, which is right
+        for a screen and wrong for evidence: an export that silently stopped at
+        a hundred entries would be a shorter history presented as the whole
+        one.
+        """
         rows = self.conn.execute(
             "SELECT * FROM audit_events WHERE org_id = ? ORDER BY id", (org_id,)
         ).fetchall()
-        prev = ""
-        for r in rows:
-            basis = (
-                f"{r['prev_hash']}|{r['ts']}|{r['actor']}|{r['action']}|{r['target']}"
-                f"|{r['payload_json']}"
-            )
-            if (
-                r["prev_hash"] != prev
-                or r["entry_hash"] != hashlib.sha256(basis.encode("utf-8")).hexdigest()
-            ):
-                return False
-            prev = r["entry_hash"]
-        return True
+        return [dict(r) for r in rows]
+
+    def audit_status(self, org_id: int) -> ChainStatus:
+        """Where the chain broke, not just that it did.
+
+        A tamper-evident log that answers `False` sends a responder to read ten
+        thousand rows by hand and gives an auditor nothing to write down. The
+        walk itself lives in `audit_export` so that the server and a third
+        party checking an exported file run the same code over the same fields.
+        """
+        return verify_chain(self.audit_all(org_id))
+
+    def audit_verify_chain(self, org_id: int) -> bool:
+        return self.audit_status(org_id).valid
+
+    def audit_export(self, org_id: int, *, hmac_key: bytes | None = None) -> dict[str, Any]:
+        """The chain as a document somebody else can check.
+
+        Verification that runs inside the process that wrote the log, against
+        the database that holds it, proves nothing: a party who can rewrite the
+        entries can rewrite the verifier. This is the artifact that leaves.
+        """
+        from apiverity import __version__
+
+        org = self.get_org(org_id)
+        return build_export(
+            org_id=org_id,
+            org_name=str(org["name"]) if org else None,
+            entries=self.audit_all(org_id),
+            exported_at=_now(),
+            tool_version=__version__,
+            hmac_key=hmac_key,
+        )
 
     # --- webhooks ------------------------------------------------------------------
 

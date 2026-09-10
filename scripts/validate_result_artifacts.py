@@ -83,6 +83,25 @@ def _notify_routes() -> Path:
     return path
 
 
+def _audit_db() -> Path:
+    """A server database with a few audit entries in it.
+
+    Built here rather than fixtured, because the entries are hash-chained: a
+    checked-in database would have to be regenerated whenever the chain's
+    basis string changed, and a stale one would fail as "tampering".
+    """
+    from apiverity.server.store import Store
+
+    path = _SCRATCH / "audit" / "server.db"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    store = Store(str(path))
+    org = store.create_org("artifacts")
+    for index in range(3):
+        store.audit_append(org, "ci", "policy.updated", f"policy-{index}", {"index": index})
+    store.close()
+    return path
+
+
 COMMANDS: list[tuple[str, list[str]]] = [
     (
         "diff",
@@ -220,6 +239,27 @@ COMMANDS: list[tuple[str, list[str]]] = [
             "2026-01-01T00:00:00Z",
             "--json",
         ],
+    ),
+    # `audit` writes a document meant to leave the building, and then reads it
+    # back with nothing but itself. Both halves emit an artifact, and neither
+    # was covered by anything until the command existed.
+    (
+        "audit export",
+        [
+            "audit",
+            "export",
+            "--db",
+            str(_audit_db()),
+            "--org-id",
+            "1",
+            "-o",
+            str(_SCRATCH / "audit" / "export.json"),
+            "--json",
+        ],
+    ),
+    (
+        "audit verify",
+        ["audit", "verify", str(_SCRATCH / "audit" / "export.json"), "--json"],
     ),
     (
         "notify",

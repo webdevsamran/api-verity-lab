@@ -37,6 +37,7 @@ evidenced in each regime — with the citation and a note on what the record doe
 | Inventory of the tools and servers an automated agent can reach | `mcp-inventory`, `mcp-lock`, `drift` |
 | Detection of credential exposure and tool-description tampering | `validate`, `drift` |
 | A dated, tamper-evident record of each verification | the pack itself |
+| A record of who changed a policy, granted an approval, or enrolled a worker | [`audit export`](audit-export.md), verifiable away from the server |
 
 A practice with no artifact behind it is left out rather than listed as
 unevidenced. A pack is a record of what was done; an empty row invites the

@@ -86,6 +86,11 @@ _GUIDE: tuple[tuple[str, str, str], ...] = (
         "evidence.md",
         "Dated, checksummed records for SOC 2, ISO 42001, DORA, EU AI Act",
     ),
+    (
+        "Audit export",
+        "audit-export.md",
+        "The hash-chained audit log as a document checkable away from the server",
+    ),
     ("CI integration", "ci.md", "Wiring the gate into a pipeline"),
     ("Safety model", "safety-model.md", "What this tool will and will not do to a target"),
     ("Privacy", "privacy.md", "What reaches an artifact, and what never does"),

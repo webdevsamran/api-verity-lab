@@ -40,6 +40,7 @@ from apiverity.cli.commands.governance import (
     cmd_validate,
 )
 from apiverity.cli.commands.platform import (
+    cmd_audit,
     cmd_explain,
     cmd_notify,
     cmd_plugins,
@@ -70,6 +71,7 @@ from apiverity.specs.loader import SPEC_FORMATS
 
 __all__ = [
     "build_parser",
+    "cmd_audit",
     "cmd_baseline",
     "cmd_breaking",
     "cmd_budget",
@@ -761,6 +763,35 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--org-id", type=int, help="org id for export")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_server_db)
+    p = sub.add_parser(
+        "audit",
+        help="export the hash-chained audit log, or verify an exported one",
+    )
+    p.add_argument("action", choices=["export", "verify"])
+    p.add_argument("file", nargs="?", help="the export document, for `verify`")
+    p.add_argument("--db", help="server SQLite database path, for `export`")
+    p.add_argument("--org-id", type=int, help="org whose log to export")
+    p.add_argument("-o", "--output", help="write the export document here")
+    p.add_argument(
+        "--against",
+        metavar="FILE",
+        help=(
+            "an earlier export of the same org. A hash chain proves modification and "
+            "reordering; it cannot prove nothing was deleted from the end, and this "
+            "comparison is what does"
+        ),
+    )
+    p.add_argument(
+        "--hmac-key-env",
+        metavar="VAR",
+        help=(
+            "name of an environment variable holding the seal key. The name, not the "
+            "value: a key passed on the command line is in the shell history, the CI "
+            "log and the process table"
+        ),
+    )
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_audit)
     p = sub.add_parser(
         "notify",
         help="route a result artifact's findings to the teams they concern",

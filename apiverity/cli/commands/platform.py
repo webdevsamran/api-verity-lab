@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from apiverity.cli.commands.common import (
+    EXIT_FINDINGS,
     EXIT_INTERNAL,
     EXIT_OK,
     EXIT_USAGE,
@@ -83,6 +84,101 @@ def cmd_server_db(args: argparse.Namespace) -> int:
         )
         return EXIT_OK
     print(f"error: unknown action '{action}'", file=sys.stderr)
+    return EXIT_USAGE
+
+
+def _hmac_key(args: argparse.Namespace) -> bytes | None:
+    """The seal key, from the environment and never from a flag.
+
+    A key on the command line lands in shell history, in the CI log that echoes
+    the command, and in the process table for every other user on the box. The
+    variable name is the argument; the value never passes through argv.
+    """
+    import os
+
+    name = getattr(args, "hmac_key_env", None)
+    if not name:
+        return None
+    value = os.environ.get(str(name))
+    if not value:
+        raise KeyError(str(name))
+    return value.encode("utf-8")
+
+
+def cmd_audit(args: argparse.Namespace) -> int:
+    """Export the hash-chained audit log, or check an exported one.
+
+    `verify` reads the file and nothing else -- no database, no server, no
+    network. That is the point of it: a verifier that needs the system under
+    audit is a verifier the system under audit can lie to.
+    """
+    from apiverity.server.audit_export import verify_export
+
+    try:
+        key = _hmac_key(args)
+    except KeyError as exc:
+        print(
+            f"error: ${exc.args[0]} is not set, so no seal key is available. "
+            "Unset --hmac-key-env to export without a seal.",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+
+    if args.action == "export":
+        from apiverity.server.store import Store
+
+        if not args.db or args.org_id is None:
+            print("error: audit export needs --db and --org-id", file=sys.stderr)
+            return EXIT_USAGE
+        store = Store(args.db)
+        try:
+            document = store.audit_export(int(args.org_id), hmac_key=key)
+        finally:
+            store.close()
+        if args.output:
+            Path(args.output).write_text(
+                json.dumps(document, indent=2, sort_keys=True), encoding="utf-8"
+            )
+        _emit(
+            {
+                "tool": "apiverity",
+                "command": "audit",
+                "action": "export",
+                "org_id": int(args.org_id),
+                "entry_count": document["entry_count"],
+                "last_entry_hash": document["last_entry_hash"],
+                "chain_valid": document["chain"]["valid"],
+                "sealed": "seal" in document,
+                "output": args.output,
+            },
+            args.json,
+        )
+        # A broken chain is the finding this command exists to surface. Exiting
+        # 0 on one would mean the export succeeded and the log did not.
+        return EXIT_OK if document["chain"]["valid"] else EXIT_FINDINGS
+
+    if args.action == "verify":
+        if not args.file:
+            print("error: audit verify needs a path to an export document", file=sys.stderr)
+            return EXIT_USAGE
+        document = json.loads(Path(args.file).read_text(encoding="utf-8"))
+        earlier = (
+            json.loads(Path(args.against).read_text(encoding="utf-8")) if args.against else None
+        )
+        result = verify_export(document, hmac_key=key, against=earlier)
+        _emit(
+            {
+                "tool": "apiverity",
+                "command": "audit",
+                "action": "verify",
+                "file": args.file,
+                **result.as_dict(),
+            },
+            args.json,
+        )
+        return EXIT_OK if result.ok else EXIT_FINDINGS
+
+    print(f"error: unknown action '{args.action}'", file=sys.stderr)
     return EXIT_USAGE
 
 

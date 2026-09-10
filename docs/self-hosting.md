@@ -70,7 +70,11 @@ apiverity server-db import --db verity.db --input org.json     # becomes a new o
 ```
 
 Retention: `Store.purge_older_than(days)` prunes old findings/runs.
-Audit events are hash-chained; verify with `store.audit_verify_chain(org_id)`.
+Audit events are hash-chained. `store.audit_status(org_id)` names the first entry that
+broke rather than answering `False`, and `apiverity audit export --db ... --org-id ...`
+writes the chain as a document somebody outside this server can check --
+see [audit export](audit-export.md), which also says what a hash chain does *not*
+prove. `GET /v1/audit/export` serves the same document over HTTP.
 
 ## Identity providers
 

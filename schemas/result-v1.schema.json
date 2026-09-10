@@ -21,6 +21,7 @@
     },
     "command": {
       "enum": [
+        "audit",
         "baseline",
         "breaking",
         "budget",

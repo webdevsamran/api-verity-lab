@@ -563,9 +563,35 @@ def create_app(
         if err:
             return err
         events = store.audit_list(g.identity.org_id)
+        status = store.audit_status(g.identity.org_id)
         return jsonify(
-            {"events": events, "chain_valid": store.audit_verify_chain(g.identity.org_id)}
+            {
+                "events": events,
+                # `chain_valid` stays, because callers branch on it. `chain`
+                # is the answer a responder can act on: "invalid" without an
+                # entry id means reading the whole table by hand.
+                "chain_valid": status.valid,
+                "chain": status.as_dict(),
+            }
         )
+
+    @app.get("/v1/audit/export")
+    def audit_export() -> Any:
+        """The whole chain as a document that can be checked elsewhere.
+
+        Separate from `/v1/audit`, which is paged for a screen. Evidence that
+        stopped at a hundred entries would be a shorter history presented as
+        the whole one.
+
+        The seal is deliberately not offered here. It would mean this process
+        holding the key, and a key held by the system under audit seals
+        nothing; `apiverity audit export --hmac-key-env` is where that belongs,
+        run by whoever holds it.
+        """
+        g.identity, err = current_identity("view_audit")
+        if err:
+            return err
+        return jsonify(store.audit_export(g.identity.org_id))
 
     @app.post("/v1/webhooks")
     def register_webhook() -> Any:
