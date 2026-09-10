@@ -822,7 +822,7 @@ kbd {
   padding: var(--s2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--surface);
+  background: var(--elevated);
   color: inherit;
   font: inherit;
 }
@@ -832,3 +832,9 @@ kbd {
  * which one they are in without opening the dialog. */
 .btn-live { color: var(--success); }
 .badge-live { background: var(--success-subtle); color: var(--success); }
+
+/* Run progress, streamed from the server. */
+.run-detail td { background: var(--elevated); }
+.run-progress { margin: 0; padding-left: var(--s5); }
+.run-progress li { padding: 2px 0; font-family: var(--font-mono); font-size: var(--text-sm); }
+.btn-inline { padding: 0; font: inherit; text-decoration: underline; }
