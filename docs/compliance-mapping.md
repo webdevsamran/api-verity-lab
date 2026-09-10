@@ -99,7 +99,7 @@ Source: <https://owasp.org/API-Security/editions/2023/en/0x11-t10/>, published 2
 | API6 | Unrestricted Access to Sensitive Business Flows | *not assessable* | -- |
 | API7 | Server Side Request Forgery | *not assessable* | -- |
 | API8 | Security Misconfiguration | `SEC-HTTPS-POLICY`<br>`SEC-SENSITIVE-HEADER`<br>`MCP-AUTH-PLAINTEXT-TRANSPORT` | `drift`, `validate` |
-| API9 | Improper Inventory Management | `DRIFT-`<br>`MCP-DRIFT-TOOL-UNDECLARED`<br>`MCP-LOCK-TOOL-ADDED`<br>`BRK-OP-`<br>`LIFECYCLE-` | `breaking`, `drift`, `mcp-lock` |
+| API9 | Improper Inventory Management | `DRIFT-`<br>`MCP-DRIFT-TOOL-UNDECLARED`<br>`MCP-LOCK-TOOL-ADDED`<br>`BRK-OP-`<br>`LIFECYCLE-` | `breaking`, `drift`, `mcp-lock`, `validate` |
 | API10 | Unsafe Consumption of APIs | `MCP-DRIFT-`<br>`MCP-CONF-` | `drift` |
 
 ### What this tool cannot see
