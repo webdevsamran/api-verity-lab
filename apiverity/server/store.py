@@ -11,6 +11,7 @@ import contextlib
 import hashlib
 import json
 import sqlite3
+import threading
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -20,11 +21,118 @@ from apiverity.server.schema import hash_token as _hash_token
 from apiverity.server.schema import now_utc as _now
 
 
+class _Result:
+    """Rows already read, plus the two cursor attributes callers use.
+
+    `sqlite3` cursors fetch lazily, so returning one from under a lock would
+    move the actual row reads back outside it. Everything is materialised while
+    the lock is held instead. Every query in this module is bounded -- by an
+    org, an id, or an explicit LIMIT -- so there is no unbounded result set to
+    hold.
+    """
+
+    __slots__ = ("_rows", "lastrowid", "rowcount")
+
+    def __init__(self, rows: list[Any], lastrowid: int | None, rowcount: int) -> None:
+        self._rows = rows
+        self.lastrowid = lastrowid
+        self.rowcount = rowcount
+
+    def fetchone(self) -> Any:
+        return self._rows[0] if self._rows else None
+
+    def fetchall(self) -> list[Any]:
+        return list(self._rows)
+
+    def fetchmany(self, size: int = 1) -> list[Any]:
+        return list(self._rows[:size])
+
+    def __iter__(self) -> Any:
+        return iter(self._rows)
+
+
+class _SerializedConnection:
+    """A `sqlite3.Connection` that one thread uses at a time.
+
+    The connection was opened with `check_same_thread=False` and shared across
+    every request thread with nothing serialising access. That is not a
+    theoretical hazard: the first client to make concurrent requests -- the
+    dashboard, fetching eight collections at once -- got intermittent 401s for
+    a valid token, because two threads executing on one connection interleaved
+    and the token lookup came back empty.
+
+    A 401 is the visible symptom. The invisible one is a query returning
+    another query's rows, which no test would notice and no log would show.
+
+    Serialised rather than made thread-local, because a `:memory:` database
+    lives inside its connection: a per-thread connection would give each thread
+    a different empty database, which is worse than the bug it fixes and is
+    exactly how the whole test suite is configured.
+    """
+
+    def __init__(self, connection: sqlite3.Connection) -> None:
+        self._connection = connection
+        # Re-entrant: `executescript` and the migrations run while the schema
+        # lock is already held during construction.
+        self._lock = threading.RLock()
+
+    @property
+    def lock(self) -> threading.RLock:
+        """For the one operation that must hold it across several calls."""
+        return self._lock
+
+    @property
+    def raw(self) -> sqlite3.Connection:
+        """The underlying connection, for `backup`, which needs the real one."""
+        return self._connection
+
+    @property
+    def row_factory(self) -> Any:
+        return self._connection.row_factory
+
+    @row_factory.setter
+    def row_factory(self, factory: Any) -> None:
+        self._connection.row_factory = factory
+
+    def execute(self, sql: str, parameters: Any = ()) -> _Result:
+        with self._lock:
+            cursor = self._connection.execute(sql, parameters)
+            rows = cursor.fetchall() if cursor.description else []
+            return _Result(rows, cursor.lastrowid, cursor.rowcount)
+
+    def executemany(self, sql: str, parameters: Any) -> _Result:
+        with self._lock:
+            cursor = self._connection.executemany(sql, parameters)
+            return _Result([], cursor.lastrowid, cursor.rowcount)
+
+    def executescript(self, script: str) -> None:
+        with self._lock:
+            self._connection.executescript(script)
+
+    def commit(self) -> None:
+        with self._lock:
+            self._connection.commit()
+
+    def rollback(self) -> None:
+        with self._lock:
+            self._connection.rollback()
+
+    def close(self) -> None:
+        with self._lock:
+            self._connection.close()
+
+    def backup(self, target: Any, **kwargs: Any) -> None:
+        with self._lock:
+            self._connection.backup(
+                target.raw if isinstance(target, _SerializedConnection) else target, **kwargs
+            )
+
+
 class Store:
     """SQLite persistence for organizations, contracts, runs and governance."""
 
     def __init__(self, path: str | Path = ":memory:") -> None:
-        self.conn = sqlite3.connect(str(path), check_same_thread=False)
+        self.conn = _SerializedConnection(sqlite3.connect(str(path), check_same_thread=False))
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(_SCHEMA)
         # backwards-compatible column migrations (no-ops when already applied)
@@ -445,21 +553,30 @@ class Store:
         target: str,
         payload: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        last = self.conn.execute(
-            "SELECT entry_hash FROM audit_events WHERE org_id = ? ORDER BY id DESC LIMIT 1",
-            (org_id,),
-        ).fetchone()
-        prev_hash = last["entry_hash"] if last else ""
         payload_json = json.dumps(payload or {}, sort_keys=True)
         ts = _now()
-        basis = f"{prev_hash}|{ts}|{actor}|{action}|{target}|{payload_json}"
-        entry_hash = hashlib.sha256(basis.encode("utf-8")).hexdigest()
-        cur = self.conn.execute(
-            "INSERT INTO audit_events (org_id, ts, actor, action, target, payload_json,"
-            " prev_hash, entry_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (org_id, ts, actor, action, target, payload_json, prev_hash, entry_hash),
-        )
-        self.conn.commit()
+        # Read-the-tail-then-append, under one lock.
+        #
+        # Each entry hashes the previous entry's hash, so two threads that read
+        # the same tail both link to it and the chain forks. Serialising the
+        # individual statements is not enough: the hazard is the gap *between*
+        # them, and the symptom is a tamper-evident log that reports tampering
+        # on its own writes -- which is worse than no log, because the next
+        # person switches the check off.
+        with self.conn.lock:
+            last = self.conn.execute(
+                "SELECT entry_hash FROM audit_events WHERE org_id = ? ORDER BY id DESC LIMIT 1",
+                (org_id,),
+            ).fetchone()
+            prev_hash = last["entry_hash"] if last else ""
+            basis = f"{prev_hash}|{ts}|{actor}|{action}|{target}|{payload_json}"
+            entry_hash = hashlib.sha256(basis.encode("utf-8")).hexdigest()
+            cur = self.conn.execute(
+                "INSERT INTO audit_events (org_id, ts, actor, action, target, payload_json,"
+                " prev_hash, entry_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (org_id, ts, actor, action, target, payload_json, prev_hash, entry_hash),
+            )
+            self.conn.commit()
         return {
             "id": int(cur.lastrowid or 0),
             "ts": ts,
@@ -564,7 +681,11 @@ class Store:
         src = sqlite3.connect(f"file:{Path(path)}?mode=ro", uri=True)
         try:
             dest = cls(target)
-            src.backup(dest.conn)
+            # `.raw`, because SQLite's own backup API takes a real connection.
+            # The lock is held for the copy so a request in flight cannot read
+            # a half-restored database.
+            with dest.conn.lock:
+                src.backup(dest.conn.raw)
             dest.conn.commit()
         finally:
             src.close()

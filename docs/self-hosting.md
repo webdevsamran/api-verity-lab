@@ -116,6 +116,29 @@ they are outputs of a run, not server state, and a dashboard reporting
 "0 failures, 100% coverage" for a service nobody has tested is worse than a
 blank one and much harder to notice.
 
+## Concurrency
+
+`Store` keeps one SQLite connection, opened with `check_same_thread=False`, and
+every request thread uses it. Access is serialised behind a re-entrant lock —
+without one, two threads executing on the same connection interleave, and the
+first client to make concurrent requests found out: the dashboard fetches eight
+collections at once, and got intermittent `401`s for a valid token because the
+token lookup came back empty. A refusal is the *lucky* symptom; the same race
+returns one query's rows to another query's caller, which no log records.
+
+It is a lock rather than a connection per thread because a `:memory:` database
+lives inside its connection: per-thread connections would hand each thread a
+different empty database.
+
+`audit_append` holds that lock across its read and its insert. Each entry
+hashes the previous entry's hash, so two threads that read the same tail both
+link to it and the chain forks — a tamper-evident log reporting tampering on
+its own writes, which is worse than no log because the next person switches the
+check off.
+
+For serious write concurrency, put a real database behind the store interface.
+This is a lock, not a scalability story, and it is honest about which.
+
 ## Observability
 
 Prometheus text metrics at `/metrics`; structured request counters and
