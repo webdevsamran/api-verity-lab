@@ -125,6 +125,7 @@
         "--invoke-tool",
         "--json",
         "--max-list-pages",
+        "--otlp-endpoint",
         "--save-baseline",
         "--seed",
         "--skip-auth-probe",

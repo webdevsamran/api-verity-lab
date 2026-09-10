@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -123,6 +124,15 @@ def _drift_mcp(args: argparse.Namespace, service: Service) -> int:
         )
         return EXIT_USAGE
 
+    otlp_endpoint = getattr(args, "otlp_endpoint", None)
+    recorder = None
+    if otlp_endpoint:
+        from apiverity.exporters.otel import TraceRecorder
+
+        # Seeded from the target and the clock, so two runs against the same
+        # server are separate traces without the caller passing an id.
+        recorder = TraceRecorder(seed=f"{args.base_url}:{time.time_ns()}")
+
     try:
         report = detect_mcp_drift(
             service,
@@ -131,6 +141,7 @@ def _drift_mcp(args: argparse.Namespace, service: Service) -> int:
             headers=headers or None,
             max_pages=getattr(args, "max_list_pages", 50),
             check_auth=not getattr(args, "skip_auth_probe", False),
+            recorder=recorder,
         )
     except McpTransportError as exc:
         print(f"error: target unreachable: {exc}", file=sys.stderr)
@@ -187,6 +198,35 @@ def _drift_mcp(args: argparse.Namespace, service: Service) -> int:
                 "Add --execute to send them.",
                 file=sys.stderr,
             )
+
+    if recorder is not None:
+        report.trace = {
+            "trace_id": recorder.trace_id,
+            "spans": [
+                {
+                    "span_id": span.span_id,
+                    "name": span.name,
+                    "status": span.status,
+                    "duration_ms": span.duration_ms,
+                }
+                for span in recorder.spans
+            ],
+        }
+        payload["report"] = report
+        try:
+            status = recorder.export(str(otlp_endpoint))
+        except Exception as exc:
+            # A collector that is down must not fail a drift run. The findings
+            # were established before the export was attempted, and losing them
+            # because a sidecar restarted is how a gate becomes the thing teams
+            # switch off.
+            print(f"warning: OTLP export to {otlp_endpoint} failed: {exc}", file=sys.stderr)
+        else:
+            if status >= 400:
+                print(
+                    f"warning: OTLP collector at {otlp_endpoint} answered {status}",
+                    file=sys.stderr,
+                )
 
     _emit(payload, args.json)
     return mcp_code

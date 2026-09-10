@@ -389,6 +389,16 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     p.add_argument(
+        "--otlp-endpoint",
+        metavar="URL",
+        help=(
+            "POST this run's spans to an OTLP/HTTP collector. Spans follow the "
+            "OpenTelemetry GenAI conventions for MCP, so a drift finding lands beside the "
+            "agent traffic already in your tracing backend. Opt-in: nothing leaves the "
+            "machine without this, and bodies and credentials never become attributes"
+        ),
+    )
+    p.add_argument(
         "--skip-auth-probe",
         action="store_true",
         help=(

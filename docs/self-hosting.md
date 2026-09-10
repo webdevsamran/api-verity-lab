@@ -82,9 +82,29 @@ integration requires an environment we do not ship; see ISSUES.md.
 ## Observability
 
 Prometheus text metrics at `/metrics`; structured request counters and
-latency summaries; OTLP trace export is opt-in per run via
-`apiverity.exporters.otel.TraceRecorder.export(endpoint)` — sensitive
+latency summaries; OTLP trace export is opt-in per run, either from the CLI —
+`apiverity drift manifest.json --base-url URL --otlp-endpoint URL` — or from
+`apiverity.exporters.otel.TraceRecorder.export(endpoint)`. Sensitive
 attributes are redacted before export (see SAFETY_MODEL.md).
+
+MCP spans follow the [OpenTelemetry GenAI semantic
+conventions](https://github.com/open-telemetry/semantic-conventions-genai)
+(`docs/gen-ai/mcp.md`, read 2026-09-10): `mcp.method.name`,
+`mcp.protocol.version`, `gen_ai.tool.name`, `gen_ai.operation.name`,
+`jsonrpc.request.id`, `rpc.response.status_code`, `error.type` and the
+`network.*` / `server.*` attributes, on `SPAN_KIND_CLIENT` spans named
+`{method} {target}`. Those conventions are **Development** status in a
+repository with no tagged release, so the names live in one module
+(`apiverity/exporters/semconv.py`) and a rename upstream is a one-file diff.
+
+Trace context is propagated in `params._meta` as an unprefixed `traceparent`,
+which the conventions specify for MCP: one MCP request can be retried across
+several HTTP requests and one HTTP request can carry several MCP messages, so
+HTTP-level propagation does not describe the MCP call.
+
+`gen_ai.tool.call.arguments` and `gen_ai.tool.call.result` are defined by the
+conventions as opt-in and are **never emitted here**. They carry a tool's
+inputs and outputs verbatim, and a span leaves the machine.
 
 ## Air-gapped operation
 

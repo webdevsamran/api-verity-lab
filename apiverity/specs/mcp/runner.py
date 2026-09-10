@@ -211,10 +211,15 @@ class McpClient:
         timeout: float = 10.0,
         headers: dict[str, str] | None = None,
         client: httpx.Client | None = None,
+        recorder: Any | None = None,
     ) -> None:
         self.endpoint = endpoint
         self.timeout = timeout
         self.headers = dict(headers or {})
+        #: An `exporters.otel.TraceRecorder`, or None. Typed loosely on
+        #: purpose: the transport must not import the exporter, so that a run
+        #: with no tracing configured pays nothing for the option.
+        self.recorder = recorder
         self._client = client
         self._owns_client = client is None
         self._id = 0
@@ -289,10 +294,78 @@ class McpClient:
     def call(self, method: str, params: dict[str, Any] | None = None) -> RpcResult:
         if self._client is None:  # pragma: no cover - guarded by __enter__
             raise McpTransportError("client used outside its context manager")
+        envelope = self._envelope(method, params)
+        handle = self._open_span(method, params, envelope)
+        try:
+            return self._call(method, params, envelope, handle)
+        except McpTransportError as exc:
+            self._close_span(handle, transport_error=type(exc).__name__)
+            raise
+
+    def _open_span(
+        self, method: str, params: dict[str, Any] | None, envelope: dict[str, Any]
+    ) -> tuple[str, float] | None:
+        """Start an MCP client span, and put its context on the request.
+
+        Returns None when no recorder is configured, which is the default: a
+        run with no tracing set up does no work here and imports nothing.
+
+        The trace context goes into `params._meta` as an unprefixed
+        `traceparent`, which is the one exception to the DNS-prefixed key rule
+        and is specified as such. HTTP-level propagation would not do: one MCP
+        request can be retried across several HTTP requests, and one HTTP
+        request can carry several MCP messages, so the HTTP context is not the
+        MCP context.
+        """
+        if self.recorder is None:
+            return None
+        from apiverity.exporters.otel import KIND_CLIENT
+        from apiverity.exporters.semconv import client_attributes, span_name
+
+        handle = self.recorder.start_span(
+            span_name(method, params),
+            kind=KIND_CLIENT,
+            **client_attributes(
+                method,
+                endpoint=self.endpoint,
+                params=params,
+                request_id=envelope.get("id"),
+            ),
+        )
+        span_id, started = str(handle[0]), float(handle[1])
+        meta = envelope["params"]["_meta"]
+        meta["traceparent"] = self.recorder.traceparent(span_id)
+        return span_id, started
+
+    def _close_span(
+        self,
+        handle: tuple[str, float] | None,
+        *,
+        error: dict[str, Any] | None = None,
+        result: dict[str, Any] | None = None,
+        transport_error: str | None = None,
+    ) -> None:
+        if handle is None or self.recorder is None:
+            return
+        from apiverity.exporters.semconv import response_attributes
+
+        attributes, status = response_attributes(
+            error=error, result=result, transport_error=transport_error
+        )
+        self.recorder.end_span(handle, status=status, **attributes)
+
+    def _call(
+        self,
+        method: str,
+        params: dict[str, Any] | None,
+        envelope: dict[str, Any],
+        handle: tuple[str, float] | None,
+    ) -> RpcResult:
+        assert self._client is not None
         try:
             response = self._client.post(
                 self.endpoint,
-                json=self._envelope(method, params),
+                json=envelope,
                 headers={
                     "content-type": "application/json",
                     "accept": "application/json",
@@ -322,10 +395,10 @@ class McpClient:
             raise McpTransportError(f"{self.endpoint}: JSON-RPC reply is not an object")
         error = payload.get("error")
         result = payload.get("result")
-        return RpcResult(
-            result=result if isinstance(result, dict) else None,
-            error=error if isinstance(error, dict) else None,
-        )
+        error = error if isinstance(error, dict) else None
+        result = result if isinstance(result, dict) else None
+        self._close_span(handle, error=error, result=result)
+        return RpcResult(result=result, error=error)
 
 
 def probe(client: McpClient, *, headers: dict[str, str] | None = None) -> Observation:

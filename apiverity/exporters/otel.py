@@ -44,6 +44,12 @@ def redact_attributes(attrs: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+#: OTLP span kinds, as the protocol spells them.
+KIND_INTERNAL = "SPAN_KIND_INTERNAL"
+KIND_CLIENT = "SPAN_KIND_CLIENT"
+KIND_SERVER = "SPAN_KIND_SERVER"
+
+
 @dataclass
 class Span:
     name: str
@@ -54,15 +60,36 @@ class Span:
     duration_ms: float
     attributes: dict[str, Any] = field(default_factory=dict)
     status: str = "ok"
+    kind: str = KIND_INTERNAL
+    #: Wall-clock start, in nanoseconds since the epoch. Recorded when the span
+    #: opens rather than derived at export time, which is the whole point --
+    #: see `to_otlp`.
+    start_unix_nano: int = 0
 
     def to_otlp(self) -> dict[str, Any]:
+        """One span, in OTLP/JSON.
+
+        `startTimeUnixNano` used to be `time.time()` read *here*, at
+        serialization -- so every span in an exported batch claimed to have
+        started at the same instant, the instant of the export, and none of
+        them recorded when they actually ran. `endTimeUnixNano` was not emitted
+        at all, which is a required field: a collector receiving this got a
+        batch of zero-length spans stamped in the future, and the measured
+        `duration_ms` sitting on the dataclass never left the process.
+
+        Both are written from what the span actually recorded now.
+        """
+        start = self.start_unix_nano
+        elapsed = self.duration_ms if self.duration_ms >= 0 else 0.0
+        end = start + int(elapsed * 1_000_000)
         return {
             "traceId": self.trace_id,
             "spanId": self.span_id,
             "parentSpanId": self.parent_span_id,
             "name": self.name,
-            "kind": "SPAN_KIND_INTERNAL",
-            "startTimeUnixNano": str(int(time.time() * 1_000_000_000)),
+            "kind": self.kind,
+            "startTimeUnixNano": str(start),
+            "endTimeUnixNano": str(end),
             "attributes": [
                 {"key": k, "value": {"stringValue": str(v)}}
                 for k, v in sorted(redact_attributes(self.attributes).items())
@@ -86,7 +113,12 @@ class TraceRecorder:
         self._counter = 0
 
     def start_span(
-        self, name: str, *, parent_span_id: str | None = None, **attrs: Any
+        self,
+        name: str,
+        *,
+        parent_span_id: str | None = None,
+        kind: str = KIND_INTERNAL,
+        **attrs: Any,
     ) -> tuple[str, float]:
         self._counter += 1
         span_id = hashlib.sha256(f"{self.trace_id}:{self._counter}:{name}".encode()).hexdigest()[
@@ -102,6 +134,11 @@ class TraceRecorder:
                 start_utc=datetime.now(UTC).isoformat(timespec="seconds"),
                 duration_ms=-1.0,
                 attributes=dict(attrs),
+                kind=kind,
+                # `time.time` for the wall clock the collector needs and
+                # `time.monotonic` for the duration, because only one of them
+                # is immune to the clock stepping mid-run.
+                start_unix_nano=time.time_ns(),
             )
         )
         return span_id, started
@@ -119,6 +156,17 @@ class TraceRecorder:
     @property
     def spans(self) -> list[Span]:
         return list(self._spans)
+
+    def traceparent(self, span_id: str) -> str:
+        """W3C `traceparent` naming this recorder's trace and one span in it.
+
+        Handed to the MCP client so a probe's request carries the context the
+        server needs to make its own span a child of ours. Without it the two
+        halves of one call are two unrelated traces.
+        """
+        from apiverity.exporters.semconv import traceparent
+
+        return traceparent(self.trace_id, span_id)
 
     def to_otlp_json(self) -> dict[str, Any]:
         return {

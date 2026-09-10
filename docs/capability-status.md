@@ -124,7 +124,10 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
 
 ## Security & privacy
 - Defensive security packs, OAuth scope coverage, sensitive-field redaction, auth profiles — EXISTING
-- OTLP trace export with attribute redaction — EXISTING (`exporters/otel.py`)
+- OTLP trace export with attribute redaction — EXISTING (`exporters/otel.py`),
+  reachable from the CLI since 2026-09-10 (`drift --otlp-endpoint`) and following the
+  OpenTelemetry GenAI conventions for MCP (`exporters/semconv.py`). Before that the
+  recorder was library-only, and its OTLP output carried no end timestamp
 - Authentication findings that can actually fire — FIXED. `SEC-AUTH-MISSING`
   and `SEC-UNAUTH-WRITE` were unreachable: an empty `global_security` default
   was read as an explicit anonymity declaration, so a spec with an

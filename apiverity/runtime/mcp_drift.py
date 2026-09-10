@@ -67,6 +67,11 @@ class McpDriftReport(BaseModel):
     #: even when every check passed, because a posture report that only speaks
     #: when something is wrong cannot be used as evidence that it is not.
     auth_posture: dict[str, Any] = Field(default_factory=dict)
+    #: Trace id and per-call spans, when tracing was configured. Empty
+    #: otherwise -- an empty dict says "not traced", where a fabricated id
+    #: would say "traced, look it up" and send the reader somewhere nothing
+    #: exists.
+    trace: dict[str, Any] = Field(default_factory=dict)
 
 
 def _conformance(tools: list[dict[str, Any]], envelope: dict[str, Any]) -> list[McpFinding]:
@@ -303,6 +308,7 @@ def detect_mcp_drift(
     check_stability: bool = True,
     check_auth: bool = True,
     client_factory: Any = None,
+    recorder: Any = None,
 ) -> McpDriftReport:
     """Compare a declared manifest against a live server, read-only.
 
@@ -311,13 +317,19 @@ def detect_mcp_drift(
 
     `declared` may be None, which runs the conformance half alone -- useful
     against a server whose manifest nobody has captured yet.
+
+    `recorder` is an optional `exporters.otel.TraceRecorder`. When given, every
+    MCP call this run makes becomes a span following the OpenTelemetry GenAI
+    conventions, and the report records the trace id -- so a drift finding can
+    be read next to the call that produced it in whatever the team already
+    uses, rather than in a viewer only this tool can open.
     """
     started = time.monotonic()
 
     def make_client() -> McpClient:
         if client_factory is not None:
             return client_factory()  # type: ignore[no-any-return]
-        return McpClient(endpoint, timeout=timeout, headers=headers)
+        return McpClient(endpoint, timeout=timeout, headers=headers, recorder=recorder)
 
     with make_client() as client:
         observation = probe(client, headers=headers)
