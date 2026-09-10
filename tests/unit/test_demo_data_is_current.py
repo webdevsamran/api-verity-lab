@@ -95,6 +95,52 @@ def test_the_fleet_section_came_from_real_probes() -> None:
         assert server["protocol_revision"], "a probe that established nothing is not a row"
 
 
+def test_the_performance_section_measured_something_that_answered() -> None:
+    """The demo Performance page plotted a closed port for months.
+
+    `measure` sat one line below the `with MockServer(...)` block in the
+    generator, so it ran after the mock had been shut down. Every operation
+    came back `unreachable: 15`, `errors: 15`, `p50_ms: 2055` -- the connect
+    timeout -- and `throughput_rps: 7`. The dashboard rendered all of it as a
+    service under load, and the artifact said `unreachable` the whole time.
+
+    Nothing here compares numbers to expected values; timing is not
+    reproducible and asserting on it would produce a flaky test that gets
+    deleted. What is asserted is the distinction the artifact already draws
+    and nobody read: something answered.
+    """
+    performance = _artifact()["performance"]
+    assert isinstance(performance, dict)
+    operations = performance["operations"]
+    assert isinstance(operations, list) and operations
+
+    dead = [op["operation_key"] for op in operations if op["unreachable"] == op["samples"]]
+    assert not dead, (
+        f"the demo performance section measured nothing for {dead}: every request was "
+        "refused. Re-run scripts/generate-demo-data.py -- and check `measure` is inside "
+        "the MockServer block, which is the mistake this test exists for."
+    )
+
+
+def test_the_performance_section_reports_response_size() -> None:
+    """A p95 of 12 ms and a response of four megabytes are both facts about
+    the same call, and the artifact used to carry only one of them."""
+    operations = _artifact()["performance"]["operations"]  # type: ignore[index]
+    assert any(op.get("bytes_max", 0) > 0 for op in operations), (
+        "no operation reported a response size; either nothing answered or the "
+        "artifact predates the byte counters"
+    )
+
+
+def test_the_performance_section_carries_the_connection_probe() -> None:
+    """And the sentence saying it is not inside the percentiles, which is what
+    stops a reader adding a handshake to a p95."""
+    connection = _artifact()["performance"]["connection"]  # type: ignore[index]
+    assert isinstance(connection, dict)
+    assert connection["tcp_ms"] is not None
+    assert "reuse a pooled connection" in connection["note"]
+
+
 def test_the_generator_does_not_reference_a_field_the_model_renamed() -> None:
     """The exact regression: `TestCase.path` became `url_path` and this broke.
 

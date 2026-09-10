@@ -376,7 +376,7 @@
         "violations": [],
         "reproduction": "curl -X DELETE 'http://127.0.0.1:8095/users/qah'",
         "minimized": false,
-        "duration_ms": 5
+        "duration_ms": 6
       },
       {
         "case_id": "TC-000-001",
@@ -456,7 +456,7 @@
         ],
         "reproduction": "curl -X GET 'http://127.0.0.1:8095/users/12345'",
         "minimized": false,
-        "duration_ms": 3
+        "duration_ms": 2
       },
       {
         "case_id": "TC-003-000",
@@ -468,7 +468,7 @@
         "violations": [],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"hmc\", \"email\": \"user@example.com\", \"age\": 2, \"role\": \"admin\"}'",
         "minimized": false,
-        "duration_ms": 20
+        "duration_ms": 3
       },
       {
         "case_id": "TC-003-001",
@@ -510,7 +510,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": 12345, \"email\": \"user@example.com\", \"age\": 109, \"role\": \"admin\"}'",
         "minimized": false,
-        "duration_ms": 3
+        "duration_ms": 4
       },
       {
         "case_id": "TC-003-004",
@@ -566,7 +566,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"rmj\", \"email\": \"user@example.com\", \"age\": -1, \"role\": \"user\"}'",
         "minimized": false,
-        "duration_ms": 3
+        "duration_ms": 17
       },
       {
         "case_id": "TC-003-008",
@@ -625,160 +625,195 @@
       {
         "operation_key": "DELETE /users/{id}",
         "requests": 15,
-        "errors": 15,
+        "errors": 0,
         "timeouts": 0,
         "samples": 15,
         "warmup": 0,
-        "unreachable": 15,
-        "p50_ms": 2055.75,
-        "p90_ms": 2070.91,
-        "p95_ms": 2079.85,
-        "p99_ms": 2079.85,
+        "unreachable": 0,
+        "p50_ms": 3.69,
+        "p90_ms": 18.73,
+        "p95_ms": 20.18,
+        "p99_ms": 20.18,
         "p50_ci95": [
-          2040.51,
-          2061.5
+          3.6,
+          15.21
         ],
         "p90_ci95": [
-          2060.27,
-          2079.85
+          4.43,
+          20.18
         ],
         "p95_ci95": [
-          2061.5,
-          2079.85
+          15.21,
+          20.18
         ],
         "p99_ci95": [
-          2061.5,
-          2079.85
+          15.21,
+          20.18
         ],
-        "throughput_rps": 0.49,
+        "throughput_rps": 136.82,
         "throughput_ci95": [
-          0.49,
-          0.49
+          94.96,
+          229.13
         ],
-        "error_rate_pct": 100.0,
+        "error_rate_pct": 0.0,
         "error_rate_ci95": [
-          79.6117,
-          100.0
-        ]
+          0.0,
+          20.3883
+        ],
+        "bytes_p50": 0,
+        "bytes_p95": 0,
+        "bytes_max": 0,
+        "bytes_total": 0,
+        "bytes_per_second": 0.0
       },
       {
         "operation_key": "GET /users",
         "requests": 15,
-        "errors": 15,
+        "errors": 0,
         "timeouts": 0,
         "samples": 15,
         "warmup": 0,
-        "unreachable": 15,
-        "p50_ms": 2045.37,
-        "p90_ms": 2059.41,
-        "p95_ms": 2062.04,
-        "p99_ms": 2062.04,
+        "unreachable": 0,
+        "p50_ms": 3.6,
+        "p90_ms": 16.3,
+        "p95_ms": 27.78,
+        "p99_ms": 27.78,
         "p50_ci95": [
-          2034.18,
-          2057.96
+          3.52,
+          3.65
         ],
         "p90_ci95": [
-          2050.65,
-          2062.04
+          3.63,
+          27.78
         ],
         "p95_ci95": [
-          2057.96,
-          2062.04
+          3.65,
+          27.78
         ],
         "p99_ci95": [
-          2057.96,
-          2062.04
+          3.65,
+          27.78
         ],
-        "throughput_rps": 0.49,
+        "throughput_rps": 165.59,
         "throughput_ci95": [
-          0.49,
-          0.49
+          99.38,
+          286.57
         ],
-        "error_rate_pct": 100.0,
+        "error_rate_pct": 0.0,
         "error_rate_ci95": [
-          79.6117,
-          100.0
-        ]
+          0.0,
+          20.3883
+        ],
+        "bytes_p50": 75,
+        "bytes_p95": 88,
+        "bytes_max": 88,
+        "bytes_total": 1100,
+        "bytes_per_second": 12143.3
       },
       {
         "operation_key": "GET /users/{id}",
         "requests": 15,
-        "errors": 15,
+        "errors": 0,
         "timeouts": 0,
         "samples": 15,
         "warmup": 0,
-        "unreachable": 15,
-        "p50_ms": 2040.92,
-        "p90_ms": 2049.71,
-        "p95_ms": 2054.75,
-        "p99_ms": 2054.75,
+        "unreachable": 0,
+        "p50_ms": 3.62,
+        "p90_ms": 4.46,
+        "p95_ms": 4.56,
+        "p99_ms": 4.56,
         "p50_ci95": [
-          2031.53,
-          2046.02
+          3.29,
+          3.84
         ],
         "p90_ci95": [
-          2045.14,
-          2054.75
+          3.82,
+          4.56
         ],
         "p95_ci95": [
-          2046.02,
-          2054.75
+          3.84,
+          4.56
         ],
         "p99_ci95": [
-          2046.02,
-          2054.75
+          3.84,
+          4.56
         ],
-        "throughput_rps": 0.49,
+        "throughput_rps": 274.83,
         "throughput_ci95": [
-          0.49,
-          0.49
+          258.0,
+          293.77
         ],
-        "error_rate_pct": 100.0,
+        "error_rate_pct": 0.0,
         "error_rate_ci95": [
-          79.6117,
-          100.0
-        ]
+          0.0,
+          20.3883
+        ],
+        "bytes_p50": 73,
+        "bytes_p95": 86,
+        "bytes_max": 86,
+        "bytes_total": 1016,
+        "bytes_per_second": 18615.46
       },
       {
         "operation_key": "POST /users",
         "requests": 15,
-        "errors": 15,
+        "errors": 0,
         "timeouts": 0,
         "samples": 15,
         "warmup": 0,
-        "unreachable": 15,
-        "p50_ms": 2041.18,
-        "p90_ms": 2065.02,
-        "p95_ms": 2068.99,
-        "p99_ms": 2068.99,
+        "unreachable": 0,
+        "p50_ms": 3.94,
+        "p90_ms": 21.24,
+        "p95_ms": 24.69,
+        "p99_ms": 24.69,
         "p50_ci95": [
-          2034.4,
-          2057.47
+          3.44,
+          4.36
         ],
         "p90_ci95": [
-          2054.82,
-          2068.99
+          4.3,
+          24.69
         ],
         "p95_ci95": [
-          2057.47,
-          2068.99
+          4.36,
+          24.69
         ],
         "p99_ci95": [
-          2057.47,
-          2068.99
+          4.36,
+          24.69
         ],
-        "throughput_rps": 0.49,
+        "throughput_rps": 135.4,
         "throughput_ci95": [
-          0.49,
-          0.49
+          87.39,
+          262.49
         ],
-        "error_rate_pct": 100.0,
+        "error_rate_pct": 0.0,
         "error_rate_ci95": [
-          79.6117,
-          100.0
-        ]
+          0.0,
+          20.3883
+        ],
+        "bytes_p50": 85,
+        "bytes_p95": 85,
+        "bytes_max": 85,
+        "bytes_total": 1275,
+        "bytes_per_second": 11508.92
       }
-    ]
+    ],
+    "connection": {
+      "host": "127.0.0.1",
+      "port": 8095,
+      "scheme": "http",
+      "dns_ms": 0.061,
+      "tcp_ms": 1.736,
+      "tls_ms": null,
+      "total_ms": 2.075,
+      "tls_version": null,
+      "cipher": null,
+      "alpn": null,
+      "addresses": 1,
+      "error": null,
+      "note": "a single cold connection, measured before the load run. Requests during the run reuse a pooled connection and do not pay this again, so it is reported beside the percentiles rather than inside them."
+    }
   },
   "coverage": {
     "overall_percent": 100.0,
@@ -1225,7 +1260,7 @@
           "actual_status": 200,
           "violations": [],
           "extracted": {},
-          "duration_ms": 14
+          "duration_ms": 11
         },
         {
           "step": "delete",
@@ -1233,7 +1268,7 @@
           "actual_status": 204,
           "violations": [],
           "extracted": {},
-          "duration_ms": 18
+          "duration_ms": 11
         }
       ],
       "cleanup_steps": [
@@ -1243,7 +1278,7 @@
           "actual_status": 204,
           "violations": [],
           "extracted": {},
-          "duration_ms": 17
+          "duration_ms": 11
         }
       ],
       "variables": {
@@ -1331,7 +1366,7 @@
         "violations": [],
         "reproduction": "curl -X DELETE 'http://127.0.0.1:8095/users/qah'",
         "minimized": false,
-        "duration_ms": 5
+        "duration_ms": 6
       },
       {
         "case_id": "TC-000-001",
@@ -1411,7 +1446,7 @@
         ],
         "reproduction": "curl -X GET 'http://127.0.0.1:8095/users/12345'",
         "minimized": false,
-        "duration_ms": 3
+        "duration_ms": 2
       },
       {
         "case_id": "TC-003-000",
@@ -1423,7 +1458,7 @@
         "violations": [],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"hmc\", \"email\": \"user@example.com\", \"age\": 2, \"role\": \"admin\"}'",
         "minimized": false,
-        "duration_ms": 20
+        "duration_ms": 3
       },
       {
         "case_id": "TC-003-001",
@@ -1521,7 +1556,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"rmj\", \"email\": \"user@example.com\", \"age\": -1, \"role\": \"user\"}'",
         "minimized": false,
-        "duration_ms": 3
+        "duration_ms": 17
       },
       {
         "case_id": "TC-003-008",
@@ -1606,7 +1641,7 @@
         "protocol": "openapi",
         "checksum": "82caf8d8777f8bd8fd0ba60b8c1e449173c1195c11bfc885ac96b681df8c7731",
         "published_by": "alice",
-        "published_at": "2026-09-10T07:47:32.447616+00:00"
+        "published_at": "2026-09-10T08:12:35.430715+00:00"
       },
       {
         "id": 2,
@@ -1615,7 +1650,7 @@
         "protocol": "openapi",
         "checksum": "82caf8d8777f8bd8fd0ba60b8c1e449173c1195c11bfc885ac96b681df8c7731",
         "published_by": "alice",
-        "published_at": "2026-09-10T07:47:32.447661+00:00"
+        "published_at": "2026-09-10T08:12:35.430774+00:00"
       }
     ],
     "environments": [
@@ -1656,8 +1691,8 @@
         "status": "approved",
         "requested_by": "bob",
         "decided_by": "alice",
-        "created_at": "2026-09-10T07:47:32.447782+00:00",
-        "decided_at": "2026-09-10T07:47:32.447812+00:00"
+        "created_at": "2026-09-10T08:12:35.430873+00:00",
+        "decided_at": "2026-09-10T08:12:35.430907+00:00"
       }
     ],
     "runs": [
@@ -1682,46 +1717,46 @@
       {
         "id": 4,
         "org_id": 1,
-        "ts": "2026-09-10T07:47:32.448010+00:00",
+        "ts": "2026-09-10T08:12:35.431116+00:00",
         "actor": "svc-ci",
         "action": "run.completed",
         "target": "run#1",
         "payload_json": "{}",
-        "prev_hash": "37870c0669ae4cac52e9f9cec85be7ad2932f43b8c72ef51185452ccd0f19192",
-        "entry_hash": "2dcab0c3d4e93ef845c13e973120c8c415213c3263d144eb9d15bccb02d1c4b9"
+        "prev_hash": "0985ec82c03afe5eedbf3681471728f19280424d755dcbbc4754f5dcd4af5727",
+        "entry_hash": "98b2efe32e6ef41f998d5d179b79b717c8d7cb614b8fcfe0974841ca4b10c001"
       },
       {
         "id": 3,
         "org_id": 1,
-        "ts": "2026-09-10T07:47:32.447990+00:00",
+        "ts": "2026-09-10T08:12:35.431094+00:00",
         "actor": "alice",
         "action": "approval.decided",
         "target": "approval#1",
         "payload_json": "{}",
-        "prev_hash": "26b07491bba24148d2f9f4871f41ec7dd81474a1d8c09f4549b2958441148c0f",
-        "entry_hash": "37870c0669ae4cac52e9f9cec85be7ad2932f43b8c72ef51185452ccd0f19192"
+        "prev_hash": "1d2e8e398800f741ecc83317cf191616af9a6f53890ae04786540f16247fa0a7",
+        "entry_hash": "0985ec82c03afe5eedbf3681471728f19280424d755dcbbc4754f5dcd4af5727"
       },
       {
         "id": 2,
         "org_id": 1,
-        "ts": "2026-09-10T07:47:32.447959+00:00",
+        "ts": "2026-09-10T08:12:35.431056+00:00",
         "actor": "alice",
         "action": "contract.published",
         "target": "Catalog@2.0.0",
         "payload_json": "{}",
-        "prev_hash": "c39c2c6918fdd4aa4a3bbe9ef8a672e440353c2b00690ff5e0ec4db0c0b7872b",
-        "entry_hash": "26b07491bba24148d2f9f4871f41ec7dd81474a1d8c09f4549b2958441148c0f"
+        "prev_hash": "007c4cf88b206a12c59864ebd136c9b01f41c03c3739f1b9cbfa867635b17ac0",
+        "entry_hash": "1d2e8e398800f741ecc83317cf191616af9a6f53890ae04786540f16247fa0a7"
       },
       {
         "id": 1,
         "org_id": 1,
-        "ts": "2026-09-10T07:47:32.447904+00:00",
+        "ts": "2026-09-10T08:12:35.431004+00:00",
         "actor": "alice",
         "action": "contract.published",
         "target": "Catalog@1.0.0",
         "payload_json": "{}",
         "prev_hash": "",
-        "entry_hash": "c39c2c6918fdd4aa4a3bbe9ef8a672e440353c2b00690ff5e0ec4db0c0b7872b"
+        "entry_hash": "007c4cf88b206a12c59864ebd136c9b01f41c03c3739f1b9cbfa867635b17ac0"
       }
     ],
     "webhooks": [
@@ -1735,7 +1770,7 @@
           "verification.failed"
         ],
         "active": 1,
-        "created_at": "2026-09-10T07:47:32.448028+00:00"
+        "created_at": "2026-09-10T08:12:35.431138+00:00"
       }
     ],
     "chain_valid": true
@@ -1776,7 +1811,7 @@
     "fleet": [
       {
         "name": "orders-mcp",
-        "endpoint": "http://127.0.0.1:53186/mcp",
+        "endpoint": "http://127.0.0.1:61813/mcp",
         "tools_declared": 3,
         "tools_served": 3,
         "protocol_revision": "2026-07-28",
@@ -1800,11 +1835,11 @@
             "span_id": null
           }
         ],
-        "duration_ms": 30
+        "duration_ms": 35
       },
       {
         "name": "orders-mcp-canary",
-        "endpoint": "http://127.0.0.1:53189/mcp",
+        "endpoint": "http://127.0.0.1:61816/mcp",
         "tools_declared": 3,
         "tools_served": 2,
         "protocol_revision": "2026-07-28",
@@ -1898,11 +1933,11 @@
             "span_id": null
           }
         ],
-        "duration_ms": 25
+        "duration_ms": 28
       },
       {
         "name": "partner-mcp",
-        "endpoint": "http://127.0.0.1:53192/mcp",
+        "endpoint": "http://127.0.0.1:61819/mcp",
         "tools_declared": 3,
         "tools_served": 4,
         "protocol_revision": "2026-07-28",
@@ -1936,7 +1971,7 @@
             "span_id": null
           }
         ],
-        "duration_ms": 27
+        "duration_ms": 32
       }
     ],
     "poisoning": {

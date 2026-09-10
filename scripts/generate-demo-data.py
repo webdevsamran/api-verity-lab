@@ -42,17 +42,22 @@ def main() -> None:
 
     from apiverity.coverage import measure_coverage
     from apiverity.fuzz.runner import build_cases, run_cases
+    from apiverity.performance.engine import measure
     from apiverity.runtime.drift import detect_drift
 
+    # `measure` used to sit *below* this block, so it ran after the mock had
+    # been shut down: every request was refused, and the dashboard's
+    # Performance page shipped p50 = 2,055 ms, 100% errors and 7 rps for every
+    # operation -- a plot of a closed port, presented as a service under load.
+    # `unreachable: 15` was in the committed artifact the whole time and
+    # nobody read it. `tests/unit/test_demo_data_is_current.py` now asserts
+    # that something answered.
     with MockServer(service, port=8095) as mock:
         base = mock.base_url
         cases = build_cases(service, seed=42)
         results = run_cases(service, base, cases)
         drift = detect_drift(drift_service, base)
-
-    from apiverity.performance.engine import measure
-
-    perf = measure(service, base, iterations=15)
+        perf = measure(service, base, iterations=15)
 
     exercised = {r.operation_key for r in results}
     statuses: dict[str, set[int]] = {}
@@ -405,7 +410,12 @@ def main() -> None:
             "results": [r.model_dump() for r in results],
         },
         "drift": {"findings": [f.model_dump() for f in drift.findings]},
-        "performance": {"operations": json.loads(perf.model_dump_json())["operations"]},
+        # The connection probe travels with the percentiles it must not be
+        # added to, because the dashboard is where somebody would add them.
+        "performance": {
+            "operations": json.loads(perf.model_dump_json())["operations"],
+            "connection": json.loads(perf.model_dump_json())["connection"],
+        },
         "coverage": {
             "overall_percent": coverage.overall_percent(),
             "operations": json.loads(coverage.model_dump_json())["operations"],

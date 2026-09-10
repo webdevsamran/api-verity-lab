@@ -9,6 +9,7 @@ import {
   PageHead,
   StatusBadge,
 } from '../components/ui'
+import type { ConnectionProbe } from '../data'
 import type { PageProps } from './types'
 
 export function DriftPage({ data }: { data: PageProps['data'] }) {
@@ -55,18 +56,64 @@ export function PerfPage({ data }: { data: PageProps['data'] }) {
   const max = Math.max(...ops.map((o) => o.p99_ms), 1)
   return (
     <>
-      <PageHead title="Performance" sub="latency percentiles from measured mock runs" />
+      <PageHead title="Performance" sub="latency percentiles, payload size, and what the connection cost" />
       <BarChart rows={ops.flatMap((o) => [
         { label: `${o.operation_key} p50`, value: o.p50_ms, max },
         { label: `${o.operation_key} p95`, value: o.p95_ms, max },
         { label: `${o.operation_key} p99`, value: o.p99_ms, max },
       ])} />
-      <table><thead><tr><th>Operation</th><th>p50 ms</th><th>p95 ms</th><th>p99 ms</th><th>Errors</th><th>req/s</th></tr></thead>
+      <table><thead><tr><th>Operation</th><th>p50 ms</th><th>p95 ms</th><th>p99 ms</th><th>Errors</th><th>req/s</th><th>p95 bytes</th><th>max bytes</th></tr></thead>
         <tbody>{ops.map((o) => (
           <tr key={o.operation_key}><td>{o.operation_key}</td><td>{o.p50_ms.toFixed(1)}</td>
             <td>{o.p95_ms.toFixed(1)}</td><td>{o.p99_ms.toFixed(1)}</td>
-            <td>{o.errors}</td><td>{o.throughput_rps.toFixed(1)}</td></tr>
+            <td>{o.errors}</td><td>{o.throughput_rps.toFixed(1)}</td>
+            <td>{fmtBytes(o.bytes_p95)}</td><td>{fmtBytes(o.bytes_max)}</td></tr>
         ))}</tbody></table>
+      <ConnectionCard probe={data.performance.connection} />
+    </>
+  )
+}
+
+/* An em dash, not a zero. A report generated before size was measured carries
+ * no byte counts at all, and printing `0 B` for one would say the response was
+ * empty. */
+function fmtBytes(n: number | undefined) {
+  if (n === undefined) return '—'
+  if (n < 1000) return `${n} B`
+  if (n < 1_000_000) return `${(n / 1000).toFixed(1)} kB`
+  return `${(n / 1_000_000).toFixed(2)} MB`
+}
+
+/**
+ * What it cost to open the connection, kept visibly apart from the
+ * percentiles.
+ *
+ * The run pools connections, so the handshake is paid once and is not in any
+ * p95 on this page. Somebody reading a 40 ms handshake beside a 12 ms p95 will
+ * add them together unless told not to, so the card says so in words.
+ */
+function ConnectionCard({ probe }: { probe?: ConnectionProbe | null }) {
+  if (!probe) return null
+  const ms = (v: number | null) => (v === null ? '—' : `${v.toFixed(1)} ms`)
+  return (
+    <>
+      <h3>Connection</h3>
+      {probe.error ? (
+        <p className="muted">The probe did not complete: <code>{probe.error}</code></p>
+      ) : (
+        <div className="cards">
+          <div className="card"><div className="card-value">{ms(probe.dns_ms)}</div><div className="card-key">DNS</div></div>
+          <div className="card"><div className="card-value">{ms(probe.tcp_ms)}</div><div className="card-key">TCP connect</div></div>
+          <div className="card">
+            <div className="card-value">{ms(probe.tls_ms)}</div>
+            <div className="card-key">
+              {probe.tls_ms === null ? 'TLS (none — plain HTTP)' : `TLS (${probe.tls_version ?? 'unknown'})`}
+            </div>
+          </div>
+          <div className="card"><div className="card-value">{ms(probe.total_ms)}</div><div className="card-key">Total</div></div>
+        </div>
+      )}
+      <p className="muted">{probe.note}</p>
     </>
   )
 }

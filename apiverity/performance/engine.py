@@ -17,6 +17,8 @@ from pydantic import BaseModel, Field
 
 from apiverity.core.model import Service
 from apiverity.fuzz.generate import fill_path, generate_valid
+from apiverity.performance.connection import ConnectionProbe
+from apiverity.performance.connection import probe as probe_connection
 from apiverity.performance.stats import (
     Interval,
     bootstrap_percentile_ci,
@@ -28,8 +30,14 @@ from apiverity.performance.stats import (
 
 _POLICY_RE = re.compile(
     r"^(?P<method>GET|POST|PUT|PATCH|DELETE)\s+(?P<path>\S+)\s+"
-    r"(?P<metric>p50|p90|p95|p99|error_rate|throughput)\s*<=\s*(?P<value>[\d.]+)(?P<unit>ms|%|rps)?$"
+    r"(?P<metric>p50|p90|p95|p99|error_rate|throughput|bytes_p50|bytes_p95|bytes_max)"
+    r"\s*<=\s*(?P<value>[\d.]+)(?P<unit>ms|%|rps|B|KB|MB)?$"
 )
+
+#: A size suffix, in the sense a person means it when writing a budget.
+#: Decimal, not binary: `256KB` in a budget somebody typed means 256,000, and
+#: silently reading it as 262,144 would make a limit 2.4% looser than written.
+_SIZE_UNITS = {"B": 1, "KB": 1_000, "MB": 1_000_000}
 
 
 class Policy(BaseModel):
@@ -42,9 +50,11 @@ def parse_policy(text: str) -> Policy:
     m = _POLICY_RE.match(text.strip())
     if not m:
         raise ValueError(f"invalid policy '{text}'; expected e.g. 'GET /users p95 <= 250ms'")
-    return Policy(
-        operation_key=f"{m['method']} {m['path']}", metric=m["metric"], value=float(m["value"])
-    )
+    value = float(m["value"])
+    unit = m["unit"]
+    if unit in _SIZE_UNITS:
+        value *= _SIZE_UNITS[unit]
+    return Policy(operation_key=f"{m['method']} {m['path']}", metric=m["metric"], value=value)
 
 
 class OperationStats(BaseModel):
@@ -76,6 +86,20 @@ class OperationStats(BaseModel):
     #: Wilson score interval for the error proportion, as a percentage.
     error_rate_pct: float = 0.0
     error_rate_ci95: tuple[float, float] | None = None
+    #: Decoded response size, in bytes. Percentiles rather than a mean,
+    #: because the response that hurts is the largest one a client hit and a
+    #: mean hides it behind a hundred small ones. Zero for an operation where
+    #: nothing answered, which `unreachable` above already distinguishes from
+    #: an operation that really returns nothing.
+    bytes_p50: int = 0
+    bytes_p95: int = 0
+    bytes_max: int = 0
+    bytes_total: int = 0
+    #: Decoded bytes per second over the measured window. Not wire bandwidth:
+    #: the client decompresses before anything here sees the body, so a gzipped
+    #: response is counted at its parsed size, which is the number a payload
+    #: budget cares about and is larger than what crossed the network.
+    bytes_per_second: float = 0.0
 
 
 class PerformanceReport(BaseModel):
@@ -89,6 +113,11 @@ class PerformanceReport(BaseModel):
     duration_s: float = 0.0
     #: Requests in flight at once during this measurement.
     concurrency: int = 1
+    #: One cold connection to the target, timed phase by phase before the load
+    #: run. Beside the percentiles rather than inside them: the run pools
+    #: connections, so the handshake is paid once and amortising it into a p95
+    #: would describe a service nobody is running.
+    connection: ConnectionProbe | None = None
     operations: list[OperationStats] = Field(default_factory=list)
     policy_violations: list[str] = Field(default_factory=list)
     #: Differences the run could not resolve: over tolerance, but with
@@ -134,8 +163,15 @@ def _timed_request(
     path: str,
     query: dict[str, Any] | None,
     body: Any,
-) -> tuple[float, str]:
-    """One request, timed on its own; returns (duration_ms, outcome).
+) -> tuple[float, str, int]:
+    """One request; returns (duration_ms, outcome, response bytes).
+
+    The byte count is the decoded body. Not the compressed transfer size:
+    `httpx` decompresses before this code sees anything, and reporting the
+    decoded length as though it were bandwidth would overstate the wire cost of
+    every gzipped JSON response -- which is most of them. What it does answer
+    is the question a payload budget is actually about: how much a client has
+    to parse and hold.
 
     Timed individually rather than derived from a running total minus the sum
     of everything measured before it, which is what this did: that is O(n^2)
@@ -145,8 +181,10 @@ def _timed_request(
     """
     start = time.perf_counter()
     outcome = "ok"
+    size = 0
     try:
         resp = client.request(method, path, params=query or None, json=body)
+        size = len(resp.content)
         if resp.status_code >= 500 or resp.status_code == 429:
             outcome = "error"
     except httpx.ConnectError:
@@ -158,7 +196,7 @@ def _timed_request(
         outcome = "timeout"
     except httpx.HTTPError:
         outcome = "error"
-    return (time.perf_counter() - start) * 1000.0, outcome
+    return (time.perf_counter() - start) * 1000.0, outcome, size
 
 
 def _run(
@@ -169,7 +207,7 @@ def _run(
     body: Any,
     iterations: int,
     concurrency: int,
-) -> list[tuple[float, str]]:
+) -> list[tuple[float, str, int]]:
     """Issue `iterations` requests, at most `concurrency` of them in flight.
 
     `concurrency` was a parameter of `measure` from the beginning and nothing
@@ -217,6 +255,9 @@ def measure(
     """
     started = time.monotonic()
     report = PerformanceReport(target=base_url, concurrency=max(1, concurrency))
+    # Before the client is built, so it is a genuinely cold connection rather
+    # than one the pool already opened.
+    report.connection = probe_connection(base_url, timeout=min(timeout, 5.0))
     rng = __import__("random").Random(7)
     limits = httpx.Limits(
         max_connections=max(concurrency * 2, 10),
@@ -235,6 +276,7 @@ def measure(
                 schema = next(iter(op.request_body.content.values()))
                 body = generate_valid(schema, rng)
             latencies: list[float] = []
+            sizes: list[int] = []
             errors = timeouts = unreachable = 0
 
             for _ in range(max(0, warmup)):
@@ -246,8 +288,9 @@ def measure(
             t0 = time.monotonic()
             outcomes = _run(client, method, path, query, body, iterations, concurrency)
             elapsed = max(time.monotonic() - t0, 1e-9)
-            for duration, outcome in outcomes:
+            for duration, outcome, size in outcomes:
                 latencies.append(duration)
+                sizes.append(size)
                 if outcome == "timeout":
                     timeouts += 1
                 elif outcome == "unreachable":
@@ -279,6 +322,11 @@ def measure(
                 throughput_ci95=_bounds(bootstrap_throughput_ci(latencies)),
                 error_rate_pct=round(100.0 * (errors + timeouts) / max(len(latencies), 1), 4),
                 error_rate_ci95=_bounds(wilson_interval(errors + timeouts, len(latencies))),
+                bytes_p50=int(percentile([float(b) for b in sizes], 50)),
+                bytes_p95=int(percentile([float(b) for b in sizes], 95)),
+                bytes_max=max(sizes, default=0),
+                bytes_total=sum(sizes),
+                bytes_per_second=round(sum(sizes) / elapsed, 2),
             )
             report.operations.append(stats)
     report.duration_s = round(time.monotonic() - started, 3)
@@ -304,6 +352,13 @@ def evaluate_policies(report: PerformanceReport, policies: list[str]) -> list[st
             "p99": stats.p99_ms,
             "error_rate": (100.0 * (stats.errors + stats.timeouts) / max(stats.requests, 1)),
             "throughput": stats.throughput_rps,
+            # Response size, budgeted like latency is. Without this the size
+            # metrics would be numbers in an artifact that nothing can fail a
+            # build on -- and a measurement nothing acts on is a measurement
+            # nobody reads.
+            "bytes_p50": float(stats.bytes_p50),
+            "bytes_p95": float(stats.bytes_p95),
+            "bytes_max": float(stats.bytes_max),
         }
         actual = actual_map[policy.metric]
         if actual > policy.value:

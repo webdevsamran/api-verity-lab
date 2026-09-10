@@ -230,11 +230,22 @@ findings:
 ```bash
 apiverity baseline ... -o perf-baseline.json
 apiverity regression ... --baseline perf-baseline.json \
-    --policy "GET /users p95 <= 250ms" --policy "POST /users error_rate <= 1%"
+    --policy "GET /users p95 <= 250ms" --policy "POST /users error_rate <= 1%" \
+    --policy "GET /users bytes_p95 <= 256KB"
 ```
 
 Stable exit codes make this a CI gate; bundles record p50/p90/p95/p99,
-throughput, timeouts and error rates.
+throughput, timeouts, error rates and **response size** — percentiles rather
+than a mean, because the response that hurts is the largest one a client hit.
+Size units in a budget are decimal (`KB` is 1,000), which is what somebody
+typing `256KB` means, and sizes are counted after decoding: that is the number
+a payload budget is about, and it is larger than what crossed the wire.
+
+Each report also carries one **cold connection probe** — DNS, TCP, TLS and what
+the handshake negotiated — taken before the run and reported *beside* the
+percentiles rather than inside them. The run pools connections, so the
+handshake is paid once; amortising it into a p95 would describe a service
+nobody is running.
 
 ## Architecture & plugins
 

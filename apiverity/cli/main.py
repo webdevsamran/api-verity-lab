@@ -658,7 +658,17 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("spec")
     p.add_argument("--base-url", required=True)
     p.add_argument("--baseline")
-    p.add_argument("--policy", action="append")
+    p.add_argument(
+        "--policy",
+        action="append",
+        metavar="BUDGET",
+        help=(
+            "a per-operation budget, repeatable: 'GET /users p95 <= 250ms', "
+            "'GET /users error_rate <= 1%%', 'GET /users bytes_p95 <= 256KB'. Size units are "
+            "decimal (KB is 1,000), because that is what somebody typing 256KB into a budget "
+            "means"
+        ),
+    )
     p.add_argument(
         "--tolerance",
         action="append",

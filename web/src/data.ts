@@ -8,7 +8,21 @@ export interface TestResultRow {
   reproduction?: string; minimized?: boolean
 }
 export interface DriftRow { operation_key: string; rule_id: string; message: string }
-export interface PerfOp { operation_key: string; p50_ms: number; p95_ms: number; p99_ms: number; errors: number; throughput_rps: number }
+export interface PerfOp {
+  operation_key: string; p50_ms: number; p95_ms: number; p99_ms: number
+  errors: number; throughput_rps: number
+  /* Decoded response size. Percentiles, not a mean: the response that hurts is
+     the largest one a client hit. */
+  bytes_p50?: number; bytes_p95?: number; bytes_max?: number
+  bytes_total?: number; bytes_per_second?: number
+}
+/** One cold connection, timed before the load run — not inside the percentiles. */
+export interface ConnectionProbe {
+  host: string; port: number; scheme: string
+  dns_ms: number | null; tcp_ms: number | null; tls_ms: number | null; total_ms: number | null
+  tls_version: string | null; cipher: string | null; alpn: string | null
+  addresses: number; error: string | null; note: string
+}
 export interface OpCoverage { operation_key: string; exercised: boolean; declared_statuses: string[]; statuses_seen: number[] }
 export interface RuleRow { rule_id: string; severity: 'ERROR' | 'WARN' | 'INFO'; description: string }
 export interface StepResultRow { step: string; status: string; actual_status: number | null; violations: string[]; duration_ms: number }
@@ -105,7 +119,7 @@ export interface DemoData {
   breaking?: { findings: Finding[] }
   test?: { total: number; passed: number; failed: number; results: TestResultRow[] }
   drift?: { findings: DriftRow[] }
-  performance?: { operations: PerfOp[] }
+  performance?: { operations: PerfOp[]; connection?: ConnectionProbe | null }
   coverage?: { overall_percent: number; operations: OpCoverage[] }
   rules?: { count: number; catalog: RuleRow[] }
   workflow?: WorkflowData

@@ -129,7 +129,23 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   and where latency starts climbing, and names a plateau at the top of the
   sweep as a sweep that did not go far enough rather than as the service's
   ceiling
-- Response-size/bandwidth metrics, TLS timing breakdown, GraphQL op budgets, gRPC latency metrics — PARTIAL
+- Response-size and bandwidth metrics — NEW. Every request already read a body
+  and nothing counted it, so a report could say an operation answered in 12 ms
+  and not that it answered with four megabytes. `bytes_p50`/`bytes_p95`/
+  `bytes_max` are percentiles rather than a mean, because the response that
+  hurts is the largest one a client hit. Budgetable like latency
+  (`GET /users bytes_p95 <= 256KB`), since a measurement nothing can gate on is
+  a measurement nobody reads. Counted after decoding, which is the number a
+  payload budget is about and is *larger* than what crossed the wire
+- TLS timing breakdown — NEW, and deliberately not per-request. `httpx` exposes
+  no hook between resolving and handshaking, and the load run pools connections
+  on purpose, so for every request after the first the handshake costs nothing;
+  amortising it into a p95 would describe a service nobody runs. It is one cold
+  connection probed before the run — DNS, TCP, TLS, and what the handshake
+  negotiated — reported beside the percentiles with a sentence in the artifact
+  saying it is not inside them
+- GraphQL operation budgets, gRPC latency metrics — PARTIAL (the measurement
+  loop speaks HTTP; neither has a client here)
 
 ## Mock & virtualization
 - Mock v2 scenarios/state/faults/seed control; virtualization workspace from bundles; request validation mode — EXISTING
