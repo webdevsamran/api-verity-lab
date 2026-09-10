@@ -100,12 +100,25 @@ def test_the_script_is_valid_posix_shell() -> None:
 
 @needs_sh
 def _run(tmp_path: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    """Run the entrypoint with a stand-in `apiverity` on PATH."""
+    """Run the entrypoint with stand-ins for both things it can exec.
+
+    `apiverity` is the CLI branch and `python` is the server branch, and the
+    script has to be observed choosing between them.
+
+    Stubbing `python` as well is not tidiness. The `serve` branch runs a real
+    Flask app that never returns, so a test that let it through was relying on
+    the server *failing to start* -- here, on `/data/verity.db` not being
+    openable. In the container this test is about, `/data` is a volume and the
+    port is free: the server would start, the 30-second timeout would expire,
+    and the test would fail on the one machine where the code works. It was
+    passing for a reason that had nothing to do with what it checks.
+    """
     stub = tmp_path / "bin"
     stub.mkdir(exist_ok=True)
-    script = stub / "apiverity"
-    script.write_text('#!/bin/sh\necho "ARGS:$*"\n', encoding="utf-8")
-    script.chmod(0o755)
+    for name, marker in (("apiverity", "ARGS"), ("python", "PYTHON")):
+        script = stub / name
+        script.write_text(f'#!/bin/sh\necho "{marker}:$*"\n', encoding="utf-8")
+        script.chmod(0o755)
 
     env = dict(os.environ)
     env["PATH"] = f"{stub}{os.pathsep}{env['PATH']}"
@@ -142,9 +155,25 @@ def test_arguments_with_spaces_survive(tmp_path: Path) -> None:
 @needs_sh
 def test_serve_does_not_reach_the_cli(tmp_path: Path) -> None:
     """It is the one word that means something else. `apiverity serve` is a
-    real subcommand -- serving a bundle over HTTP -- and routing the container's
-    default to it would start the wrong thing."""
+    real subcommand -- serving a bundle over HTTP -- and routing the
+    container's default to it would start the wrong thing.
+
+    Asserted in both directions: the CLI was not reached *and* the server
+    branch was. "Nothing printed ARGS:" is also what a crash looks like, and
+    that is exactly how this test used to pass.
+    """
     result = _run(tmp_path, "serve")
+    assert "ARGS:" not in result.stdout
+    assert "PYTHON:" in result.stdout
+
+
+@needs_sh
+def test_no_argument_at_all_serves(tmp_path: Path) -> None:
+    """`${1:-serve}`. `docker run IMAGE` with nothing after it is the
+    documented way to start the server, and the Dockerfile's `CMD ["serve"]`
+    is belt to this braces."""
+    result = _run(tmp_path)
+    assert "PYTHON:" in result.stdout
     assert "ARGS:" not in result.stdout
 
 
