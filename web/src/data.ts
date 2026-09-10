@@ -55,6 +55,30 @@ export interface AgentsSection {
  * section is empty" and "this source has no such section" look identical in a
  * rendered table, and only one of them means the API is fine.
  */
+/** What a breaking change actually breaks, per operation and per consumer.
+ *
+ * `complete` is the load-bearing field: a registry that claims to list every
+ * consumer is allowed to soften a finding, and one that does not is adding
+ * information only. The page says which it is reading, because a reader
+ * looking at "no consumers affected" needs to know whether that means nobody
+ * calls it or nobody registered.
+ */
+export interface BlastConsumer {
+  team: string | null
+  contact: string | null
+  operations: string[]
+  findings: number
+}
+export interface BlastSection {
+  registry: string
+  complete: boolean
+  consumers_registered: number
+  unclaimed_operations: string[]
+  by_operation: Record<string, string[]>
+  by_consumer: Record<string, BlastConsumer>
+  errors_by_operation: Record<string, number>
+}
+
 export interface DataSource {
   kind: 'artifact' | 'live'
   /** Shown to the reader: a file name, or a server URL. */
@@ -107,6 +131,7 @@ export interface DemoData {
    * pages say so rather than sitting on a loading state, which is what six
    * of them did for months against a stale demo file. */
   agents?: AgentsSection
+  blast?: BlastSection
 }
 
 const cache = new Map<string, Promise<DemoData>>()

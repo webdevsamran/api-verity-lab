@@ -21,7 +21,7 @@ export const NAV: { group: string; items: [string, string][] }[] = [
   { group: 'Testing', items: [['tests', 'Test Runs'], ['fuzz', 'Fuzz Cases'], ['minimizer', 'Minimizer'], ['workflows', 'Workflows'], ['coverage', 'Coverage']] },
   { group: 'Runtime', items: [['drift', 'Drift'], ['replay', 'Replay'], ['perf', 'Performance'], ['mock', 'Mock']] },
   { group: 'Agents', items: [['fleet', 'MCP Fleet'], ['poisoning', 'Tool Poisoning'], ['budgets', 'Call Budgets']] },
-  { group: 'Team', items: [['org', 'Org Dashboard'], ['environments', 'Environments'], ['approvals', 'Approvals'], ['policies', 'Policies'], ['jobs', 'Runs/Jobs'], ['audit', 'Audit Log'], ['webhooks', 'Webhooks'], ['users', 'Users']] },
+  { group: 'Team', items: [['org', 'Org Dashboard'], ['blast', 'Blast Radius'], ['environments', 'Environments'], ['approvals', 'Approvals'], ['policies', 'Policies'], ['jobs', 'Runs/Jobs'], ['audit', 'Audit Log'], ['webhooks', 'Webhooks'], ['users', 'Users']] },
 ]
 
 /* The import must be a literal inside the arrow for Vite to see the chunk;
@@ -74,6 +74,7 @@ export const ROUTE_TABLE: Record<string, readonly [GroupName, string]> = {
   poisoning: ['agents', 'PoisoningPage'],
   budgets: ['agents', 'BudgetsPage'],
   org: ['team', 'OrgDashboard'],
+  blast: ['team', 'BlastRadiusPage'],
   environments: ['team', 'EnvironmentsPage'],
   approvals: ['team', 'ApprovalsPage'],
   policies: ['team', 'PoliciesPage'],

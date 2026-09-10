@@ -376,7 +376,7 @@
         "violations": [],
         "reproduction": "curl -X DELETE 'http://127.0.0.1:8095/users/qah'",
         "minimized": false,
-        "duration_ms": 18
+        "duration_ms": 5
       },
       {
         "case_id": "TC-000-001",
@@ -390,7 +390,7 @@
         ],
         "reproduction": "curl -X DELETE 'http://127.0.0.1:8095/users/12345'",
         "minimized": false,
-        "duration_ms": 2
+        "duration_ms": 3
       },
       {
         "case_id": "TC-001-000",
@@ -416,7 +416,7 @@
         ],
         "reproduction": "curl -X GET 'http://127.0.0.1:8095/users?limit=not-an-int'",
         "minimized": false,
-        "duration_ms": 2
+        "duration_ms": 4
       },
       {
         "case_id": "TC-001-002",
@@ -430,7 +430,7 @@
         ],
         "reproduction": "curl -X GET 'http://127.0.0.1:8095/users?limit=0'",
         "minimized": false,
-        "duration_ms": 2
+        "duration_ms": 3
       },
       {
         "case_id": "TC-002-000",
@@ -442,7 +442,7 @@
         "violations": [],
         "reproduction": "curl -X GET 'http://127.0.0.1:8095/users/kow'",
         "minimized": false,
-        "duration_ms": 2
+        "duration_ms": 3
       },
       {
         "case_id": "TC-002-001",
@@ -456,7 +456,7 @@
         ],
         "reproduction": "curl -X GET 'http://127.0.0.1:8095/users/12345'",
         "minimized": false,
-        "duration_ms": 2
+        "duration_ms": 3
       },
       {
         "case_id": "TC-003-000",
@@ -468,7 +468,7 @@
         "violations": [],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"hmc\", \"email\": \"user@example.com\", \"age\": 2, \"role\": \"admin\"}'",
         "minimized": false,
-        "duration_ms": 2
+        "duration_ms": 20
       },
       {
         "case_id": "TC-003-001",
@@ -482,7 +482,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '[\"not\", \"an-object\"]'",
         "minimized": false,
-        "duration_ms": 2
+        "duration_ms": 3
       },
       {
         "case_id": "TC-003-002",
@@ -496,7 +496,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"email\": \"user@example.com\", \"age\": 79, \"role\": \"guest\"}'",
         "minimized": false,
-        "duration_ms": 2
+        "duration_ms": 3
       },
       {
         "case_id": "TC-003-003",
@@ -510,7 +510,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": 12345, \"email\": \"user@example.com\", \"age\": 109, \"role\": \"admin\"}'",
         "minimized": false,
-        "duration_ms": 2
+        "duration_ms": 3
       },
       {
         "case_id": "TC-003-004",
@@ -524,7 +524,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"\", \"email\": \"user@example.com\", \"age\": 8, \"role\": \"admin\"}'",
         "minimized": false,
-        "duration_ms": 2
+        "duration_ms": 3
       },
       {
         "case_id": "TC-003-005",
@@ -538,7 +538,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"aiu\", \"email\": 12345, \"age\": 135, \"role\": \"guest\"}'",
         "minimized": false,
-        "duration_ms": 2
+        "duration_ms": 3
       },
       {
         "case_id": "TC-003-006",
@@ -552,7 +552,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"nqq\", \"email\": \"user@example.com\", \"age\": \"not-an-int\", \"role\": \"guest\"}'",
         "minimized": false,
-        "duration_ms": 2
+        "duration_ms": 3
       },
       {
         "case_id": "TC-003-007",
@@ -566,7 +566,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"rmj\", \"email\": \"user@example.com\", \"age\": -1, \"role\": \"user\"}'",
         "minimized": false,
-        "duration_ms": 14
+        "duration_ms": 3
       },
       {
         "case_id": "TC-003-008",
@@ -580,7 +580,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"kvd\", \"email\": \"user@example.com\", \"age\": 116, \"role\": 12345}'",
         "minimized": false,
-        "duration_ms": 2
+        "duration_ms": 3
       },
       {
         "case_id": "TC-003-009",
@@ -594,7 +594,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"cjw\", \"email\": \"user@example.com\", \"age\": 7, \"role\": \"__invalid_enum_2555\"}'",
         "minimized": false,
-        "duration_ms": 12
+        "duration_ms": 3
       }
     ]
   },
@@ -630,25 +630,25 @@
         "samples": 15,
         "warmup": 0,
         "unreachable": 15,
-        "p50_ms": 2032.09,
-        "p90_ms": 2048.25,
-        "p95_ms": 2061.7,
-        "p99_ms": 2061.7,
+        "p50_ms": 2055.75,
+        "p90_ms": 2070.91,
+        "p95_ms": 2079.85,
+        "p99_ms": 2079.85,
         "p50_ci95": [
-          2026.17,
-          2040.83
+          2040.51,
+          2061.5
         ],
         "p90_ci95": [
-          2039.97,
-          2061.7
+          2060.27,
+          2079.85
         ],
         "p95_ci95": [
-          2040.83,
-          2061.7
+          2061.5,
+          2079.85
         ],
         "p99_ci95": [
-          2040.83,
-          2061.7
+          2061.5,
+          2079.85
         ],
         "throughput_rps": 0.49,
         "throughput_ci95": [
@@ -669,25 +669,25 @@
         "samples": 15,
         "warmup": 0,
         "unreachable": 15,
-        "p50_ms": 2033.02,
-        "p90_ms": 2051.27,
-        "p95_ms": 2069.54,
-        "p99_ms": 2069.54,
+        "p50_ms": 2045.37,
+        "p90_ms": 2059.41,
+        "p95_ms": 2062.04,
+        "p99_ms": 2062.04,
         "p50_ci95": [
-          2031.18,
-          2044.08
+          2034.18,
+          2057.96
         ],
         "p90_ci95": [
-          2042.68,
-          2069.54
+          2050.65,
+          2062.04
         ],
         "p95_ci95": [
-          2044.08,
-          2069.54
+          2057.96,
+          2062.04
         ],
         "p99_ci95": [
-          2044.08,
-          2069.54
+          2057.96,
+          2062.04
         ],
         "throughput_rps": 0.49,
         "throughput_ci95": [
@@ -708,25 +708,25 @@
         "samples": 15,
         "warmup": 0,
         "unreachable": 15,
-        "p50_ms": 2025.0,
-        "p90_ms": 2043.27,
-        "p95_ms": 2051.24,
-        "p99_ms": 2051.24,
+        "p50_ms": 2040.92,
+        "p90_ms": 2049.71,
+        "p95_ms": 2054.75,
+        "p99_ms": 2054.75,
         "p50_ci95": [
-          2018.07,
-          2034.23
+          2031.53,
+          2046.02
         ],
         "p90_ci95": [
-          2033.6,
-          2051.24
+          2045.14,
+          2054.75
         ],
         "p95_ci95": [
-          2034.23,
-          2051.24
+          2046.02,
+          2054.75
         ],
         "p99_ci95": [
-          2034.23,
-          2051.24
+          2046.02,
+          2054.75
         ],
         "throughput_rps": 0.49,
         "throughput_ci95": [
@@ -747,25 +747,25 @@
         "samples": 15,
         "warmup": 0,
         "unreachable": 15,
-        "p50_ms": 2035.14,
-        "p90_ms": 2047.86,
-        "p95_ms": 2051.19,
-        "p99_ms": 2051.19,
+        "p50_ms": 2041.18,
+        "p90_ms": 2065.02,
+        "p95_ms": 2068.99,
+        "p99_ms": 2068.99,
         "p50_ci95": [
-          2020.73,
-          2042.39
+          2034.4,
+          2057.47
         ],
         "p90_ci95": [
-          2038.77,
-          2051.19
+          2054.82,
+          2068.99
         ],
         "p95_ci95": [
-          2042.39,
-          2051.19
+          2057.47,
+          2068.99
         ],
         "p99_ci95": [
-          2042.39,
-          2051.19
+          2057.47,
+          2068.99
         ],
         "throughput_rps": 0.49,
         "throughput_ci95": [
@@ -853,8 +853,13 @@
     ]
   },
   "rules": {
-    "count": 57,
+    "count": 69,
     "catalog": [
+      {
+        "rule_id": "BRK-CONDITIONAL-SCHEMA-CHANGED",
+        "severity": "WARN",
+        "description": "An `if`/`then`/`else` branch was added, removed or changed. What is valid now depends on a condition, and the condition moved."
+      },
       {
         "rule_id": "BRK-CONSTRAINT-LOOSENED",
         "severity": "INFO",
@@ -864,6 +869,26 @@
         "rule_id": "BRK-CONSTRAINT-TIGHTENED",
         "severity": "ERROR",
         "description": "A request constraint was tightened; previously valid inputs fail."
+      },
+      {
+        "rule_id": "BRK-CONTAINS-CHANGED",
+        "severity": "WARN",
+        "description": "An array's `contains` requirement or its bounds changed; an array that satisfied the old rule may not satisfy the new one."
+      },
+      {
+        "rule_id": "BRK-DEPENDENT-REQUIRED-ADDED",
+        "severity": "ERROR",
+        "description": "Sending one field now requires another. A request that set the first without the second was valid and is not."
+      },
+      {
+        "rule_id": "BRK-DEPENDENT-REQUIRED-REMOVED",
+        "severity": "WARN",
+        "description": "A field no longer forces another to be present. Harmless in a request; in a response it withdraws a guarantee consumers may read unconditionally."
+      },
+      {
+        "rule_id": "BRK-DEPENDENT-SCHEMA-CHANGED",
+        "severity": "WARN",
+        "description": "A schema that applies only when some field is present was added, removed or changed; what is valid now depends on which fields are sent."
       },
       {
         "rule_id": "BRK-DEPRECATION-ADDED",
@@ -1036,6 +1061,16 @@
         "description": "A request parameter's type/format changed."
       },
       {
+        "rule_id": "BRK-PATTERN-PROPERTIES-CHANGED",
+        "severity": "WARN",
+        "description": "The schema applied to properties matching a name pattern was added, removed or changed; a whole family of fields changed shape at once."
+      },
+      {
+        "rule_id": "BRK-PROPERTY-NAMES-CHANGED",
+        "severity": "WARN",
+        "description": "The constraint on what property *names* are allowed changed; keys that used to be accepted may not be."
+      },
+      {
         "rule_id": "BRK-REQ-BODY-ADDED-OPTIONAL",
         "severity": "INFO",
         "description": "An optional request body was added."
@@ -1096,6 +1131,11 @@
         "description": "A response body field was added (consumers ignore unknown fields)."
       },
       {
+        "rule_id": "BRK-RESP-FIELD-GUARANTEED",
+        "severity": "INFO",
+        "description": "A response field that was optional is now always present; consumers gain a guarantee they did not have."
+      },
+      {
         "rule_id": "BRK-RESP-FIELD-OPTIONALIZED",
         "severity": "ERROR",
         "description": "A response field is no longer guaranteed; consumers reading it unconditionally will break."
@@ -1139,6 +1179,26 @@
         "rule_id": "BRK-SECURITY-CHANGED",
         "severity": "ERROR",
         "description": "Security requirements changed; unprepared clients fail auth."
+      },
+      {
+        "rule_id": "BRK-SOAP-ACTION-CHANGED",
+        "severity": "ERROR",
+        "description": "The SOAPAction header changed. Gateways and ESBs route on it and generated stubs send the old one, with an unchanged body that now reaches nothing."
+      },
+      {
+        "rule_id": "BRK-SOAP-STYLE-CHANGED",
+        "severity": "ERROR",
+        "description": "A binding moved between document and rpc style, which changes how the body is wrapped; every existing client serializes it the old way."
+      },
+      {
+        "rule_id": "BRK-SOAP-VERSION-CHANGED",
+        "severity": "ERROR",
+        "description": "A port moved between SOAP 1.1 and 1.2. The envelope namespace and the Content-Type both change, so a 1.1 client gets a 415 rather than a fault."
+      },
+      {
+        "rule_id": "BRK-TUPLE-SHAPE-CHANGED",
+        "severity": "ERROR",
+        "description": "Positional array items changed length or type. Tuple members are read by index, so a change at one position shifts or misparses every reader."
       }
     ]
   },
@@ -1157,7 +1217,7 @@
           "extracted": {
             "user_id": "1"
           },
-          "duration_ms": 27
+          "duration_ms": 12
         },
         {
           "step": "get",
@@ -1165,7 +1225,7 @@
           "actual_status": 200,
           "violations": [],
           "extracted": {},
-          "duration_ms": 27
+          "duration_ms": 14
         },
         {
           "step": "delete",
@@ -1173,7 +1233,7 @@
           "actual_status": 204,
           "violations": [],
           "extracted": {},
-          "duration_ms": 25
+          "duration_ms": 18
         }
       ],
       "cleanup_steps": [
@@ -1183,7 +1243,7 @@
           "actual_status": 204,
           "violations": [],
           "extracted": {},
-          "duration_ms": 24
+          "duration_ms": 17
         }
       ],
       "variables": {
@@ -1271,7 +1331,7 @@
         "violations": [],
         "reproduction": "curl -X DELETE 'http://127.0.0.1:8095/users/qah'",
         "minimized": false,
-        "duration_ms": 18
+        "duration_ms": 5
       },
       {
         "case_id": "TC-000-001",
@@ -1285,7 +1345,7 @@
         ],
         "reproduction": "curl -X DELETE 'http://127.0.0.1:8095/users/12345'",
         "minimized": false,
-        "duration_ms": 2
+        "duration_ms": 3
       },
       {
         "case_id": "TC-001-000",
@@ -1311,7 +1371,7 @@
         ],
         "reproduction": "curl -X GET 'http://127.0.0.1:8095/users?limit=not-an-int'",
         "minimized": false,
-        "duration_ms": 2
+        "duration_ms": 4
       },
       {
         "case_id": "TC-001-002",
@@ -1325,7 +1385,7 @@
         ],
         "reproduction": "curl -X GET 'http://127.0.0.1:8095/users?limit=0'",
         "minimized": false,
-        "duration_ms": 2
+        "duration_ms": 3
       },
       {
         "case_id": "TC-002-000",
@@ -1337,7 +1397,7 @@
         "violations": [],
         "reproduction": "curl -X GET 'http://127.0.0.1:8095/users/kow'",
         "minimized": false,
-        "duration_ms": 2
+        "duration_ms": 3
       },
       {
         "case_id": "TC-002-001",
@@ -1351,7 +1411,7 @@
         ],
         "reproduction": "curl -X GET 'http://127.0.0.1:8095/users/12345'",
         "minimized": false,
-        "duration_ms": 2
+        "duration_ms": 3
       },
       {
         "case_id": "TC-003-000",
@@ -1363,7 +1423,7 @@
         "violations": [],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"hmc\", \"email\": \"user@example.com\", \"age\": 2, \"role\": \"admin\"}'",
         "minimized": false,
-        "duration_ms": 2
+        "duration_ms": 20
       },
       {
         "case_id": "TC-003-001",
@@ -1377,7 +1437,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '[\"not\", \"an-object\"]'",
         "minimized": false,
-        "duration_ms": 2
+        "duration_ms": 3
       },
       {
         "case_id": "TC-003-002",
@@ -1461,7 +1521,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"rmj\", \"email\": \"user@example.com\", \"age\": -1, \"role\": \"user\"}'",
         "minimized": false,
-        "duration_ms": 14
+        "duration_ms": 3
       },
       {
         "case_id": "TC-003-008",
@@ -1475,7 +1535,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"kvd\", \"email\": \"user@example.com\", \"age\": 116, \"role\": 12345}'",
         "minimized": false,
-        "duration_ms": 2
+        "duration_ms": 3
       },
       {
         "case_id": "TC-003-009",
@@ -1489,7 +1549,7 @@
         ],
         "reproduction": "curl -X POST 'http://127.0.0.1:8095/users' -H 'Content-Type: application/json' -d '{\"name\": \"cjw\", \"email\": \"user@example.com\", \"age\": 7, \"role\": \"__invalid_enum_2555\"}'",
         "minimized": false,
-        "duration_ms": 12
+        "duration_ms": 3
       }
     ]
   },
@@ -1546,7 +1606,7 @@
         "protocol": "openapi",
         "checksum": "82caf8d8777f8bd8fd0ba60b8c1e449173c1195c11bfc885ac96b681df8c7731",
         "published_by": "alice",
-        "published_at": "2026-09-09T18:47:01.425494+00:00"
+        "published_at": "2026-09-10T07:47:32.447616+00:00"
       },
       {
         "id": 2,
@@ -1555,7 +1615,7 @@
         "protocol": "openapi",
         "checksum": "82caf8d8777f8bd8fd0ba60b8c1e449173c1195c11bfc885ac96b681df8c7731",
         "published_by": "alice",
-        "published_at": "2026-09-09T18:47:01.425592+00:00"
+        "published_at": "2026-09-10T07:47:32.447661+00:00"
       }
     ],
     "environments": [
@@ -1596,8 +1656,8 @@
         "status": "approved",
         "requested_by": "bob",
         "decided_by": "alice",
-        "created_at": "2026-09-09T18:47:01.425761+00:00",
-        "decided_at": "2026-09-09T18:47:01.425836+00:00"
+        "created_at": "2026-09-10T07:47:32.447782+00:00",
+        "decided_at": "2026-09-10T07:47:32.447812+00:00"
       }
     ],
     "runs": [
@@ -1622,46 +1682,46 @@
       {
         "id": 4,
         "org_id": 1,
-        "ts": "2026-09-09T18:47:01.426306+00:00",
+        "ts": "2026-09-10T07:47:32.448010+00:00",
         "actor": "svc-ci",
         "action": "run.completed",
         "target": "run#1",
         "payload_json": "{}",
-        "prev_hash": "a171510717707c087b073fb1824e3b9a0d5c7c27a8f1bc217febb34efb193eca",
-        "entry_hash": "83070ce438db67031aa50677adfc164cb29a4b94665d00bf52efb46a1a6217a3"
+        "prev_hash": "37870c0669ae4cac52e9f9cec85be7ad2932f43b8c72ef51185452ccd0f19192",
+        "entry_hash": "2dcab0c3d4e93ef845c13e973120c8c415213c3263d144eb9d15bccb02d1c4b9"
       },
       {
         "id": 3,
         "org_id": 1,
-        "ts": "2026-09-09T18:47:01.426249+00:00",
+        "ts": "2026-09-10T07:47:32.447990+00:00",
         "actor": "alice",
         "action": "approval.decided",
         "target": "approval#1",
         "payload_json": "{}",
-        "prev_hash": "2827ff633e43880bedfa21342c30a1d4a491dac952f859ac69a2f79b061058d8",
-        "entry_hash": "a171510717707c087b073fb1824e3b9a0d5c7c27a8f1bc217febb34efb193eca"
+        "prev_hash": "26b07491bba24148d2f9f4871f41ec7dd81474a1d8c09f4549b2958441148c0f",
+        "entry_hash": "37870c0669ae4cac52e9f9cec85be7ad2932f43b8c72ef51185452ccd0f19192"
       },
       {
         "id": 2,
         "org_id": 1,
-        "ts": "2026-09-09T18:47:01.426180+00:00",
+        "ts": "2026-09-10T07:47:32.447959+00:00",
         "actor": "alice",
         "action": "contract.published",
         "target": "Catalog@2.0.0",
         "payload_json": "{}",
-        "prev_hash": "07a7379ded85ba52a6b22dd7045414526c23cefb20648465b27c8711a771ce67",
-        "entry_hash": "2827ff633e43880bedfa21342c30a1d4a491dac952f859ac69a2f79b061058d8"
+        "prev_hash": "c39c2c6918fdd4aa4a3bbe9ef8a672e440353c2b00690ff5e0ec4db0c0b7872b",
+        "entry_hash": "26b07491bba24148d2f9f4871f41ec7dd81474a1d8c09f4549b2958441148c0f"
       },
       {
         "id": 1,
         "org_id": 1,
-        "ts": "2026-09-09T18:47:01.426069+00:00",
+        "ts": "2026-09-10T07:47:32.447904+00:00",
         "actor": "alice",
         "action": "contract.published",
         "target": "Catalog@1.0.0",
         "payload_json": "{}",
         "prev_hash": "",
-        "entry_hash": "07a7379ded85ba52a6b22dd7045414526c23cefb20648465b27c8711a771ce67"
+        "entry_hash": "c39c2c6918fdd4aa4a3bbe9ef8a672e440353c2b00690ff5e0ec4db0c0b7872b"
       }
     ],
     "webhooks": [
@@ -1675,7 +1735,7 @@
           "verification.failed"
         ],
         "active": 1,
-        "created_at": "2026-09-09T18:47:01.426356+00:00"
+        "created_at": "2026-09-10T07:47:32.448028+00:00"
       }
     ],
     "chain_valid": true
@@ -1716,7 +1776,7 @@
     "fleet": [
       {
         "name": "orders-mcp",
-        "endpoint": "http://127.0.0.1:54143/mcp",
+        "endpoint": "http://127.0.0.1:53186/mcp",
         "tools_declared": 3,
         "tools_served": 3,
         "protocol_revision": "2026-07-28",
@@ -1735,14 +1795,16 @@
             "message": "the server returned all 3 tools to a request carrying no credential; the target classifies as local. An anonymous caller has the complete map of what this server can do",
             "tool": null,
             "change_id": null,
-            "source_rule_id": null
+            "source_rule_id": null,
+            "trace_id": null,
+            "span_id": null
           }
         ],
-        "duration_ms": 63
+        "duration_ms": 30
       },
       {
         "name": "orders-mcp-canary",
-        "endpoint": "http://127.0.0.1:54146/mcp",
+        "endpoint": "http://127.0.0.1:53189/mcp",
         "tools_declared": 3,
         "tools_served": 2,
         "protocol_revision": "2026-07-28",
@@ -1761,7 +1823,9 @@
             "message": "the server returned all 2 tools to a request carrying no credential; the target classifies as local. An anonymous caller has the complete map of what this server can do",
             "tool": null,
             "change_id": null,
-            "source_rule_id": null
+            "source_rule_id": null,
+            "trace_id": null,
+            "span_id": null
           },
           {
             "rule_id": "MCP-DRIFT-TOOL-MISSING",
@@ -1769,7 +1833,9 @@
             "message": "tool 'list_regions' is declared in the manifest but not served; an agent generated from this manifest will call it and fail",
             "tool": "list_regions",
             "change_id": null,
-            "source_rule_id": null
+            "source_rule_id": null,
+            "trace_id": null,
+            "span_id": null
           },
           {
             "rule_id": "MCP-DRIFT-SCHEMA",
@@ -1777,7 +1843,9 @@
             "message": "declared and served differ: request body (application/json): field 'tenant_id' was added (required)",
             "tool": "search_orders",
             "change_id": "CHG-PARAMETER_ADDED-4eada9c5-1",
-            "source_rule_id": "BRK-PARAM-ADDED-REQUIRED"
+            "source_rule_id": "BRK-REQ-FIELD-ADDED-REQUIRED",
+            "trace_id": null,
+            "span_id": null
           },
           {
             "rule_id": "MCP-DRIFT-SCHEMA",
@@ -1785,7 +1853,9 @@
             "message": "declared and served differ: request body (application/json).limit: constraint 'maximum' changed 100 -> 50",
             "tool": "search_orders",
             "change_id": "CHG-PARAMETER_CONSTRAINT_CHANGED-4eada9c5-1",
-            "source_rule_id": "BRK-CONSTRAINT-TIGHTENED"
+            "source_rule_id": "BRK-CONSTRAINT-TIGHTENED",
+            "trace_id": null,
+            "span_id": null
           },
           {
             "rule_id": "MCP-DRIFT-SCHEMA",
@@ -1793,15 +1863,9 @@
             "message": "declared and served differ: request body (application/json).status: enum changed (removed ['cancelled'], added [])",
             "tool": "search_orders",
             "change_id": "CHG-ENUM_CHANGED-4eada9c5-1",
-            "source_rule_id": "BRK-ENUM-NARROWED-REQUEST"
-          },
-          {
-            "rule_id": "MCP-DRIFT-SCHEMA",
-            "severity": "ERROR",
-            "message": "declared and served differ: request body (application/json): field 'tenant_id' became required",
-            "tool": "search_orders",
-            "change_id": "CHG-PARAMETER_REQUIREDNESS-4eada9c5-1",
-            "source_rule_id": "BRK-REQ-FIELD-BECAME-REQUIRED"
+            "source_rule_id": "BRK-ENUM-NARROWED-REQUEST",
+            "trace_id": null,
+            "span_id": null
           },
           {
             "rule_id": "MCP-DRIFT-SCHEMA",
@@ -1809,15 +1873,9 @@
             "message": "declared and served differ: response result body (application/json): field 'total' was removed",
             "tool": "search_orders",
             "change_id": "CHG-RESPONSE_SCHEMA_CHANGED-4eada9c5-1",
-            "source_rule_id": "BRK-RESP-FIELD-REMOVED"
-          },
-          {
-            "rule_id": "MCP-DRIFT-SCHEMA",
-            "severity": "ERROR",
-            "message": "declared and served differ: response result body (application/json): field 'total' became optional",
-            "tool": "search_orders",
-            "change_id": "CHG-PARAMETER_REQUIREDNESS-4eada9c5-2",
-            "source_rule_id": "BRK-RESP-FIELD-OPTIONALIZED"
+            "source_rule_id": "BRK-RESP-FIELD-REMOVED",
+            "trace_id": null,
+            "span_id": null
           },
           {
             "rule_id": "MCP-DRIFT-SCHEMA-COMPATIBLE",
@@ -1825,7 +1883,9 @@
             "message": "declared and served differ: documentation changed for 'tool search_orders'",
             "tool": "search_orders",
             "change_id": "CHG-TOOL_DESCRIPTION_CHANGED-4eada9c5-1",
-            "source_rule_id": "BRK-MCP-TOOL-DESCRIPTION-CHANGED"
+            "source_rule_id": "BRK-MCP-TOOL-DESCRIPTION-CHANGED",
+            "trace_id": null,
+            "span_id": null
           },
           {
             "rule_id": "MCP-DRIFT-ANNOTATION",
@@ -1833,14 +1893,16 @@
             "message": "tool 'search_orders' declares readOnlyHint=True but serves False; an agent that planned around the declared hint planned wrong",
             "tool": "search_orders",
             "change_id": null,
-            "source_rule_id": null
+            "source_rule_id": null,
+            "trace_id": null,
+            "span_id": null
           }
         ],
-        "duration_ms": 56
+        "duration_ms": 25
       },
       {
         "name": "partner-mcp",
-        "endpoint": "http://127.0.0.1:54149/mcp",
+        "endpoint": "http://127.0.0.1:53192/mcp",
         "tools_declared": 3,
         "tools_served": 4,
         "protocol_revision": "2026-07-28",
@@ -1859,7 +1921,9 @@
             "message": "the server returned all 4 tools to a request carrying no credential; the target classifies as local. An anonymous caller has the complete map of what this server can do",
             "tool": null,
             "change_id": null,
-            "source_rule_id": null
+            "source_rule_id": null,
+            "trace_id": null,
+            "span_id": null
           },
           {
             "rule_id": "MCP-DRIFT-TOOL-UNDECLARED",
@@ -1867,10 +1931,12 @@
             "message": "tool 'export_all_orders' is served but absent from the manifest; agents will discover and may call a capability nobody agreed to support",
             "tool": "export_all_orders",
             "change_id": null,
-            "source_rule_id": null
+            "source_rule_id": null,
+            "trace_id": null,
+            "span_id": null
           }
         ],
-        "duration_ms": 51
+        "duration_ms": 27
       }
     ],
     "poisoning": {
@@ -2100,6 +2166,66 @@
           "metadata": {}
         }
       ]
+    }
+  },
+  "blast": {
+    "registry": "fixtures/consumers/registry.yaml",
+    "complete": false,
+    "consumers_registered": 5,
+    "unclaimed_operations": [
+      "DELETE /users/{id}"
+    ],
+    "by_operation": {
+      "DELETE /users/{id}": [],
+      "GET /users": [
+        "checkout-service",
+        "mobile-v3",
+        "partner-sync"
+      ],
+      "POST /users": [
+        "admin-console",
+        "checkout-service"
+      ]
+    },
+    "by_consumer": {
+      "admin-console": {
+        "team": "@platform",
+        "contact": "#platform",
+        "operations": [
+          "POST /users"
+        ],
+        "findings": 2
+      },
+      "checkout-service": {
+        "team": "@payments",
+        "contact": "#payments-oncall",
+        "operations": [
+          "GET /users",
+          "POST /users"
+        ],
+        "findings": 5
+      },
+      "mobile-v3": {
+        "team": "@mobile",
+        "contact": "#mobile-releases",
+        "operations": [
+          "GET /users"
+        ],
+        "findings": 3
+      },
+      "partner-sync": {
+        "team": "@integrations",
+        "contact": "integrations@example.com",
+        "operations": [
+          "GET /users"
+        ],
+        "findings": 3
+      }
+    },
+    "errors_by_operation": {
+      "DELETE /users/{id}": 1,
+      "GET /users": 3,
+      "POST /users": 2
     }
   }
 }

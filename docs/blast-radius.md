@@ -89,6 +89,24 @@ a mistake in the registry, which is backwards.
 finding and no registered consumer. That is where an incomplete registry hurts,
 and a reader should see the gap rather than have to infer it from an absence.
 
+## In the dashboard
+
+The **Blast Radius** page under Team draws the same result as a bipartite
+graph: the operations with a breaking finding on the left, the consumers that
+call them on the right, an edge for each dependency. Selecting either side dims
+the rest rather than hiding it, because the shape of the whole graph is the
+context that makes one highlighted path mean anything.
+
+The drawing is `aria-hidden`, and every number in it is repeated in two real
+tables underneath — one keyed by operation, one by consumer, with the team and
+the contact to reach. A graph that can only be read by looking at it is a graph
+half the audience cannot read.
+
+The page states whether the registry it read declared itself complete, in those
+words. Without that sentence, an operation with no consumer beside it reads as
+"nobody calls this" when it may only mean "nobody wrote it down" — and those
+two lead to opposite decisions.
+
 ## What it does not do
 
 **Field granularity.** A consumer can declare the operations it calls, not the

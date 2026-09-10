@@ -838,3 +838,59 @@ kbd {
 .run-progress { margin: 0; padding-left: var(--s5); }
 .run-progress li { padding: 2px 0; font-family: var(--font-mono); font-size: var(--text-sm); }
 .btn-inline { padding: 0; font: inherit; text-decoration: underline; }
+
+/* Blast radius: a bipartite graph of operations and the consumers that call
+ * them. Colour comes from tokens rather than the component, for the same
+ * reason severity does -- an inline hex is the same red on a white page and a
+ * near-black one. */
+.blast-graph {
+  width: 100%;
+  height: auto;
+  margin: var(--s3) 0;
+  overflow: visible;
+}
+.blast-edge {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+  transition: opacity var(--dur-fast, 120ms) var(--ease-standard, ease);
+}
+.blast-node rect {
+  fill: var(--panel);
+  stroke: var(--border);
+}
+.blast-node.consumer rect {
+  fill: var(--accent-subtle);
+  stroke: var(--accent);
+}
+.blast-node text {
+  fill: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.blast-node .blast-count {
+  fill: var(--muted);
+  text-anchor: end;
+  font-variant-numeric: tabular-nums;
+}
+/* Dimmed rather than hidden: the shape of the whole graph is the context that
+ * makes one highlighted path mean something. */
+.blast-edge.dim,
+.blast-node.dim {
+  opacity: 0.18;
+}
+.row-selected > td {
+  background: var(--accent-subtle);
+}
+.linklike {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  cursor: pointer;
+  text-align: left;
+}
+.linklike:hover {
+  text-decoration: underline;
+}

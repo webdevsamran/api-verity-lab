@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { readLiveConfig } from "../live";
 import { followRun, type RunProgress } from "../sse";
-import { Badge, Empty, PageHead } from "../components/ui";
+import { Badge, Empty, Missing, PageHead } from "../components/ui";
 import type { PageProps } from "./types";
 
 export function OrgDashboard({ data }: { data: PageProps["data"] }) {
@@ -393,6 +393,316 @@ export function UsersPage({ data }: { data: PageProps["data"] }) {
                 </Badge>
               </td>
               <td>{u.kind}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  );
+}
+
+/* ------------------------------------------------------- blast radius */
+
+/* Laid out here rather than in `components/ui.tsx` on purpose. That module is
+ * reachable from the shell, so a chart added to it lands in the entry chunk
+ * and is downloaded by everyone who opens the app -- including the people who
+ * never open this page. It lives in the route chunk that uses it. */
+
+interface Node {
+  id: string;
+  label: string;
+  weight: number;
+  y: number;
+}
+
+const ROW_H = 42;
+const PAD_Y = 26;
+const LEFT_X = 208;
+const RIGHT_X = 452;
+const VIEW_W = 660;
+
+function layout(ids: string[], weight: (id: string) => number): Node[] {
+  return ids.map((id, i) => ({
+    id,
+    label: id,
+    weight: weight(id),
+    y: PAD_Y + i * ROW_H + ROW_H / 2,
+  }));
+}
+
+/**
+ * A bipartite graph: operations on the left, the consumers that call them on
+ * the right, an edge for each dependency.
+ *
+ * Hand-drawn SVG, like every other chart here -- a graph library costs more
+ * than every page in this app put together, and this layout is two columns
+ * and a bezier.
+ *
+ * The SVG is `aria-hidden`. All of the interaction lives in the tables below
+ * it, which are real tables with real buttons: a screen reader user gets the
+ * same information and the same controls, and keyboard focus never has to
+ * enter the drawing. A graph that can only be read by looking at it is a
+ * graph half the audience cannot read.
+ */
+function BlastGraph({
+  operations,
+  consumers,
+  edges,
+  selected,
+}: {
+  operations: Node[];
+  consumers: Node[];
+  edges: [string, string][];
+  selected: string | null;
+}) {
+  const height =
+    PAD_Y * 2 + Math.max(operations.length, consumers.length, 1) * ROW_H;
+  const opY = new Map(operations.map((n) => [n.id, n.y]));
+  const conY = new Map(consumers.map((n) => [n.id, n.y]));
+  const lit = (op: string, consumer: string) =>
+    selected === null || selected === op || selected === consumer;
+
+  return (
+    <svg
+      className="blast-graph"
+      viewBox={`0 0 ${VIEW_W} ${height}`}
+      role="presentation"
+      aria-hidden="true"
+    >
+      {edges.map(([op, consumer]) => {
+        const y1 = opY.get(op);
+        const y2 = conY.get(consumer);
+        if (y1 === undefined || y2 === undefined) return null;
+        const mid = (LEFT_X + RIGHT_X) / 2;
+        return (
+          <path
+            key={`${op}->${consumer}`}
+            className={"blast-edge" + (lit(op, consumer) ? "" : " dim")}
+            d={`M ${LEFT_X} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${RIGHT_X} ${y2}`}
+          />
+        );
+      })}
+      {operations.map((n) => (
+        <g
+          key={n.id}
+          className={
+            "blast-node" +
+            (selected === null || selected === n.id ? "" : " dim")
+          }
+        >
+          <rect x={4} y={n.y - 14} width={LEFT_X - 4} height={28} rx={6} />
+          <text x={14} y={n.y + 4}>
+            {n.label}
+          </text>
+          <text className="blast-count" x={LEFT_X - 12} y={n.y + 4}>
+            {n.weight}
+          </text>
+        </g>
+      ))}
+      {consumers.map((n) => (
+        <g
+          key={n.id}
+          className={
+            "blast-node consumer" +
+            (selected === null || selected === n.id ? "" : " dim")
+          }
+        >
+          <rect
+            x={RIGHT_X}
+            y={n.y - 14}
+            width={VIEW_W - RIGHT_X - 4}
+            height={28}
+            rx={6}
+          />
+          <text x={RIGHT_X + 12} y={n.y + 4}>
+            {n.label}
+          </text>
+          <text className="blast-count" x={VIEW_W - 14} y={n.y + 4}>
+            {n.weight}
+          </text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+export function BlastRadiusPage({ data }: { data: PageProps["data"] }) {
+  const [selected, setSelected] = useState<string | null>(null);
+  const blast = data?.blast;
+
+  const model = useMemo(() => {
+    if (!blast) return null;
+    const operationIds = Object.keys(blast.by_operation);
+    const consumerIds = Object.keys(blast.by_consumer);
+    const edges: [string, string][] = [];
+    for (const [op, names] of Object.entries(blast.by_operation)) {
+      for (const name of names) edges.push([op, name]);
+    }
+    return {
+      operations: layout(operationIds, (id) => blast.errors_by_operation[id] ?? 0),
+      consumers: layout(consumerIds, (id) => blast.by_consumer[id]?.findings ?? 0),
+      edges,
+    };
+  }, [blast]);
+
+  /* A section that was never generated is not a section that is loading.
+   * Blast radius is the output of a run against a consumer registry, not
+   * server state, so a live dashboard legitimately has none -- and "Loading…"
+   * forever reads as a broken app rather than an absent input. */
+  if (!data) return <Empty msg="Loading…" />;
+  if (!blast || !model) return <Missing source={data.source} section="blast" />;
+
+  const affected = Object.keys(blast.by_consumer).length;
+  const teams = new Set(
+    Object.values(blast.by_consumer)
+      .map((c) => c.team)
+      .filter((t): t is string => Boolean(t)),
+  );
+
+  return (
+    <>
+      <PageHead
+        title="Blast Radius"
+        sub={`${affected} of ${blast.consumers_registered} registered consumers affected`}
+      />
+      <div className="cards">
+        <div className="card">
+          <div className="card-value">{affected}</div>
+          <div className="card-key">Consumers affected</div>
+        </div>
+        <div className="card">
+          <div className="card-value">{teams.size}</div>
+          <div className="card-key">Teams to tell</div>
+        </div>
+        <div className="card">
+          <div className="card-value">
+            {Object.keys(blast.errors_by_operation).length}
+          </div>
+          <div className="card-key">Operations with an ERROR</div>
+        </div>
+        <div className="card">
+          <div className="card-value">{blast.unclaimed_operations.length}</div>
+          <div className="card-key">Broken and unclaimed</div>
+        </div>
+      </div>
+
+      {/* The single most misreadable thing on this page. Without it, an empty
+       * consumer list reads as "nobody calls this", when it may only mean
+       * "nobody wrote it down" -- and those two lead to opposite decisions. */}
+      <p className="muted">
+        Read from <code>{blast.registry}</code>, which declares itself{" "}
+        <strong>{blast.complete ? "complete" : "incomplete"}</strong>.{" "}
+        {blast.complete ? (
+          <>
+            An operation with no consumer here really is called by nobody
+            registered, and a finding may be softened on that basis.
+          </>
+        ) : (
+          <>
+            An operation with no consumer here may simply be one nobody wrote
+            down. Nothing on this page lowers a severity.
+          </>
+        )}
+      </p>
+
+      {blast.unclaimed_operations.length > 0 && (
+        <p className="muted">
+          <strong>Unclaimed:</strong>{" "}
+          {blast.unclaimed_operations.map((op) => (
+            <code key={op}>{op}</code>
+          ))}{" "}
+          — breaking, and no registered consumer. That is where an incomplete
+          registry hurts, so it is named rather than left as an empty row.
+        </p>
+      )}
+
+      <BlastGraph {...model} selected={selected} />
+      {selected && (
+        <p className="muted">
+          Showing <code>{selected}</code>.{" "}
+          <button className="linklike" onClick={() => setSelected(null)}>
+            Show everything
+          </button>
+        </p>
+      )}
+
+      <h3>By operation</h3>
+      <table>
+        <caption className="visually-hidden">
+          Each breaking operation, how many ERROR findings it carries, and the
+          registered consumers that call it
+        </caption>
+        <thead>
+          <tr>
+            <th>Operation</th>
+            <th>ERRORs</th>
+            <th>Consumers</th>
+          </tr>
+        </thead>
+        <tbody>
+          {model.operations.map((n) => (
+            <tr key={n.id} className={selected === n.id ? "row-selected" : ""}>
+              <td>
+                <button
+                  className="linklike"
+                  aria-pressed={selected === n.id}
+                  onClick={() =>
+                    setSelected(selected === n.id ? null : n.id)
+                  }
+                >
+                  <code>{n.id}</code>
+                </button>
+              </td>
+              <td>{n.weight}</td>
+              <td>
+                {blast.by_operation[n.id].length === 0 ? (
+                  <span className="muted">none registered</span>
+                ) : (
+                  blast.by_operation[n.id].join(", ")
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <h3>Who to tell</h3>
+      <table>
+        <caption className="visually-hidden">
+          Each affected consumer, the team that owns it, where to reach them,
+          and which operations it calls
+        </caption>
+        <thead>
+          <tr>
+            <th>Consumer</th>
+            <th>Team</th>
+            <th>Contact</th>
+            <th>Operations</th>
+            <th>Findings</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Object.entries(blast.by_consumer).map(([name, c]) => (
+            <tr key={name} className={selected === name ? "row-selected" : ""}>
+              <td>
+                <button
+                  className="linklike"
+                  aria-pressed={selected === name}
+                  onClick={() =>
+                    setSelected(selected === name ? null : name)
+                  }
+                >
+                  {name}
+                </button>
+              </td>
+              <td>{c.team ?? "—"}</td>
+              <td>{c.contact ?? "—"}</td>
+              <td>
+                {c.operations.map((op) => (
+                  <code key={op}>{op}</code>
+                ))}
+              </td>
+              <td>{c.findings}</td>
             </tr>
           ))}
         </tbody>

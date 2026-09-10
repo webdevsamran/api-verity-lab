@@ -234,6 +234,28 @@ def main() -> None:
     del cid1, cid2
 
     # --- API catalog index -----------------------------------------------------
+    # ----------------------------------------------------------- blast radius
+    #
+    # "severity: ERROR" and "this breaks checkout-service and mobile-v3" are
+    # the same fact and not the same message, and only the second one gets a
+    # release held. The registry ships `complete: false`, so the radius adds
+    # information and softens nothing -- and `DELETE /users/{id}` lands in
+    # `unclaimed_operations`, which is the gap an incomplete registry exists
+    # to make visible rather than hide.
+    from apiverity.rules.consumers import blast_radius, load_registry
+
+    registry = load_registry(str(FIX / "consumers/registry.yaml"))
+    blast_section = blast_radius(findings, registry)
+    # Posix, because the value is a path this generator read on whichever
+    # machine ran it, and a backslash in committed demo data makes the file
+    # differ by platform.
+    blast_section["registry"] = "fixtures/consumers/registry.yaml"
+    errors: dict[str, int] = {}
+    for finding in findings:
+        if finding.severity.value == "ERROR" and finding.operation_key:
+            errors[finding.operation_key] = errors.get(finding.operation_key, 0) + 1
+    blast_section["errors_by_operation"] = dict(sorted(errors.items()))
+
     # ---------------------------------------------------------------- agents
     #
     # A fleet, not a screenshot. Three mock MCP servers with deliberately
@@ -409,6 +431,7 @@ def main() -> None:
         "org": org_section,
         "catalog": catalog_section,
         "agents": agents_section,
+        "blast": blast_section,
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(payload, indent=2), encoding="utf-8")

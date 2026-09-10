@@ -1,0 +1,40 @@
+# Who calls the versioned demo contract.
+#
+# `complete: false` on purpose. A registry that claims to list every consumer
+# is allowed to *soften* a finding -- an ERROR nobody calls becomes a WARN --
+# and that is a claim a fixture has no business making on a reader's behalf.
+# With it false, the blast radius adds information and removes no severity,
+# and `DELETE /users/{id}` shows up in `unclaimed_operations`, which is
+# exactly the gap an incomplete registry is supposed to make visible.
+version: 1
+complete: false
+consumers:
+  - name: checkout-service
+    team: "@payments"
+    contact: "#payments-oncall"
+    uses:
+      - GET /users
+      - GET /users/{id}
+      - POST /users
+  - name: mobile-v3
+    team: "@mobile"
+    contact: "#mobile-releases"
+    uses:
+      - GET /users
+      - GET /users/{id}
+  - name: partner-sync
+    team: "@integrations"
+    contact: integrations@example.com
+    uses:
+      - GET /users
+  - name: admin-console
+    team: "@platform"
+    contact: "#platform"
+    uses:
+      - POST /users
+      - GET /users/{id}
+  - name: analytics-etl
+    team: "@data"
+    contact: "#data-eng"
+    uses:
+      - GET /users/{id}

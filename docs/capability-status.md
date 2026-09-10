@@ -181,7 +181,7 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
 - OIDC/SAML concrete providers — BLOCKED behind a real IdP; `IdentityProvider` protocol + local provider exist and are tested
 
 ## Frontend
-- 33-route product UI (public/local + team pages), design tokens,
+- 34-route product UI (public/local + team pages), design tokens,
   dark/light/system themes, virtualized tables, DEMO labeling, demo corpus
   generator — EXISTING. The route count is derived from
   `web/src/pages/index.tsx`, not asserted here
