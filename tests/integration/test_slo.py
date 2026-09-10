@@ -174,7 +174,17 @@ def test_nothing_is_both_measurable_and_not() -> None:
 @pytest.fixture(scope="module")
 def measured(service: Service):
     with MockServer(service, port=8134) as mock:
-        yield measure(service, mock.base_url, iterations=5)
+        # Warmed, and more than five samples. `GET /users` declares 250 ms and
+        # is the *met* case this file needs it to be -- but the first request
+        # to a fresh server pays connection setup and the handler's first
+        # import, and with five unwarmed samples that one is the p95. On a
+        # loaded runner it crossed 250 ms and the met case became the exceeded
+        # one, so the fixture stopped exercising the case it exists for.
+        #
+        # This is the same reasoning `performance/curve.py` gives for warming
+        # at every concurrency level: setup charged to the first few requests
+        # reads as the service being slow.
+        yield measure(service, mock.base_url, iterations=12, warmup=3)
 
 
 def test_an_exceeded_objective_is_reported(service: Service, measured) -> None:
