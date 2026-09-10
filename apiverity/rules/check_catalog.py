@@ -35,7 +35,14 @@ class CheckRuleSpec:
     instead: str
     #: Which command produces it.
     produced_by: str = "validate"
-    #: The family it belongs to, used to group the generated document.
+    #: The section this rule appears under in `docs/check-rules.md`, for any
+    #: rule the generator's prefix table does not claim.
+    #:
+    #: The prefix table exists because the security family is 27 rules doing
+    #: five distinct jobs and one heading over all of them helps nobody. This
+    #: field covers everything else -- and it had no reader at all until the
+    #: generator was changed to use it, which is why two SEC rules added after
+    #: that table was written sat under a heading called "Other".
     family: str = "Security"
 
 
@@ -57,6 +64,7 @@ def catalog() -> dict[str, CheckRuleSpec]:
     `spec` without a cycle.
     """
     from apiverity.performance.slo_catalog import SLO_CATALOG
+    from apiverity.rules.gate_catalog import GATE_CATALOG
     from apiverity.rules.lifecycle_catalog import LIFECYCLE_CATALOG
     from apiverity.rules.lint_catalog import LINT_CATALOG
     from apiverity.rules.policy_catalog import GOVERNANCE_CATALOG
@@ -70,6 +78,7 @@ def catalog() -> dict[str, CheckRuleSpec]:
     merged.update(SLO_CATALOG)
     merged.update(GOVERNANCE_CATALOG)
     merged.update(LINT_CATALOG)
+    merged.update(GATE_CATALOG)
     return merged
 
 

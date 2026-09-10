@@ -196,9 +196,12 @@ def apply_project_suppressions(findings: list[Any]) -> tuple[list[Any], dict[str
         return findings, {}
 
     from apiverity.rules.suppressions import (
+        DEFAULT_MAX_LIFETIME_DAYS,
         apply_suppressions,
         expired_suppression_findings,
+        incomplete_suppression_findings,
         load_suppressions,
+        unscoped_suppression_findings,
     )
 
     resolved = Path(path)
@@ -214,13 +217,28 @@ def apply_project_suppressions(findings: list[Any]) -> tuple[list[Any], dict[str
         print(f"error: suppressions file {resolved}: {exc}", file=sys.stderr)
         sys.exit(EXIT_USAGE)
 
-    result = apply_suppressions(findings, suppressions)
-    expired = expired_suppression_findings(result.expired)
-    active = result.active + expired
+    result = apply_suppressions(
+        findings,
+        suppressions,
+        max_days=int(config_setting("suppression_max_days", DEFAULT_MAX_LIFETIME_DAYS)),
+        require_approver=bool(config_setting("suppression_require_approver", False)),
+    )
+    # All three go back into the run. An expired entry and an unjustified one
+    # both left a finding active, and the reader needs to know which entry did
+    # that -- otherwise the file looks like it is working and the finding looks
+    # like a new one.
+    active = (
+        result.active
+        + expired_suppression_findings(result.expired)
+        + incomplete_suppression_findings(result.incomplete)
+        + unscoped_suppression_findings(result.unscoped)
+    )
     record = {
         "file": str(resolved),
         "declared": len(suppressions),
         "expired": len(result.expired),
+        "incomplete": len(result.incomplete),
+        "unscoped": len(result.unscoped),
         "suppressed": [
             {
                 "rule_id": finding.rule_id,
@@ -229,8 +247,19 @@ def apply_project_suppressions(findings: list[Any]) -> tuple[list[Any], dict[str
                 "owner": suppression.owner,
                 "reason": suppression.reason,
                 "expires": suppression.expires,
+                "approved_by": suppression.approved_by,
             }
             for finding, suppression in result.suppressed
+        ],
+        # Named, not just counted: "2 incomplete" tells a reader a file is
+        # wrong and not which line to open.
+        "not_applied": [
+            {
+                "rule_id": suppression.rule_id,
+                "operation_key": suppression.operation_key,
+                "problems": problems,
+            }
+            for suppression, problems in result.incomplete
         ],
     }
     return active, record

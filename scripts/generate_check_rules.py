@@ -43,13 +43,35 @@ breaking-change catalogue only. Use `--severity-override` or the config's
 
 """
 
+#: Prose for a family section, where the family name alone is not enough.
+_FAMILY_NOTES: dict[str, str] = {
+    "The gate's escape hatch": (
+        "The suppressions file, talking about itself. An entry that is not justified "
+        "and bounded does not suppress -- it fails closed, the finding it named stays "
+        "in the run, and `SUPPRESSION-INCOMPLETE` says which field is missing. A gate "
+        "that could be quietened by an unsigned one-line entry is a gate that is "
+        "already off."
+    ),
+    "Project configuration": (
+        "`.apiverity.yaml`, checked by `apiverity config validate` and on every run "
+        "that reads it. An ERROR here stops the run: a setting nobody reads is a "
+        "setting the reader believes is active."
+    ),
+}
+
 #: Group title -> the prefixes that belong to it, in the order they are shown.
 #: Ordered from the rules about who may call, through what they may send, to
 #: how it travels -- which is the order a reviewer reads a contract in.
+#:
+#: This claims the rules whose *prefix* says more than their family does: the
+#: security family is 27 rules and five distinct jobs. Everything it does not
+#: claim is sectioned by `CheckRuleSpec.family`, which is what that field is
+#: for -- it had no reader at all until this, so two SEC rules added after the
+#: table was written sat under a heading called "Other".
 _GROUPS: list[tuple[str, tuple[str, ...], str]] = [
     (
         "Authentication",
-        ("SEC-AUTH-", "SEC-SCHEME-", "SEC-NO-AUTH-"),
+        ("SEC-AUTH-", "SEC-SCHEME-", "SEC-NO-AUTH-", "SEC-UNAUTH-"),
         "What the document says about who may call an operation. Three of these are "
         "INFO because they record a fact rather than a fault: an explicit `security: []`, "
         "a format with nowhere to declare authentication, and a format this tool does "
@@ -76,7 +98,7 @@ _GROUPS: list[tuple[str, tuple[str, ...], str]] = [
     ),
     (
         "Resource consumption",
-        ("SEC-ARRAY-", "SEC-COLLECTION-", "SEC-RATE-LIMIT-"),
+        ("SEC-ARRAY-", "SEC-COLLECTION-", "SEC-RATE-LIMIT-", "SEC-ABUSE-"),
         "Limits the contract does not declare. Unbounded *strings* are deliberately not "
         "checked: most strings should have no `maxLength`, and a check that fires "
         "hundreds of times per contract gets switched off, taking the useful ones with "
@@ -138,13 +160,18 @@ def render() -> str:
                 f"| {_cell(spec.description)} | {_cell(spec.instead)} |"
             )
         out.append("")
-    if remaining:
-        # Never silently dropped: a rule with no group is a rule this document
-        # would otherwise omit while claiming to be the whole list.
-        out.append(f"## Other{NL}")
+    # Whatever the prefix table did not claim, sectioned by its declared
+    # family. Never silently dropped: a rule with no section is a rule this
+    # document would omit while claiming to be the whole list.
+    for family in sorted({spec.family for spec in remaining.values()}):
+        rows = [spec for spec in remaining.values() if spec.family == family]
+        out.append(f"## {family}{NL}")
+        note = _FAMILY_NOTES.get(family)
+        if note:
+            out.append(f"{note}{NL}")
         out.append("| Rule | Severity | Produced by | Fires when | Instead |")
         out.append("|---|---|---|---|---|")
-        for spec in remaining.values():
+        for spec in rows:
             out.append(
                 f"| `{spec.rule_id}` | {spec.severity.value} | `{spec.produced_by}` "
                 f"| {_cell(spec.description)} | {_cell(spec.instead)} |"
@@ -163,7 +190,7 @@ def main() -> int:
         return 0
     if "--check" in sys.argv:
         print(
-            "error: docs/security-rules.md is stale; run scripts/generate_check_rules.py",
+            f"error: docs/{target.name} is stale; run scripts/generate_check_rules.py",
             file=sys.stderr,
         )
         return 1

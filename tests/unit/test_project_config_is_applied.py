@@ -20,6 +20,7 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -198,7 +199,10 @@ def _suppression(tmp_path: Path, rule_id: str, **overrides: Any) -> Path:
         "rule_id": rule_id,
         "owner": "platform-team",
         "reason": "agreed with the two consumers on 2026-09-01",
-        "expires": "2099-01-01",
+        # Relative to today, because the maximum lifetime is. This helper said
+        # `2099-01-01` until that maximum existed -- the format's own test
+        # fixture was a permanent ignore, which is how easily one is written.
+        "expires": (date.today() + timedelta(days=30)).isoformat(),
     }
     entry.update(overrides)
     path.write_text(json.dumps({"suppressions": [entry]}), encoding="utf-8")

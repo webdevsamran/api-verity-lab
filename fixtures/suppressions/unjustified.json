@@ -1,0 +1,28 @@
+{
+  "$comment": "Four entries: one that qualifies and three that do not. Used by tests/unit/test_suppression_hardening.py and quoted in docs/ci.md, so each failure mode appears exactly once.",
+  "suppressions": [
+    {
+      "rule_id": "BRK-RESP-FIELD-REMOVED",
+      "operation_key": "GET /things",
+      "owner": "platform-team",
+      "reason": "both consumers confirmed on 2026-05-20; the field goes in 3.0",
+      "expires": "2026-06-15",
+      "approved_by": "sre-lead"
+    },
+    {
+      "rule_id": "BRK-PARAM-REQUIRED-ADDED",
+      "operation_key": "POST /things",
+      "expires": "2026-06-15"
+    },
+    {
+      "rule_id": "BRK-OP-REMOVED"
+    },
+    {
+      "rule_id": "BRK-ENUM-NARROWED",
+      "operation_key": "GET /things",
+      "owner": "platform-team",
+      "reason": "waiting on the mobile release",
+      "expires": "2099-01-01"
+    }
+  ]
+}

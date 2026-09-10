@@ -32,6 +32,7 @@ What the document says about who may call an operation. Three of these are INFO 
 | `SEC-NO-AUTH-DECLARED` | WARN | `validate` | The contract declares no security schemes at all. | Declare the schemes the service uses under `components.securitySchemes`, even if a gateway enforces them -- a consumer generating a client reads this file, not your gateway. |
 | `SEC-SCHEME-INCONSISTENT` | WARN | `validate` | Operations of similar kinds require different schemes without an evident reason. | Make the inconsistency deliberate and visible, or align them. An inconsistent surface is where the one unprotected endpoint hides. |
 | `SEC-SCHEME-UNKNOWN` | ERROR | `validate` | An operation requires a security scheme the contract never declares. | Declare the scheme, or fix the name in the requirement. A generated client cannot authenticate against a scheme that does not exist. |
+| `SEC-UNAUTH-WRITE` | WARN | `validate` | A mutating operation has no authentication declaration. | Same edit as SEC-AUTH-MISSING, and more urgent: a POST or DELETE that a reader cannot tell is protected is one nobody will audit. |
 
 ## Authorization scope
 
@@ -61,6 +62,7 @@ Limits the contract does not declare. Unbounded *strings* are deliberately not c
 
 | Rule | Severity | Produced by | Fires when | Instead |
 |---|---|---|---|---|
+| `SEC-ABUSE-UNBOUNDED-PAGE-SIZE` | WARN | `validate` | A page-size query parameter declares no `maximum`. | Declare `maximum` on the parameter. If the server already caps it, the contract still says otherwise, and a client written against the contract will ask for the number it says is allowed. |
 | `SEC-ARRAY-UNBOUNDED` | WARN | `validate` | A request accepts an array with no `maxItems`. | Declare a ceiling. The cost is not the array, it is the work done per element; if the server already enforces a limit, say so in the description so a caller can find it. |
 | `SEC-COLLECTION-UNPAGINATED` | WARN | `validate` | A read returns an array and declares no pagination parameter. | Add `limit` and a cursor. Response size then follows something the caller asked for, instead of following how much data happens to exist. |
 | `SEC-RATE-LIMIT-LEGACY-FIELDS` | INFO | `validate` | The contract declares the three-field `RateLimit-Limit`/`-Remaining`/`-Reset` set. | Nothing, deliberately. Later revisions of the same draft replaced it with the two-field `RateLimit` / `RateLimit-Policy` pair, and the replacement is still a draft -- recommending a move to an unstable target is how a linter gets switched off. Recorded so the choice is a choice. |
@@ -103,18 +105,26 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 | `LIFECYCLE-SUNSET-PASSED` | ERROR | `validate` | A declared sunset date has passed and the operation is still here. | Remove the operation, or move the date to one the team still means. A retirement date nobody enforces teaches callers to ignore the next one. |
 | `LIFECYCLE-SUNSET-WITHOUT-DEPRECATION` | WARN | `validate` | An operation declares a retirement date and is not marked deprecated. | Mark it `deprecated: true`. The contract is currently retiring something it never told anyone to stop using. |
 
-## Other
+## Governance
 
 | Rule | Severity | Produced by | Fires when | Instead |
 |---|---|---|---|---|
 | `GOV-MISSING-OPERATION-ID` | INFO | `validate` | An operation has no `operationId`. | Give it one, unique across the document. Generated SDKs name methods from it, and without one the name is derived from the path -- so it changes whenever the path does. |
 | `GOV-UNUSED-SECURITY-SCHEME` | INFO | `validate` | A security scheme is declared and required by no operation. | Remove it, or require it where it applies. A scheme in the document that nothing uses tells a reader the API supports an authentication method it does not, and that reader is often the one writing a client. |
+
+## Lint
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
 | `LINT-AMBIGUOUS-COMPOSITION` | WARN | `validate` | A composition lists several branches with nothing to tell them apart. | Give the branches titles, or a discriminator. A reader -- and a code generator -- has to name these somehow, and without a hint the names come out as `Variant1`, `Variant2`. |
 | `LINT-CONTRADICTORY-REQUIRED` | ERROR | `validate` | A schema requires a property it does not declare. | Declare the property, or drop it from `required`. As written the schema cannot be satisfied by any document, and a validator will reject every payload including the service's own. |
 | `LINT-EMPTY-RESPONSE` | INFO | `validate` | A 2xx response declares neither content nor headers. | Nothing, if the operation really returns an empty body -- a 204 usually does. Otherwise describe what comes back: a consumer reading the contract sees an endpoint that returns nothing. |
 | `LINT-INVALID-EXAMPLE` | WARN | `validate` | An example does not validate against the schema it illustrates. | Fix the example, or the schema -- one of them is wrong. An example is the part of a contract people copy, so a wrong one is a wrong request in somebody's client. |
-| `SEC-ABUSE-UNBOUNDED-PAGE-SIZE` | WARN | `validate` | A page-size query parameter declares no `maximum`. | Declare `maximum` on the parameter. If the server already caps it, the contract still says otherwise, and a client written against the contract will ask for the number it says is allowed. |
-| `SEC-UNAUTH-WRITE` | WARN | `validate` | A mutating operation has no authentication declaration. | Same edit as SEC-AUTH-MISSING, and more urgent: a POST or DELETE that a reader cannot tell is protected is one nobody will audit. |
+
+## Objectives
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
 | `SLO-MALFORMED` | WARN | `validate` | A declared objective is not a number, so nothing can be compared against it. | Write it as a bare number: `p95_ms: 250`, not `p95_ms: 250ms`. This is worse than a missing objective, because it looks declared and reads as declared in a review. |
 | `SLO-NOT-MEASURABLE` | INFO | `validate` | An objective is understood and deliberately not evaluated by any run. | Nothing. `availability` and `uptime_pct` are promises over a window, and a run measures the requests it made and cannot see the ones it did not -- a figure computed here would be a fabrication with a decimal point on it. Reported so silence about it is not mistaken for a pass. |
 | `SLO-NOT-MEASURED` | WARN | `regression` | An operation declares an objective and the run measured nothing for it. | Check the operation is reachable at the target. A declared objective with no measurement beside it reads as a pass, and a p95 of a connection timeout is not a latency. |
@@ -122,4 +132,30 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 | `SLO-UNDECLARED` | INFO | `validate` | An operation states no objective, in a contract where others do. | Nothing, unless you meant to. An operation with no stated objective is not a defect -- it is an operation nobody promised anything about. |
 | `SLO-UNKNOWN-OBJECTIVE` | WARN | `validate` | An operation declares an objective this tool does not measure. | Rename it to one of the measured objectives, or accept that nothing checks it. An objective nothing compares against is a promise nobody checks. |
 
-_51 check rules._
+## Project configuration
+
+`.apiverity.yaml`, checked by `apiverity config validate` and on every run that reads it. An ERROR here stops the run: a setting nobody reads is a setting the reader believes is active.
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `CONFIG-FAIL-ON-INVALID` | ERROR | `config validate` | `fail_on` is not one of error, warn or never. | Use one of the three. There is no `off`: a gate that never fails is `never`, which reports everything and is how you adopt the gate on an API that already has history. |
+| `CONFIG-PROFILE-INVALID` | ERROR | `config validate` | `profile` names a severity profile that does not exist. | Use strict, balanced or advisory. `profile` was checked for type and not for value, so `profile: strikt` validated clean and then failed the run later with `internal error: unknown severity profile`. |
+| `CONFIG-RULE-UNKNOWN` | WARN | `config validate` | A severity override names a rule id that is not in the catalogue. | Check the id against `apiverity rules`. A typo here is silent by nature: the override applies to nothing and the rule keeps its shipped severity. |
+| `CONFIG-SEVERITY-INVALID` | ERROR | `config validate` | A severity override names something that is not a severity. | Use ERROR, WARN or INFO. There is no `OFF`: a rule you do not want is a suppression with an owner and an expiry, not a severity nobody defined. |
+| `CONFIG-TYPE` | ERROR | `config validate` | A config key holds the wrong kind of value. | Give the key the shape the message names -- `severity_overrides` is a mapping of rule id to severity, not a list. |
+| `CONFIG-UNKNOWN-KEY` | ERROR | `config validate` | `.apiverity.yaml` contains a key this build does not read. | Fix the spelling the message suggests, or delete the key. It is an error rather than a warning because `severity_overides` (one 'r') is a typo somebody will make, and a tool that ignored it would report that nothing is wrong while the override the reader believes is active does nothing. |
+| `CONFIG-VALUE-INVALID` | ERROR | `config validate` | A config key holds a value outside the range it accepts. | Use a value in range -- `suppression_max_days` is a count of days and must be at least 1, since a maximum of zero would mean no suppression could ever be written. |
+| `CONFIG-VERSION-MISSING` | ERROR | `config validate` | `.apiverity.yaml` declares no `version`. | Add `version: 1`. The version is what lets a later build tell a file written for an older format from one with a mistake in it. |
+| `CONFIG-VERSION-UNSUPPORTED` | ERROR | `config validate` | The config's `version` is not one this build understands. | Upgrade apiverity, or write the version this build supports. Reading a future config on a guess would apply settings whose meaning has changed. |
+
+## The gate's escape hatch
+
+The suppressions file, talking about itself. An entry that is not justified and bounded does not suppress -- it fails closed, the finding it named stays in the run, and `SUPPRESSION-INCOMPLETE` says which field is missing. A gate that could be quietened by an unsigned one-line entry is a gate that is already off.
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `SUPPRESSION-EXPIRED` | WARN | `breaking` | A suppression's expiry date has passed; it no longer silences anything. | Fix the finding, or write a new entry with a fresh `expires` date and a reason that says what changed. An expiry is the mechanism that makes somebody look again -- extending it without a new reason is the same as never having set one. |
+| `SUPPRESSION-INCOMPLETE` | WARN | `breaking` | A suppression is missing a field it needs, so it suppressed nothing. | Add the fields the message names: `owner`, `reason`, and an `expires` date within the project's maximum. The entry fails closed, so the finding it named is still in the run -- this is not a second failure, it is the reason the first one is still there. |
+| `SUPPRESSION-UNSCOPED` | INFO | `breaking` | A suppression silences its rule across every operation. | Nothing, if that is what you meant -- an API with no pagination does not need the pagination rule on forty operations. Add an `operation_key` if it is not: a rule silenced contract-wide will not fire on the operation added next month either. |
+
+_63 check rules._

@@ -144,6 +144,8 @@ fail_on: never          # report without blocking, while adopting the gate
 severity_overrides:
   BRK-DEPRECATION-ADDED: INFO
 suppressions: .apiverity-suppressions.json
+suppression_max_days: 90          # how far ahead an `expires` date may sit
+suppression_require_approver: false
 ```
 
 `profile` is a starting position; everything else in the file, and every flag
@@ -158,12 +160,60 @@ run would apply, not the shipped one. The table is generated into
 its first run against an API that already has history gets removed rather than
 adopted, which is what `never` is for.
 
-A suppressions file silences a finding *from the gate*, not from the record:
-each one needs an owner, a reason and an expiry, the suppressed findings are
-listed in the artifact under `suppressions`, and an expiry that has passed
-becomes a `SUPPRESSION-EXPIRED` warning instead of continuing to suppress. An
-ignore-list nobody can audit and nobody has to revisit is the thing this format
-exists to avoid.
+## Suppressions
+
+A suppressions file silences a finding *from the gate*, not from the record.
+The suppressed findings are listed in the artifact under `suppressions`, so a
+gate that dropped a finding on the say-so of a file is still one somebody can
+audit.
+
+An entry has to be **justified** and **bounded**, and an entry that is neither
+does not suppress:
+
+```json
+{
+  "suppressions": [
+    {
+      "rule_id": "BRK-RESP-FIELD-REMOVED",
+      "operation_key": "GET /things",
+      "owner": "platform-team",
+      "reason": "both consumers confirmed on 2026-05-20; the field goes in 3.0",
+      "expires": "2026-06-15",
+      "approved_by": "sre-lead"
+    }
+  ]
+}
+```
+
+- **`owner` and `reason`** are what make it justified. Without either, the
+  entry does not suppress and a `SUPPRESSION-INCOMPLETE` warning names the
+  missing field.
+- **`expires`** is what makes it bounded, and it has a maximum: **90 days**,
+  or whatever `suppression_max_days` says. `"expires": "2099-01-01"` satisfies
+  "each one needs an expiry" and is a permanent ignore with a date on it, so it
+  is treated as one and does not suppress either.
+- **`approved_by`** is optional unless the project sets
+  `suppression_require_approver: true`. The owner carries the work; the
+  approver accepted the risk of not doing it yet.
+- An **expiry that has passed** becomes a `SUPPRESSION-EXPIRED` warning and
+  stops suppressing. Re-justify it with a new date and a reason that says what
+  changed -- extending an expiry without one is the same as never having set
+  it.
+- Omitting **`operation_key`** silences the rule across every operation. That
+  is allowed and it still suppresses; it also emits `SUPPRESSION-UNSCOPED` at
+  INFO, because a rule silenced contract-wide will not fire on the operation
+  somebody adds next month either.
+
+Failing closed is deliberate. An entry that does not qualify leaves the finding
+it named in the run at its own severity, so the build stays red and the warning
+beside it says which line of the file to open. `apiverity explain
+SUPPRESSION-INCOMPLETE` prints the same thing without a run.
+
+An ignore-list nobody can audit and nobody has to revisit is the thing this
+format exists to avoid, and until these rules were enforced,
+`{"rule_id": "BRK-RESP-FIELD-REMOVED"}` on its own was a valid file that
+switched the rule off for good.
+
 
 `--no-config` ignores the file entirely, for a run that must not inherit
 project policy.

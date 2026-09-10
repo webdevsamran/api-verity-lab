@@ -74,6 +74,13 @@ class Config:
     check_semver: bool = False
     #: Whether `breaking` should recommend the next version by default.
     suggest_version: bool = False
+    #: How far ahead a suppression's `expires` date may sit. Beyond it, the
+    #: entry is a permanent ignore with a date on it and does not suppress.
+    suppression_max_days: int | None = None
+    #: Whether a suppression must name an `approved_by` as well as an `owner`.
+    #: Off by default: a review model is a fact about a team, and defaulting it
+    #: on would fail every existing suppressions file on upgrade.
+    suppression_require_approver: bool = False
     source_path: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
@@ -92,6 +99,10 @@ class Config:
             out["check_semver"] = self.check_semver
         if self.suggest_version:
             out["suggest_version"] = self.suggest_version
+        if self.suppression_max_days is not None:
+            out["suppression_max_days"] = self.suppression_max_days
+        if self.suppression_require_approver:
+            out["suppression_require_approver"] = self.suppression_require_approver
         return out
 
 
@@ -135,6 +146,17 @@ FIELDS: dict[str, tuple[dict[str, Any], str]] = {
     "suggest_version": (
         {"type": "boolean"},
         "Recommend the next version by default.",
+    ),
+    "suppression_max_days": (
+        {"type": "integer", "minimum": 1},
+        "How far ahead a suppression's `expires` date may sit, in days. Beyond it the "
+        "entry does not suppress: an expiry far enough away is a permanent ignore with "
+        "a date on it. Defaults to 90.",
+    ),
+    "suppression_require_approver": (
+        {"type": "boolean"},
+        "Require every suppression to name an `approved_by` as well as an `owner`. "
+        "Off by default -- a review model is a fact about a team, not about a contract.",
     ),
 }
 
@@ -243,6 +265,42 @@ def _validate(raw: dict[str, Any], path: str) -> list[Finding]:
                         )
                     )
 
+    # `profile` was checked for *type* and not for value, so `profile: strikt`
+    # validated clean -- from the command whose stated premise is rejecting a
+    # typo before it becomes a silently ignored key. It then reached
+    # `severity_overrides('strikt')`, which raises, and `breaking` reported
+    # `internal error: unknown severity profile 'strikt'`. An ERROR here is
+    # what makes the file the thing that gets fixed.
+    profile = raw.get("profile")
+    if isinstance(profile, str) and profile not in _PROFILES:
+        import difflib
+
+        close = difflib.get_close_matches(profile, list(_PROFILES), n=1, cutoff=0.6)
+        hint = f"; did you mean {close[0]!r}?" if close else ""
+        findings.append(
+            Finding(
+                rule_id="CONFIG-PROFILE-INVALID",
+                severity=Severity.ERROR,
+                message=(
+                    f"{path}: `profile` must be one of {', '.join(_PROFILES)} "
+                    f"(got {profile!r}){hint}"
+                ),
+            )
+        )
+
+    max_days = raw.get("suppression_max_days")
+    if isinstance(max_days, int) and not isinstance(max_days, bool) and max_days < 1:
+        findings.append(
+            Finding(
+                rule_id="CONFIG-VALUE-INVALID",
+                severity=Severity.ERROR,
+                message=(
+                    f"{path}: `suppression_max_days` must be at least 1 (got {max_days}); "
+                    "a maximum of zero would mean no suppression can ever be written"
+                ),
+            )
+        )
+
     fail_on = raw.get("fail_on")
     if fail_on is not None and fail_on not in ("error", "warn", "never"):
         findings.append(
@@ -259,6 +317,8 @@ def _validate(raw: dict[str, Any], path: str) -> list[Finding]:
         ("suggest_version", bool),
         ("profile", str),
         ("suppressions", str),
+        ("suppression_max_days", int),
+        ("suppression_require_approver", bool),
     ):
         value = raw.get(key)
         if value is not None and not isinstance(value, expected):
@@ -296,6 +356,13 @@ def load_config(path: str | Path) -> tuple[Config, list[Finding]]:
         suppressions=raw.get("suppressions"),
         check_semver=bool(raw.get("check_semver", False)),
         suggest_version=bool(raw.get("suggest_version", False)),
+        suppression_max_days=(
+            int(raw["suppression_max_days"])
+            if isinstance(raw.get("suppression_max_days"), int)
+            and not isinstance(raw.get("suppression_max_days"), bool)
+            else None
+        ),
+        suppression_require_approver=bool(raw.get("suppression_require_approver", False)),
         source_path=str(source),
     )
     return config, findings

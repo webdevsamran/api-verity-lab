@@ -238,15 +238,28 @@ def test_every_documented_key_is_one_the_parser_accepts(tmp_path: Path) -> None:
     """The schema and the validator are built from one table; prove they agree."""
     from apiverity.core.config import FIELDS
 
-    by_type: dict[str, Any] = {"array": ["x"], "object": {}, "string": "x", "boolean": True}
+    by_type: dict[str, Any] = {
+        "array": ["x"],
+        "object": {},
+        "string": "x",
+        "boolean": True,
+        "integer": 30,
+    }
     sample: dict[str, Any] = {"version": 1}
     for name, (fragment, _) in FIELDS.items():
         if name == "version":
             continue
         sample[name] = by_type[str(fragment["type"])]
+    # Two keys whose value is constrained beyond its type. A sample that used
+    # the generic "x" would fail on the value rather than on the key, which is
+    # not what this test is asking.
     sample["fail_on"] = "error"
+    sample["profile"] = "balanced"
 
     path = _write(tmp_path, sample)
     _, payload, _ = _run(["config", "validate", "--path", str(path), "--json"])
     assert "CONFIG-UNKNOWN-KEY" not in _ids(payload["findings"])
     assert "CONFIG-TYPE" not in _ids(payload["findings"])
+    # Nothing else either: a key that validates its type and then trips a value
+    # check is still a key this file cannot use.
+    assert _ids(payload["findings"]) == set()

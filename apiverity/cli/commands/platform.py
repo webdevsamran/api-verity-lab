@@ -458,6 +458,8 @@ _RULE_GUIDE: tuple[tuple[str, str, str], ...] = (
     ("MCP-DRIFT-", "MCP runtime drift", "docs/mcp-drift.md"),
     ("MCP-CONF-", "MCP conformance", "docs/mcp-drift.md"),
     ("DRIFT-", "Runtime drift", "docs/capability-status.md"),
+    ("SUPPRESSION-", "The gate's escape hatch", "docs/ci.md#suppressions"),
+    ("CONFIG-", "Project configuration", "docs/ci.md"),
     ("SPEC-", "Spec loading", "docs/spec-support.md"),
     ("MCP-", "MCP manifest loading", "docs/spec-support.md"),
 )

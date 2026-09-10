@@ -217,7 +217,11 @@ class TestSuppressions:
                             "operation_key": "GET /a",
                             "owner": "team-core",
                             "reason": "legacy client depends on it",
-                            "expires": "2099-12-31",
+                            # Inside the ninety-day maximum, measured from the
+                            # `today` this test pins. `2099-12-31` was here
+                            # until the maximum existed, which is the point:
+                            # the format's own test wrote a permanent ignore.
+                            "expires": "2026-03-01",
                         }
                     ]
                 }

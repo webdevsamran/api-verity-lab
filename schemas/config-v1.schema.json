@@ -64,6 +64,15 @@
     "suggest_version": {
       "type": "boolean",
       "description": "Recommend the next version by default."
+    },
+    "suppression_max_days": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "How far ahead a suppression's `expires` date may sit, in days. Beyond it the entry does not suppress: an expiry far enough away is a permanent ignore with a date on it. Defaults to 90."
+    },
+    "suppression_require_approver": {
+      "type": "boolean",
+      "description": "Require every suppression to name an `approved_by` as well as an `owner`. Off by default -- a review model is a fact about a team, not about a contract."
     }
   }
 }

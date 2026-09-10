@@ -35,7 +35,11 @@ _DOC = _ROOT / "docs" / "check-rules.md"
 #: is constructed. Read from the source rather than by running every check,
 #: because a check that needs a live server to fire would otherwise be invisible
 #: to this test and its rule would be the one that goes missing.
-_EMITTED = re.compile(r'rule_id=(?:")((?:SEC|LIFECYCLE|SEMANTIC|SLO|GOV|LINT)-[A-Z0-9-]+)(?:")')
+_EMITTED = re.compile(
+    r'rule_id=(?:")'
+    r"((?:SEC|LIFECYCLE|SEMANTIC|SLO|GOV|LINT|SUPPRESSION|CONFIG)-[A-Z0-9-]+)"
+    r'(?:")'
+)
 
 
 def _emitted_ids() -> set[str]:
@@ -46,6 +50,7 @@ def _emitted_ids() -> set[str]:
             "check_catalog.py",
             "lifecycle_catalog.py",
             "lint_catalog.py",
+            "gate_catalog.py",
             "policy_catalog.py",
             "semantic_catalog.py",
             "slo_catalog.py",
