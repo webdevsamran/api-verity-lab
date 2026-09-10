@@ -451,6 +451,7 @@ _RULE_GUIDE: tuple[tuple[str, str, str], ...] = (
     ("SEMANTIC-", "Behaviour", "docs/check-rules.md"),
     ("SLO-", "Objectives", "docs/check-rules.md"),
     ("GOV-", "Governance", "docs/check-rules.md"),
+    ("LINT-", "Lint", "docs/check-rules.md"),
     ("POLICY-RULE-CRASHED", "Governance", "docs/check-rules.md"),
     ("LIFECYCLE-", "Lifecycle", "docs/check-rules.md"),
     ("SEMVER-", "Semantic versioning", "docs/rule-catalog.md"),

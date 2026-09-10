@@ -58,6 +58,7 @@ def catalog() -> dict[str, CheckRuleSpec]:
     """
     from apiverity.performance.slo_catalog import SLO_CATALOG
     from apiverity.rules.lifecycle_catalog import LIFECYCLE_CATALOG
+    from apiverity.rules.lint_catalog import LINT_CATALOG
     from apiverity.rules.policy_catalog import GOVERNANCE_CATALOG
     from apiverity.runtime.semantic_catalog import SEMANTIC_CATALOG
     from apiverity.security.catalog import SECURITY_CATALOG
@@ -68,6 +69,7 @@ def catalog() -> dict[str, CheckRuleSpec]:
     merged.update(SEMANTIC_CATALOG)
     merged.update(SLO_CATALOG)
     merged.update(GOVERNANCE_CATALOG)
+    merged.update(LINT_CATALOG)
     return merged
 
 

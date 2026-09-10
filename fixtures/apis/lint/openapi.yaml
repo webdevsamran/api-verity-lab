@@ -1,0 +1,93 @@
+openapi: 3.1.0
+info:
+  title: Verity Lint Fixture
+  version: 1.0.0
+  description: >-
+    One deliberate structural defect per rule. Every one of these was
+    detectable by a lint engine that existed, was tested, and was called by no
+    command — while PROTOCOL_SUPPORT.md published "Lint / governance packs —
+    VERIFIED". The last two are here to prove the *opposite*: they are covered
+    by the loader, and the lint rules that duplicated them were dropped.
+servers:
+  - url: https://lint.example.com
+paths:
+  /orders:
+    post:
+      # Shares an operationId with GET /orders/{id}. Reported once, by the
+      # loader's SPEC-OPID-DUPLICATE -- the lint rule that said the same thing
+      # was dropped rather than wired up.
+      operationId: order
+      summary: A request example that does not satisfy its own schema
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sku, quantity]
+              properties:
+                sku:
+                  type: string
+                quantity:
+                  type: integer
+                  minimum: 1
+              # `quantity` is a string, and below the minimum:
+              # LINT-INVALID-EXAMPLE.
+              example:
+                sku: ABC-1
+                quantity: "none"
+      responses:
+        # A 2xx with neither content nor headers: LINT-EMPTY-RESPONSE.
+        "202":
+          description: accepted
+  /orders/{id}:
+    get:
+      operationId: order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: an order
+          content:
+            application/json:
+              schema:
+                type: object
+                # `total` is required and never declared: the schema cannot be
+                # satisfied by any document. LINT-CONTRADICTORY-REQUIRED.
+                required: [id, total]
+                properties:
+                  id:
+                    type: string
+  /events:
+    post:
+      operationId: publishEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              # Two untitled branches and no discriminator:
+              # LINT-AMBIGUOUS-COMPOSITION.
+              oneOf:
+                - type: object
+                  properties:
+                    created:
+                      type: string
+                - type: object
+                  properties:
+                    deleted:
+                      type: string
+      responses:
+        "204":
+          description: no content
+  /health:
+    get:
+      operationId: health
+      summary: An operation that declares no responses at all
+      # OpenAPI 3.1 makes `responses` optional, and an operation without it
+      # cannot be tested, mocked or drift-checked. Reported once, by the
+      # loader's SPEC-RESPONSE-MISSING.

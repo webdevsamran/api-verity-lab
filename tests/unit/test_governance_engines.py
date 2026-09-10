@@ -53,15 +53,26 @@ def _op(method: str = "GET", path: str = "/a", **kw) -> Operation:
 
 
 class TestLint:
-    def test_duplicate_operation_ids(self) -> None:
-        svc = _svc(operations=[_op(operation_id="same"), _op(path="/b", operation_id="same")])
-        ids = [f.rule_id for f in lint_service(svc)]
-        assert "LINT-DUP-OPID" in ids
+    def test_the_engine_drops_what_the_loader_already_reports(self) -> None:
+        """`LINT-DUP-OPID` and `LINT-NO-RESPONSES` were removed rather than
+        renamed, and this class used to assert both.
 
-    def test_no_responses_flagged(self) -> None:
-        svc = _svc(operations=[_op(responses=[])])
-        ids = [f.rule_id for f in lint_service(svc)]
-        assert "LINT-NO-RESPONSES" in ids
+        Nothing executed this engine, so duplicating `SPEC-OPID-DUPLICATE` and
+        `SPEC-RESPONSE-MISSING` cost nothing. `run_security_checks` runs it
+        now, and keeping them would have made one duplicated `operationId`
+        produce two findings for one fact.
+
+        `tests/unit/test_lint_runs.py` asserts the surviving `SPEC-*` findings
+        still fire on a contract carrying both defects, so this removal cannot
+        be mistaken for the checks going missing.
+        """
+        duplicated = _svc(
+            operations=[_op(operation_id="same"), _op(path="/b", operation_id="same")]
+        )
+        empty = _svc(operations=[_op(responses=[])])
+        for svc in (duplicated, empty):
+            ids = {f.rule_id for f in lint_service(svc)}
+            assert not ids & {"LINT-DUP-OPID", "LINT-NO-RESPONSES"}
 
     def test_contradictory_requiredness(self) -> None:
         schema = SchemaNode(type="object", required=["ghost"], properties={"real": SchemaNode()})

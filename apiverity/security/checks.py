@@ -179,6 +179,7 @@ def run_security_checks(
     forbid_additional_properties: bool = False,
 ) -> list[Finding]:
     from apiverity.rules.lifecycle import run_lifecycle_checks
+    from apiverity.rules.lint import LintEngine
     from apiverity.rules.policy import DEFAULT_PACK, PolicyEngine
     from apiverity.security.abuse import run_abuse_checks
     from apiverity.security.hardening import run_hardening_checks
@@ -209,6 +210,15 @@ def run_security_checks(
     # module is in the package. `tests/unit/test_check_catalog.py` now also
     # asserts the emitting module is reachable by import from the CLI.
     findings.extend(PolicyEngine(packs=[SECURITY_PACK, DEFAULT_PACK]).evaluate(service))
+    # Structural quality within one revision: a duplicate operationId, an
+    # example that does not satisfy its own schema, a schema requiring a
+    # property it never declares.
+    #
+    # `LintEngine` was written, tested and called by nothing, while
+    # `PROTOCOL_SUPPORT.md` published "Lint / governance packs -- VERIFIED" for
+    # four protocols and `docs/capability-status.md` listed contract lint as
+    # EXISTING. It existed. It was not running.
+    findings.extend(LintEngine().lint(service))
 
     for url in service.servers:
         if (

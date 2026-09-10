@@ -98,9 +98,22 @@ def test_performance_measure_and_policies(crud_service: object, crud_base: str) 
 
 
 def test_security_checks_on_fixtures() -> None:
+    """Every finding this entry point produces is one `explain` can answer for.
+
+    The assertion used to be `startswith("SEC-")`, which was true when the
+    function ran only the security checks. It is the "everything `validate`
+    reads from a contract" entry point now -- lifecycle, abuse surface, the
+    rule packs and lint run through it too -- so the invariant that matters is
+    not the prefix but that nothing here is unexplainable.
+    """
+    from apiverity.rules.check_catalog import catalog
+
     service, _, _ = detect_and_load(str(FIX / "apis/crud/openapi.yaml"))
     findings = run_security_checks(service)
-    assert all(f.rule_id.startswith("SEC-") for f in findings)
+    assert findings
+    known = catalog()
+    unexplainable = sorted({f.rule_id for f in findings} - set(known))
+    assert unexplainable == [], f"these are emitted and cannot be explained: {unexplainable}"
 
 
 def test_core_hash_helper() -> None:

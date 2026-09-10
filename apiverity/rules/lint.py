@@ -1,7 +1,18 @@
-"""Contract linting — structural quality rules over a normalized Service.
+"""Contract linting -- structural quality rules over a normalized Service.
 
-Distinct from compatibility (breaking-change) analysis: lint findings
-describe problems *within* a single contract revision, not between two.
+Distinct from compatibility (breaking-change) analysis: lint findings describe
+problems *within* a single contract revision, not between two.
+
+## Two rules were removed rather than wired up
+
+`LINT-DUP-OPID` said what `SPEC-OPID-DUPLICATE` says, and `LINT-NO-RESPONSES`
+said what `SPEC-RESPONSE-MISSING` says. Both of those come from the OpenAPI
+loader and reach every command that reads a contract.
+
+While nothing executed this engine the duplication cost nothing. Running it
+made one duplicated `operationId` produce two findings for one fact, which is
+the wall of near-identical warnings people learn to filter -- so the engine
+keeps the four rules with no live equivalent and drops the two that had one.
 """
 
 from __future__ import annotations
@@ -30,49 +41,14 @@ class LintEngine:
 
     def lint(self, service: Service) -> list[Finding]:
         findings: list[Finding] = []
-        self._duplicate_operation_ids(service, findings)
         for op in service.operations:
             self._operation_rules(service, op, findings)
         return findings
 
     # -- rules -------------------------------------------------------------------
 
-    def _duplicate_operation_ids(self, service: Service, out: list[Finding]) -> None:
-        seen: dict[str, str] = {}
-        for op in service.operations:
-            if not op.operation_id:
-                continue
-            first = seen.setdefault(op.operation_id, op.key)
-            if first != op.key:
-                out.append(
-                    Finding(
-                        rule_id="LINT-DUP-OPID",
-                        severity=Severity.ERROR,
-                        message=(
-                            f"duplicate operationId '{op.operation_id}' used by "
-                            f"'{first}' and '{op.key}'"
-                        ),
-                        operation_key=op.key,
-                        location=op.source_location,
-                        hint="operationId values must be unique; code generators "
-                        "produce colliding symbols otherwise",
-                    )
-                )
-
     def _operation_rules(self, service: Service, op: Operation, out: list[Finding]) -> None:
-        # No documented responses at all
-        if not op.responses and op.kind == "http":
-            out.append(
-                Finding(
-                    rule_id="LINT-NO-RESPONSES",
-                    severity=Severity.WARN,
-                    message=f"operation '{op.key}' documents no responses",
-                    operation_key=op.key,
-                    location=op.source_location,
-                    hint="declare at least one expected response status",
-                )
-            )
-        # 2xx response without any content/schema
+        # A 2xx that describes nothing a consumer can validate against.
         for resp in op.responses:
             if resp.status.startswith("2") and not resp.content and not resp.headers:
                 out.append(
@@ -90,7 +66,31 @@ class LintEngine:
         # Contradictory requiredness / invalid examples inside schemas
         for pointer, schema in _iter_schemas(op):
             self._schema_rules(op, pointer, schema, out)
-        # Examples that do not satisfy their own schema
+        # Examples that do not satisfy their own schema.
+        #
+        # Two places, because they are two different things. `op.examples` is
+        # filled from an operation-level `examples` key that no version of
+        # OpenAPI defines, so on a standard document it is always empty -- this
+        # rule was reachable in principle and not in practice. A media type's
+        # own `example` is where an example actually lives, and it is the part
+        # people copy into their client.
+        for pointer, schema in _iter_schemas(op):
+            if schema.example is None:
+                continue
+            errs = validate_value(schema, schema.example)
+            if errs:
+                out.append(
+                    Finding(
+                        rule_id="LINT-INVALID-EXAMPLE",
+                        severity=Severity.WARN,
+                        message=(
+                            f"the example at '{pointer}' on '{op.key}' violates its own "
+                            f"schema: {'; '.join(errs[:3])}"
+                        ),
+                        operation_key=op.key,
+                        location=schema.source_location,
+                    )
+                )
         if op.request_body is not None:
             for media, schema in op.request_body.content.items():
                 for ex in op.examples:
