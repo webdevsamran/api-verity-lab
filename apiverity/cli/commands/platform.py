@@ -176,6 +176,19 @@ _RULE_GUIDE: tuple[tuple[str, str, str], ...] = (
     ("BRK-FIELD-", "Protocol buffers", "docs/rule-catalog.md"),
     ("BRK-ONEOF-", "Protocol buffers", "docs/rule-catalog.md"),
     ("BRK-RESERVATION-", "Protocol buffers", "docs/rule-catalog.md"),
+    ("SEC-SCOPE-", "Security: authorization scope", "docs/security-rules.md"),
+    ("SEC-AUTH-", "Security: authentication", "docs/security-rules.md"),
+    ("SEC-SCHEME-", "Security: authentication", "docs/security-rules.md"),
+    ("SEC-NO-AUTH-", "Security: authentication", "docs/security-rules.md"),
+    ("SEC-APIKEY-", "Security: credentials", "docs/security-rules.md"),
+    ("SEC-BASIC-", "Security: credentials", "docs/security-rules.md"),
+    ("SEC-SECRET-", "Security: credentials", "docs/security-rules.md"),
+    ("SEC-RESPONSE-CREDENTIAL", "Security: credentials", "docs/security-rules.md"),
+    ("SEC-SENSITIVE-", "Security: credentials", "docs/security-rules.md"),
+    ("SEC-ARRAY-", "Security: resource consumption", "docs/security-rules.md"),
+    ("SEC-COLLECTION-", "Security: resource consumption", "docs/security-rules.md"),
+    ("SEC-RATE-LIMIT-", "Security: resource consumption", "docs/security-rules.md"),
+    ("SEC-", "Security: shape and transport", "docs/security-rules.md"),
     ("SEMVER-", "Semantic versioning", "docs/rule-catalog.md"),
     ("MCP-DRIFT-", "MCP runtime drift", "docs/mcp-drift.md"),
     ("MCP-CONF-", "MCP conformance", "docs/mcp-drift.md"),
@@ -206,10 +219,33 @@ def cmd_explain(args: argparse.Namespace) -> int:
     """Explain one rule: what it means, why, and how to change its severity."""
     from apiverity.rules.alternatives import ALTERNATIVES
     from apiverity.rules.breaking import CATALOG
+    from apiverity.security.catalog import SECURITY_CATALOG
 
     rule_id = str(args.rule_id).strip().upper()
     spec = CATALOG.get(rule_id)
     if spec is None:
+        # Twenty-two security rules were reachable, emitted by real runs, and
+        # answered here with "no rule with id ..." -- in the command that exists
+        # because a rule nobody understands gets suppressed rather than fixed.
+        security = SECURITY_CATALOG.get(rule_id)
+        if security is not None:
+            group, where = _guide_for(rule_id)
+            _emit(
+                {
+                    "tool": "apiverity",
+                    "command": "explain",
+                    "rule_id": rule_id,
+                    "severity": security.severity.value,
+                    "group": group,
+                    "description": security.description,
+                    "instead": security.instead,
+                    "produced_by": security.produced_by,
+                    "documentation": where,
+                    "severity_override": f"--severity-override {rule_id}=INFO",
+                },
+                args.json,
+            )
+            return EXIT_OK
         # The semver rules live in `rules/semver.py` rather than the breaking
         # catalogue, and a reader looking one up does not care which module it
         # came from. Answering with the alternative alone beats "no such rule"
@@ -230,7 +266,9 @@ def cmd_explain(args: argparse.Namespace) -> int:
                 args.json,
             )
             return EXIT_OK
-        suggestions = _did_you_mean(rule_id, sorted(CATALOG) + sorted(ALTERNATIVES))
+        suggestions = _did_you_mean(
+            rule_id, sorted(CATALOG) + sorted(ALTERNATIVES) + sorted(SECURITY_CATALOG)
+        )
         print(f"error: no rule with id {rule_id!r}", file=sys.stderr)
         if suggestions:
             print("did you mean:", file=sys.stderr)
