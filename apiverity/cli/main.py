@@ -42,6 +42,7 @@ from apiverity.cli.commands.governance import (
 from apiverity.cli.commands.platform import (
     cmd_audit,
     cmd_explain,
+    cmd_freeze,
     cmd_notify,
     cmd_plugins,
     cmd_rules,
@@ -83,6 +84,7 @@ __all__ = [
     "cmd_evidence",
     "cmd_explain",
     "cmd_export",
+    "cmd_freeze",
     "cmd_ghosts",
     "cmd_infer",
     "cmd_init",
@@ -792,6 +794,44 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_audit)
+    p = sub.add_parser(
+        "freeze",
+        help="emergency stop: refuse deployments and approvals until lifted",
+    )
+    p.add_argument(
+        "action",
+        choices=["on", "off", "status"],
+        help=(
+            "`status` exits 1 while frozen and 3 when the server cannot be reached, so a "
+            "pipeline gating on it fails closed"
+        ),
+    )
+    p.add_argument(
+        "--server",
+        metavar="URL",
+        help="the self-hosted server (or set APIVERITY_SERVER)",
+    )
+    p.add_argument(
+        "--token-env",
+        metavar="VAR",
+        default="APIVERITY_TOKEN",
+        help=(
+            "name of an environment variable holding the API token. The name, not the "
+            "value: a token on the command line is in the shell history and the process table"
+        ),
+    )
+    p.add_argument("--reason", help="why. Required for `on`, and recorded in the audit log")
+    p.add_argument(
+        "--review-by",
+        metavar="TIMESTAMP",
+        help=(
+            "an advisory date after which the freeze is reported as overdue for review. "
+            "Nothing lifts on it -- a kill switch that releases itself fires exactly when "
+            "nobody is watching"
+        ),
+    )
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_freeze)
     p = sub.add_parser(
         "notify",
         help="route a result artifact's findings to the teams they concern",

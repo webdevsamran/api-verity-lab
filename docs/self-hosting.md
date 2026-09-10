@@ -70,6 +70,12 @@ apiverity server-db import --db verity.db --input org.json     # becomes a new o
 ```
 
 Retention: `Store.purge_older_than(days)` prunes old findings/runs.
+`apiverity freeze on --reason ...` stops releases during an incident and
+`apiverity freeze off` restarts them -- any member may stop, only an admin may
+restart, and both transitions land in the audit log. See
+[emergency freeze](kill-switch.md), which also says what a freeze does *not*
+stop.
+
 Audit events are hash-chained. `store.audit_status(org_id)` names the first entry that
 broke rather than answering `False`, and `apiverity audit export --db ... --org-id ...`
 writes the chain as a document somebody outside this server can check --

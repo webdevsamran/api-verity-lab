@@ -38,6 +38,7 @@ thing they count by a test.
 - [Compliance mapping](https://webdevsamran.github.io/api-verity-lab/compliance-mapping/): Findings mapped onto OWASP MCP, Agentic and API Top 10
 - [Evidence packs](https://webdevsamran.github.io/api-verity-lab/evidence/): Dated, checksummed records for SOC 2, ISO 42001, DORA, EU AI Act
 - [Audit export](https://webdevsamran.github.io/api-verity-lab/audit-export/): The hash-chained audit log as a document checkable away from the server
+- [Emergency freeze](https://webdevsamran.github.io/api-verity-lab/kill-switch/): Stopping releases during an incident, and what a freeze does not stop
 - [CI integration](https://webdevsamran.github.io/api-verity-lab/ci/): Wiring the gate into a pipeline
 - [Safety model](https://webdevsamran.github.io/api-verity-lab/safety-model/): What this tool will and will not do to a target
 - [Privacy](https://webdevsamran.github.io/api-verity-lab/privacy/): What reaches an artifact, and what never does
@@ -55,7 +56,7 @@ thing they count by a test.
 
 ## Commands
 
-`audit`, `baseline`, `breaking`, `budget`, `changelog`, `config`, `coverage`, `diff`, `drift`, `evidence`, `explain`, `export`, `ghosts`, `infer`, `init`, `mcp-inventory`, `mcp-lock`, `mock`, `notify`, `plugins`, `regression`, `replay`, `report`, `rules`, `self-test`, `serve`, `server-db`, `sweep`, `test`, `validate`, `verify`, `workflow`.
+`audit`, `baseline`, `breaking`, `budget`, `changelog`, `config`, `coverage`, `diff`, `drift`, `evidence`, `explain`, `export`, `freeze`, `ghosts`, `infer`, `init`, `mcp-inventory`, `mcp-lock`, `mock`, `notify`, `plugins`, `regression`, `replay`, `report`, `rules`, `self-test`, `serve`, `server-db`, `sweep`, `test`, `validate`, `verify`, `workflow`.
 
 ## What it does not do
 

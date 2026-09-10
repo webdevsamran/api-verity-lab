@@ -181,6 +181,17 @@
       ]
     },
     {
+      "name": "freeze",
+      "summary": "emergency stop: refuse deployments and approvals until lifted",
+      "options": [
+        "--json",
+        "--reason",
+        "--review-by",
+        "--server",
+        "--token-env"
+      ]
+    },
+    {
       "name": "ghosts",
       "summary": "find routes the contract no longer declares that the server still answers",
       "options": [

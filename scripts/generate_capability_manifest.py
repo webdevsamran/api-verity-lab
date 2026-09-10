@@ -91,6 +91,11 @@ _GUIDE: tuple[tuple[str, str, str], ...] = (
         "audit-export.md",
         "The hash-chained audit log as a document checkable away from the server",
     ),
+    (
+        "Emergency freeze",
+        "kill-switch.md",
+        "Stopping releases during an incident, and what a freeze does not stop",
+    ),
     ("CI integration", "ci.md", "Wiring the gate into a pipeline"),
     ("Safety model", "safety-model.md", "What this tool will and will not do to a target"),
     ("Privacy", "privacy.md", "What reaches an artifact, and what never does"),

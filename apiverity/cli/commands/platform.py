@@ -12,6 +12,7 @@ from apiverity.cli.commands.common import (
     EXIT_FINDINGS,
     EXIT_INTERNAL,
     EXIT_OK,
+    EXIT_UNREACHABLE,
     EXIT_USAGE,
     NL,
     _emit,
@@ -180,6 +181,88 @@ def cmd_audit(args: argparse.Namespace) -> int:
 
     print(f"error: unknown action '{args.action}'", file=sys.stderr)
     return EXIT_USAGE
+
+
+def cmd_freeze(args: argparse.Namespace) -> int:
+    """Stop releases, release them, or ask which it is.
+
+    The kill-switch *procedure* an agent-governance auditor asks for, as a
+    command somebody can run rather than a paragraph somebody wrote. Every
+    transition lands in the server's hash-chained audit log with an actor and a
+    reason, so the procedure is evidenced instead of asserted.
+
+    `status` exits 1 while frozen, so a pipeline can gate on it directly, and
+    3 when the server cannot be reached -- neither of which is 0, so a gate
+    written against it fails closed. A kill switch a network partition disables
+    is not one.
+    """
+    import os
+
+    import httpx
+
+    base = (args.server or os.environ.get("APIVERITY_SERVER") or "").rstrip("/")
+    if not base:
+        print(
+            "error: --server (or APIVERITY_SERVER) must name the self-hosted server",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+
+    token = os.environ.get(args.token_env or "APIVERITY_TOKEN", "")
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+
+    try:
+        if args.action == "status":
+            response = httpx.get(f"{base}/v1/freeze", headers=headers, timeout=10.0)
+        elif args.action == "on":
+            reason = (args.reason or "").strip()
+            if not reason:
+                # An unexplained freeze is an outage whose cause nobody can
+                # find, at the moment everybody is looking.
+                print("error: freeze on needs --reason", file=sys.stderr)
+                return EXIT_USAGE
+            body = {"reason": reason}
+            if args.review_by:
+                body["review_by"] = args.review_by
+            response = httpx.post(f"{base}/v1/freeze", headers=headers, json=body, timeout=10.0)
+        elif args.action == "off":
+            response = httpx.request(
+                "DELETE",
+                f"{base}/v1/freeze",
+                headers=headers,
+                json={"reason": args.reason or ""},
+                timeout=10.0,
+            )
+        else:
+            print(f"error: unknown action '{args.action}'", file=sys.stderr)
+            return EXIT_USAGE
+    except Exception as exc:
+        print(f"error: could not reach {base}: {exc}", file=sys.stderr)
+        return EXIT_UNREACHABLE
+
+    if response.status_code >= 400:
+        detail = ""
+        try:
+            detail = str(response.json().get("error", ""))
+        except Exception:
+            detail = response.text[:200]
+        print(f"error: server returned {response.status_code}: {detail}", file=sys.stderr)
+        return EXIT_USAGE if response.status_code < 500 else EXIT_INTERNAL
+
+    state = response.json()
+    _emit(
+        {
+            "tool": "apiverity",
+            "command": "freeze",
+            "action": args.action,
+            "server": base,
+            **{k: v for k, v in state.items() if k != "history"},
+        },
+        args.json,
+    )
+    # Frozen is not an error, it is a state a gate must act on -- which is
+    # exactly what exit 1 means in this project's contract.
+    return EXIT_FINDINGS if state.get("frozen") else EXIT_OK
 
 
 def cmd_plugins(args: argparse.Namespace) -> int:

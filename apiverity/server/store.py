@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from apiverity.server.audit_export import ChainStatus, build_export, verify_chain
+from apiverity.server.freeze import FROZEN, LIFTED, FreezeState
 from apiverity.server.schema import SCHEMA as _SCHEMA
 from apiverity.server.schema import hash_token as _hash_token
 from apiverity.server.schema import now_utc as _now
@@ -543,6 +544,85 @@ class Store:
     def get_approval(self, approval_id: int) -> dict[str, Any] | None:
         row = self.conn.execute("SELECT * FROM approvals WHERE id = ?", (approval_id,)).fetchone()
         return dict(row) if row else None
+
+    # --- emergency freeze -----------------------------------------------------------
+
+    def freeze_state(self, org_id: int) -> FreezeState:
+        """Is this org frozen, and everything a caller needs in order to say so.
+
+        Rows are never updated in place except to record the lift, so the table
+        is the freeze *history*: what was stopped, by whom, why, and when it was
+        released. An incident review needs that, and a boolean column on `orgs`
+        would have thrown it away.
+        """
+        row = self.conn.execute(
+            "SELECT * FROM freezes WHERE org_id = ? AND lifted_at IS NULL ORDER BY id DESC LIMIT 1",
+            (org_id,),
+        ).fetchone()
+        if row is None:
+            return FreezeState(active=False)
+        review_by = row["review_by"]
+        return FreezeState(
+            active=True,
+            reason=row["reason"],
+            actor=row["actor"],
+            since=row["created_at"],
+            review_by=review_by,
+            # Advisory only. Nothing lifts on this, because a kill switch that
+            # releases itself fires exactly when nobody is watching.
+            overdue=bool(review_by and review_by < _now()),
+        )
+
+    def freeze(
+        self,
+        org_id: int,
+        actor: str,
+        reason: str,
+        *,
+        review_by: str | None = None,
+    ) -> FreezeState:
+        """Stop releases. Idempotent: freezing while frozen is not an error.
+
+        Someone reaching for this is mid-incident and may well hit it twice, or
+        twice from two terminals. Returning the existing state beats a 409 that
+        reads as "the switch did not work".
+        """
+        with self.conn.lock:
+            current = self.freeze_state(org_id)
+            if current.active:
+                return current
+            self.conn.execute(
+                "INSERT INTO freezes (org_id, reason, actor, created_at, review_by)"
+                " VALUES (?, ?, ?, ?, ?)",
+                (org_id, reason, actor, _now(), review_by),
+            )
+            self.conn.commit()
+        self.audit_append(org_id, actor, FROZEN, f"org:{org_id}", {"reason": reason})
+        return self.freeze_state(org_id)
+
+    def lift_freeze(self, org_id: int, actor: str, reason: str) -> FreezeState:
+        """Release. Also idempotent, for the same reason in reverse."""
+        with self.conn.lock:
+            row = self.conn.execute(
+                "SELECT id FROM freezes WHERE org_id = ? AND lifted_at IS NULL"
+                " ORDER BY id DESC LIMIT 1",
+                (org_id,),
+            ).fetchone()
+            if row is None:
+                return FreezeState(active=False)
+            self.conn.execute(
+                "UPDATE freezes SET lifted_at = ?, lifted_by = ?, lift_reason = ? WHERE id = ?",
+                (_now(), actor, reason, row["id"]),
+            )
+            self.conn.commit()
+        self.audit_append(org_id, actor, LIFTED, f"org:{org_id}", {"reason": reason})
+        return FreezeState(active=False)
+
+    def freeze_history(self, org_id: int, limit: int = 50) -> list[dict[str, Any]]:
+        rows = self.conn.execute(
+            "SELECT * FROM freezes WHERE org_id = ? ORDER BY id DESC LIMIT ?", (org_id, limit)
+        ).fetchall()
+        return [dict(r) for r in rows]
 
     # --- audit (hash-chained, append-only) ------------------------------------------
 

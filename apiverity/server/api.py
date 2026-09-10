@@ -532,6 +532,11 @@ def create_app(
         if err:
             return err
         decision = request.get_json(force=True)["decision"]
+        frozen = store.freeze_state(g.identity.org_id)
+        if frozen.active and decision == "approved":
+            # Granting is refused; denying is not. Refusing a denial during an
+            # incident would freeze the wrong direction.
+            return jsonify({"error": frozen.refusal(), "freeze": frozen.as_dict()}), 409
         try:
             ok = store.decide_approval(approval_id, decision, g.identity.subject)
         except ValueError:
@@ -543,6 +548,52 @@ def create_app(
         )
         notify(f"approval.{decision}", {"approval_id": approval_id})
         return jsonify({"ok": True})
+
+    # --- emergency freeze -------------------------------------------------------------------
+
+    @app.get("/v1/freeze")
+    def freeze_status() -> Any:
+        g.identity, err = current_identity("read")
+        if err:
+            return err
+        state = store.freeze_state(g.identity.org_id)
+        return jsonify({**state.as_dict(), "history": store.freeze_history(g.identity.org_id)})
+
+    @app.post("/v1/freeze")
+    def freeze_on() -> Any:
+        # `request_approval`, not `set_policy`: any member may stop releases.
+        # An emergency where only an admin can pull the switch, and the admin
+        # is asleep, is the emergency.
+        g.identity, err = current_identity("request_approval")
+        if err:
+            return err
+        body = request.get_json(force=True) or {}
+        reason = str(body.get("reason") or "").strip()
+        if not reason:
+            # An unexplained freeze is an outage whose cause nobody can find.
+            return jsonify({"error": "a freeze needs a reason"}), 400
+        state = store.freeze(
+            g.identity.org_id,
+            g.identity.subject,
+            reason,
+            review_by=body.get("review_by"),
+        )
+        notify("org.frozen", {"reason": reason, "actor": g.identity.subject})
+        return jsonify(state.as_dict()), 201
+
+    @app.delete("/v1/freeze")
+    def freeze_off() -> Any:
+        # `decide_approval`: restarting is the decision that says the danger
+        # has passed, and it is the one that deserves the higher bar.
+        g.identity, err = current_identity("decide_approval")
+        if err:
+            return err
+        body = request.get_json(silent=True) or {}
+        state = store.lift_freeze(
+            g.identity.org_id, g.identity.subject, str(body.get("reason") or "")
+        )
+        notify("org.freeze_lifted", {"actor": g.identity.subject})
+        return jsonify(state.as_dict())
 
     # --- can-i-deploy -----------------------------------------------------------------------
 

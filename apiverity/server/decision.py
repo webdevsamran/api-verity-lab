@@ -32,6 +32,13 @@ def compute_can_i_deploy(store: Store, org_id: int, body: dict[str, Any]) -> dic
     successful verification run exists for the latest consumer contract
     published against it targeting that environment.
     """
+    # Checked first, and before the contract lookup, so a frozen org gets the
+    # freeze as the reason rather than "has never been published" -- during an
+    # incident the second answer sends somebody to debug the wrong thing.
+    frozen = store.freeze_state(org_id)
+    if frozen.active:
+        return {"deployable": False, "reason": frozen.refusal(), "freeze": frozen.as_dict()}
+
     provider = body["provider"]
     version = body["provider_version"]
     environment = body.get("environment", "")
