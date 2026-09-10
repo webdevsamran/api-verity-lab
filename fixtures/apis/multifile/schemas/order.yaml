@@ -1,0 +1,22 @@
+Order:
+  type: object
+  required: [sku, quantity]
+  properties:
+    sku:
+      type: string
+    quantity:
+      type: integer
+      minimum: 1
+    customer:
+      # A ref from one included file to another, resolved relative to *this*
+      # file rather than to the entry document.
+      $ref: "../shared/customer.yaml#/Customer"
+OrderReceipt:
+  type: object
+  required: [id, order]
+  properties:
+    id:
+      type: string
+    order:
+      # A ref back into the same file, which must not be fetched twice.
+      $ref: "./order.yaml#/Order"

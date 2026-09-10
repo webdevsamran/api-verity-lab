@@ -11,6 +11,33 @@
 | Drift detection | ✅ live + recorded | 📋 | 📋 reflection-based | 📋 |
 | Coverage | ✅ | 📋 | 📋 | 📋 |
 
+## Multi-file contracts
+
+An entry document with a `schemas/` directory beside it, and often a
+`../../shared/` tree in a monorepo, is the normal shape of a real OpenAPI
+contract. Every `$ref` into one of those used to produce `SPEC-REF-EXTERNAL`
+and resolve to nothing — and the nothing is the part that mattered. The schema
+behind the ref was **absent from the model**, so the differ compared two
+absences and reported no change, and `validate_value` accepted anything at that
+position.
+
+Relative file refs are followed now, resolved against whichever document
+contains them (not against the entry document), with the fragments hoisted into
+`components.schemas` under deterministic, checkout-independent names — so the
+next diff on another machine does not call every schema renamed. Findings name
+the file the schema actually lives in, with a real line number.
+
+Two things are refused, each with a finding that names the reference:
+
+| Refused | Why |
+|---|---|
+| An absolute filesystem path (`/etc/passwd`, `C:\...`) | A portable contract never contains one, so refusing it costs nothing real. Following it would let a *document* choose which file this process reads. |
+| A `$ref` naming a URL, unless `--allow-remote-refs` | It makes this process request an address the caller never chose — the hazard [`SAFETY_MODEL.md`](safety-model.md) §1 exists for. With the flag, the fetch really happens; a flag that changed nothing would be worse than no flag. |
+
+A reference cycle across files terminates, and both the file count and the
+number of remote fetches are capped, with the cap reported rather than applied
+silently.
+
 ## JSON Schema 2020-12 keywords
 
 Schemas in every one of the six formats normalize into the same `SchemaNode`,

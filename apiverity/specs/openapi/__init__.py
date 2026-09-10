@@ -8,7 +8,14 @@ from apiverity.specs.openapi.parser import load_openapi
 
 
 class OpenApiSpecPlugin(SpecPlugin):
-    """Normalizes OpenAPI 3.0/3.1 documents into the core model."""
+    """Normalizes OpenAPI 3.0/3.1/3.2 documents into the core model."""
+
+    def __init__(self, *, allow_remote_refs: bool = False) -> None:
+        #: Set at construction rather than passed to `load`, because `load` is
+        #: the versioned plugin interface every third-party spec plugin
+        #: implements. Widening it to carry one loader option would break all
+        #: of them for a flag none of them uses.
+        self.allow_remote_refs = allow_remote_refs
 
     def protocol(self) -> Protocol:
         return Protocol.OPENAPI
@@ -25,4 +32,4 @@ class OpenApiSpecPlugin(SpecPlugin):
         return '"openapi"' in text or "openapi:" in text
 
     def load(self, source: str) -> tuple[Service, list[Finding]]:
-        return load_openapi(source)
+        return load_openapi(source, allow_remote_refs=self.allow_remote_refs)

@@ -23,7 +23,7 @@ from apiverity.cli.commands.artifacts import (
     cmd_serve,
     cmd_verify,
 )
-from apiverity.cli.commands.common import EXIT_INTERNAL, EXIT_OK
+from apiverity.cli.commands.common import EXIT_INTERNAL, EXIT_OK, set_allow_remote_refs
 from apiverity.cli.commands.governance import (
     cmd_breaking,
     cmd_changelog,
@@ -97,6 +97,15 @@ __all__ = [
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="apiverity", description=__doc__)
     parser.add_argument("--version", action="version", version=f"apiverity {__version__}")
+    parser.add_argument(
+        "--allow-remote-refs",
+        action="store_true",
+        help=(
+            "let a `$ref` naming a URL be fetched when bundling a multi-file contract. "
+            "Off by default: a URL inside a document makes this process request an "
+            "address you never chose. Relative file refs are always followed"
+        ),
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
     p = sub.add_parser(
@@ -727,6 +736,10 @@ def main(argv: list[str] | None = None) -> int:
     _use_utf8_streams()
     parser = build_parser()
     args = parser.parse_args(argv)
+    # Set before dispatch, so a command never reads a value left behind by an
+    # earlier `main()` call in the same process -- which the test suite makes
+    # routine.
+    set_allow_remote_refs(bool(getattr(args, "allow_remote_refs", False)))
     try:
         result: Any = args.func(args)
         return int(result)

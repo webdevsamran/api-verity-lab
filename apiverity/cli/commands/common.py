@@ -19,6 +19,14 @@ if TYPE_CHECKING:
     from apiverity.core.model import Finding, Service
     from apiverity.specs import SpecPlugin
 
+#: Whether the OpenAPI bundler may fetch a `$ref` that names a URL. Module
+#: state rather than a parameter on `_load`, because it is set once from the
+#: parsed arguments and read by seventeen call sites that otherwise have no
+#: reason to know about it. `main()` sets it before dispatching, next to
+#: `_use_utf8_streams()`, so a command can never see a stale value from
+#: another run in the same process.
+_ALLOW_REMOTE_REFS = False
+
 _LAST_SPEC: str | None = None
 _LAST_TARGET: str | None = None
 _LAST_SEED: int | None = None
@@ -26,6 +34,11 @@ _LAST_SEED: int | None = None
 #: protocol it actually describes; the envelope used to hardcode "openapi-3.x",
 #: so every gRPC, GraphQL and AsyncAPI run wrote an artifact claiming OpenAPI.
 _LAST_PROTOCOL: str | None = None
+
+
+def set_allow_remote_refs(allowed: bool) -> None:
+    global _ALLOW_REMOTE_REFS
+    _ALLOW_REMOTE_REFS = bool(allowed)
 
 
 def set_last_target(target: str | None) -> None:
@@ -61,7 +74,7 @@ def _load(path: str) -> tuple[Service, list[Finding], SpecPlugin]:
     global _LAST_SPEC, _LAST_PROTOCOL
     _LAST_SPEC = path
     try:
-        loaded = detect_and_load(path)
+        loaded = detect_and_load(path, allow_remote_refs=_ALLOW_REMOTE_REFS)
         _LAST_PROTOCOL = getattr(loaded[0].protocol, "value", None)
         return loaded
     except FileNotFoundError:

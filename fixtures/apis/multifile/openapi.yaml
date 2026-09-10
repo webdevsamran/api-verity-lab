@@ -1,0 +1,33 @@
+openapi: 3.1.0
+info:
+  title: Multi-file Fixture API
+  version: 1.0.0
+  description: >-
+    An entry document that keeps its schemas in files beside it, which is the
+    normal shape of a real contract and the one this loader used to decline.
+paths:
+  /orders:
+    post:
+      operationId: createOrder
+      summary: Place an order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            # Relative to this file.
+            schema:
+              $ref: "./schemas/order.yaml#/Order"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/order.yaml#/OrderReceipt"
+        "422":
+          description: Rejected
+          content:
+            application/json:
+              # A whole file, with no pointer.
+              schema:
+                $ref: "./schemas/error.yaml"

@@ -101,20 +101,31 @@ def load_yaml_with_lines(text: str) -> tuple[dict[str, Any], dict[int, tuple[int
 class OpenApiParser:
     """Parses one OpenAPI document into a :class:`Service`."""
 
-    def __init__(self, file_label: str) -> None:
+    def __init__(self, file_label: str, *, allow_remote_refs: bool = False) -> None:
         self.file_label = file_label
         self.findings: list[Finding] = []
         self._lines: dict[int, tuple[int, int]] = {}
+        #: `id(node)` -> the file it came from. Populated by the bundler, so a
+        #: finding about a schema that lives in `schemas/user.yaml` is reported
+        #: against that file rather than against the entry document, where the
+        #: reader would go looking for a line that is not there.
+        self._origins: dict[int, str] = {}
+        self.allow_remote_refs = allow_remote_refs
+        #: Sources the bundler read, entry document first. Recorded so a run
+        #: can say what it actually opened.
+        self.sources: list[str] = []
 
     # -- location helpers ---------------------------------------------------
 
     def _loc(self, pointer: str, obj: Any = None) -> SourceLocation:
         line, column = 0, 0
+        file = self.file_label
         if obj is not None:
             hit = self._lines.get(id(obj))
             if hit:
                 line, column = hit
-        return SourceLocation(file=self.file_label, line=line, column=column, pointer=pointer)
+            file = self._origins.get(id(obj), file)
+        return SourceLocation(file=file, line=line, column=column, pointer=pointer)
 
     @staticmethod
     def _escape_pointer(part: str) -> str:
@@ -129,15 +140,10 @@ class OpenApiParser:
         reported as an explicit finding rather than silently ignored.
         """
         if not ref.startswith("#/"):
-            self.findings.append(
-                Finding(
-                    rule_id="SPEC-REF-EXTERNAL",
-                    severity=Severity.WARN,
-                    message=f"external reference '{ref}' cannot be resolved by the "
-                    "built-in loader; bundle external docs or inline the schema",
-                    location=self._loc(pointer),
-                )
-            )
+            # Anything still external here is one the bundler declined to
+            # rewrite -- a refused absolute path, an unfetched URL, a file it
+            # could not read -- and it has already said why, naming the ref.
+            # Repeating that as a second finding would double-count it.
             return None
         node: Any = root
         for raw_part in ref[2:].split("/"):
@@ -555,6 +561,22 @@ class OpenApiParser:
 
     # -- top level ----------------------------------------------------------------
 
+    def _bundle(self, doc: dict[str, Any], source: str) -> dict[str, Any]:
+        """Fold external references into this document, or say why not."""
+        from apiverity.specs.bundle import bundle
+
+        result = bundle(
+            doc,
+            base=source,
+            allow_remote=self.allow_remote_refs,
+            read_lines=load_yaml_with_lines,
+        )
+        self.findings.extend(result.findings)
+        self._lines.update(result.lines)
+        self._origins.update(result.origins)
+        self.sources = list(result.files)
+        return result.document
+
     def parse(self, source: str) -> tuple[Service, list[Finding]]:
         _, raw = read_source(source)
         text = raw.decode("utf-8-sig")
@@ -573,6 +595,12 @@ class OpenApiParser:
             doc, self._lines = load_yaml_with_lines(text)
             if not doc:
                 doc = parse_document(raw)
+
+        # Before anything reads the document: a multi-file spec is the normal
+        # shape of a real one, and until this ran, every external `$ref`
+        # resolved to nothing -- so the schema behind it was *absent from the
+        # model*, and the differ compared two absences and reported no change.
+        doc = self._bundle(doc, source)
 
         openapi_version = str(doc.get("openapi", ""))
         if not openapi_version.startswith(SUPPORTED_OPENAPI_VERSIONS):
@@ -847,8 +875,8 @@ def _report_orphan_tag_parents(service: Service, parser: OpenApiParser) -> None:
             )
 
 
-def load_openapi(source: str) -> tuple[Service, list[Finding]]:
+def load_openapi(source: str, *, allow_remote_refs: bool = False) -> tuple[Service, list[Finding]]:
     from pathlib import Path as _Path
 
     label = source if source.startswith("http") else _Path(source).name
-    return OpenApiParser(label).parse(source)
+    return OpenApiParser(label, allow_remote_refs=allow_remote_refs).parse(source)

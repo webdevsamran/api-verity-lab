@@ -1,0 +1,9 @@
+Customer:
+  type: object
+  required: [id]
+  properties:
+    id:
+      type: string
+    tier:
+      type: string
+      enum: [free, pro, enterprise]

@@ -12,7 +12,7 @@ from apiverity.plugins.registry import PluginRegistry
 from apiverity.specs import SpecPlugin, UnrecognizedSpecError, read_source
 
 
-def _builtin_plugins() -> list[SpecPlugin]:
+def _builtin_plugins(*, allow_remote_refs: bool = False) -> list[SpecPlugin]:
     from apiverity.specs.asyncapi import AsyncApiSpecPlugin
     from apiverity.specs.graphql import GraphQlSpecPlugin
     from apiverity.specs.grpc import GrpcSpecPlugin
@@ -25,7 +25,7 @@ def _builtin_plugins() -> list[SpecPlugin]:
     # inside a JSON tool description, and behind OpenAPI/Swagger, whose own
     # markers are unambiguous.
     return [
-        OpenApiSpecPlugin(),
+        OpenApiSpecPlugin(allow_remote_refs=allow_remote_refs),
         Swagger2SpecPlugin(),
         McpSpecPlugin(),
         GraphQlSpecPlugin(),
@@ -35,11 +35,19 @@ def _builtin_plugins() -> list[SpecPlugin]:
 
 
 def detect_and_load(
-    source: str, registry: PluginRegistry | None = None
+    source: str,
+    registry: PluginRegistry | None = None,
+    *,
+    allow_remote_refs: bool = False,
 ) -> tuple[Service, list[Finding], SpecPlugin]:
-    """Load a contract from any supported format."""
+    """Load a contract from any supported format.
+
+    `allow_remote_refs` permits the OpenAPI bundler to fetch a `$ref` that
+    names a URL. Off by default: a URL inside a document makes this process
+    request an address the caller never chose.
+    """
     _, raw = read_source(source)
-    plugins = list(_builtin_plugins())
+    plugins = list(_builtin_plugins(allow_remote_refs=allow_remote_refs))
     if registry is not None:
         plugins.extend(p for p in registry.instances() if isinstance(p, SpecPlugin))
 
