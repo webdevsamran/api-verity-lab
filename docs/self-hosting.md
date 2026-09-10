@@ -79,6 +79,30 @@ Local token auth works out of the box. For OIDC/SAML, implement the
 and pass instances via `create_app(store, providers=[...])`. A real IdP
 integration requires an environment we do not ship; see ISSUES.md.
 
+## The container image
+
+One image, two jobs:
+
+```bash
+docker run -p 8090:8090 -v verity-data:/data ghcr.io/webdevsamran/api-verity-lab      # serve
+docker run -v "$PWD:/work" ghcr.io/webdevsamran/api-verity-lab breaking old.yaml new.yaml
+docker run ghcr.io/webdevsamran/api-verity-lab --help
+```
+
+The image used to document only the first of those. Running the CLI *did* work
+— Docker replaces `CMD` with whatever follows the image name, and the console
+script is on `PATH` — but nothing said so, nothing tested it, and it meant
+typing `apiverity` again after an image already named that. The entrypoint
+dispatches now: `serve` is the default, so an existing compose file keeps
+working, and anything else is a subcommand.
+
+`/work` is the working directory and is owned by the unprivileged user the
+image runs as, so a `-v "$PWD:/work"` bind mount is readable. Without that the
+CLI's first useful invocation is a permission error.
+
+`VERITY_CORS_ORIGINS` is a comma-separated list of browser origins allowed to
+call the API, for the dashboard. Empty by default, and `*` is refused.
+
 ## Reading the server from the dashboard
 
 `web/` can point at a running server instead of the bundled `demo-data.json`.
