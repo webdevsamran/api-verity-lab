@@ -16,8 +16,16 @@ FIX = ROOT / "fixtures"
 
 
 def run(argv: list[str]) -> int:
+    """One command, with this repository's own project config kept out of it.
+
+    `.apiverity.yaml` is honoured now, and this repository's says
+    `fail_on: never` -- the right setting for a project adopting the gate, and
+    the wrong one for a script whose whole job is asserting exit codes. Every
+    expectation below is about the tool's contract, not about this project's
+    policy, so the policy is excluded rather than the expectations rewritten.
+    """
     print("$ apiverity " + " ".join(argv))
-    return cli_main(argv)
+    return cli_main(["--no-config", *argv])
 
 
 def main() -> None:
@@ -78,7 +86,7 @@ def main() -> None:
 
         buffer = io.StringIO()
         with contextlib.redirect_stdout(buffer):
-            cli_main(["validate", str(FIX / "apis/versioned/v1.yaml"), "--json"])
+            cli_main(["--no-config", "validate", str(FIX / "apis/versioned/v1.yaml"), "--json"])
         record.write_text(buffer.getvalue(), encoding="utf-8")
 
         for label, argv, expected in (

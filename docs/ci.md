@@ -132,8 +132,32 @@ jobs:
         run: apiverity breaking <(git show origin/${{ github.base_ref }}:api/openapi.yaml) api/openapi.yaml --check-semver
 ```
 
-Exit code `1` fails the job when ERROR-severity findings exist — that is the
-release gate. Use `--severity-override` to tune strictness per repo.
+Exit code `1` fails the job when findings reach the threshold — that is the
+release gate. The threshold and the per-rule severities come from
+`.apiverity.yaml` when there is one, and `--severity-override` still wins for a
+single run:
+
+```yaml
+version: 1
+fail_on: never          # report without blocking, while adopting the gate
+severity_overrides:
+  BRK-DEPRECATION-ADDED: INFO
+suppressions: .apiverity-suppressions.json
+```
+
+`fail_on` takes `error` (the default), `warn`, or `never`. A gate that fails on
+its first run against an API that already has history gets removed rather than
+adopted, which is what `never` is for.
+
+A suppressions file silences a finding *from the gate*, not from the record:
+each one needs an owner, a reason and an expiry, the suppressed findings are
+listed in the artifact under `suppressions`, and an expiry that has passed
+becomes a `SUPPRESSION-EXPIRED` warning instead of continuing to suppress. An
+ignore-list nobody can audit and nobody has to revisit is the thing this format
+exists to avoid.
+
+`--no-config` ignores the file entirely, for a run that must not inherit
+project policy.
 
 ## Artifacts
 - `apiverity report <bundle> --format junit` → JUnit test reporting.

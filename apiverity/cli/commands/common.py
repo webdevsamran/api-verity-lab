@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 NL = chr(10)
@@ -32,6 +33,17 @@ _ALLOW_REMOTE_REFS = False
 #: call site that loads a contract.
 _SPEC_FORMAT: str | None = None
 
+#: The project config for this run, or None when there is none (or `--no-config`).
+#:
+#: `.apiverity.yaml` was parsed, schema-checked, and then applied to nothing.
+#: `load_config` had exactly one caller -- `apiverity config`, the command that
+#: prints it -- so `severity_overrides` did nothing, `fail_on` did nothing, and
+#: a project that ran `apiverity init` got a file that CI dutifully validated
+#: and every other command ignored. Held here so every command reads the same
+#: one, loaded once.
+_CONFIG: Any = None
+_CONFIG_FINDINGS: list[Any] = []
+
 _LAST_SPEC: str | None = None
 _LAST_TARGET: str | None = None
 _LAST_SEED: int | None = None
@@ -49,6 +61,120 @@ def set_allow_remote_refs(allowed: bool) -> None:
 def set_spec_format(name: str | None) -> None:
     global _SPEC_FORMAT
     _SPEC_FORMAT = name or None
+
+
+def load_project_config(path: str | None, *, disabled: bool = False) -> list[Any]:
+    """Find and load `.apiverity.yaml` for this run. Returns its findings.
+
+    A config that cannot be parsed is a hard error rather than a fallback to
+    defaults: a project that wrote `severity_overides` and got the defaults
+    silently is exactly the case the parser refuses unknown keys for, and
+    falling back here would undo that at the last step.
+    """
+    global _CONFIG, _CONFIG_FINDINGS
+    _CONFIG, _CONFIG_FINDINGS = None, []
+    if disabled:
+        return []
+
+    from apiverity.core.config import find_config, load_config
+
+    resolved = Path(path) if path else find_config()
+    if resolved is None:
+        return []
+    if not resolved.exists():
+        print(f"error: config not found: {resolved}", file=sys.stderr)
+        sys.exit(EXIT_USAGE)
+    try:
+        config, findings = load_config(resolved)
+    except Exception as exc:
+        print(f"error: {resolved}: {exc}", file=sys.stderr)
+        sys.exit(EXIT_USAGE)
+    if any(getattr(f.severity, "value", str(f.severity)) == "ERROR" for f in findings):
+        for finding in findings:
+            print(f"error: {finding.message}", file=sys.stderr)
+        sys.exit(EXIT_USAGE)
+    _CONFIG, _CONFIG_FINDINGS = config, list(findings)
+    return list(findings)
+
+
+def project_config() -> Any:
+    """The loaded config, or None. Read by the commands that honour it."""
+    return _CONFIG
+
+
+def config_setting(name: str, default: Any = None) -> Any:
+    """One setting from the project config, or `default` when there is none."""
+    if _CONFIG is None:
+        return default
+    value = getattr(_CONFIG, name, None)
+    return default if value in (None, "", [], {}) else value
+
+
+def merged_severity_overrides(cli_overrides: dict[str, str] | None) -> dict[str, str] | None:
+    """Config overrides with the command line on top.
+
+    The command line wins because it is the more specific statement: someone
+    typing `--severity-override X=INFO` for one run is not editing the
+    project's policy.
+    """
+    merged: dict[str, str] = dict(config_setting("severity_overrides", {}) or {})
+    merged.update(cli_overrides or {})
+    return merged or None
+
+
+def apply_project_suppressions(findings: list[Any]) -> tuple[list[Any], dict[str, Any]]:
+    """Split findings by the project's suppressions file, if it declares one.
+
+    Returns `(findings_that_still_count, record)`. Suppressed findings are
+    *not* discarded -- they are returned inside `record` and reported in the
+    artifact, because a gate that silently drops findings on the say-so of a
+    file is a gate nobody can audit. Expired suppressions become findings of
+    their own, which is the mechanism that stops an ignore-list becoming
+    permanent.
+    """
+    path = config_setting("suppressions")
+    if not path:
+        return findings, {}
+
+    from apiverity.rules.suppressions import (
+        apply_suppressions,
+        expired_suppression_findings,
+        load_suppressions,
+    )
+
+    resolved = Path(path)
+    if not resolved.is_absolute():
+        base = getattr(_CONFIG, "source_path", None)
+        # Relative to the config file, not to the working directory: a CI job
+        # that runs from the repository root and a developer running from a
+        # service directory must resolve it the same way.
+        resolved = (Path(base).parent / path) if base else resolved
+    try:
+        suppressions = load_suppressions(resolved)
+    except (OSError, ValueError) as exc:
+        print(f"error: suppressions file {resolved}: {exc}", file=sys.stderr)
+        sys.exit(EXIT_USAGE)
+
+    result = apply_suppressions(findings, suppressions)
+    expired = expired_suppression_findings(result.expired)
+    active = result.active + expired
+    record = {
+        "file": str(resolved),
+        "declared": len(suppressions),
+        "expired": len(result.expired),
+        "suppressed": [
+            {
+                "rule_id": finding.rule_id,
+                "operation_key": finding.operation_key,
+                "message": finding.message,
+                "owner": suppression.owner,
+                "reason": suppression.reason,
+                "expires": suppression.expires,
+            }
+            for finding, suppression in result.suppressed
+        ],
+    }
+    return active, record
 
 
 def set_last_target(target: str | None) -> None:

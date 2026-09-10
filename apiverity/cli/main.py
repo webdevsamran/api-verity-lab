@@ -26,6 +26,7 @@ from apiverity.cli.commands.artifacts import (
 from apiverity.cli.commands.common import (
     EXIT_INTERNAL,
     EXIT_OK,
+    load_project_config,
     set_allow_remote_refs,
     set_spec_format,
 )
@@ -103,6 +104,21 @@ __all__ = [
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="apiverity", description=__doc__)
     parser.add_argument("--version", action="version", version=f"apiverity {__version__}")
+    parser.add_argument(
+        "--config",
+        metavar="PATH",
+        dest="project_config",
+        help=(
+            "project config to apply (default: the nearest .apiverity.yaml, searching "
+            "upward). Its severity overrides, suppressions file and fail-on threshold "
+            "apply to this run"
+        ),
+    )
+    parser.add_argument(
+        "--no-config",
+        action="store_true",
+        help="ignore .apiverity.yaml entirely, for a run that must not inherit project policy",
+    )
     parser.add_argument(
         "--spec-format",
         choices=list(SPEC_FORMATS),
@@ -757,6 +773,14 @@ def main(argv: list[str] | None = None) -> int:
     # routine.
     set_allow_remote_refs(bool(getattr(args, "allow_remote_refs", False)))
     set_spec_format(getattr(args, "spec_format", None))
+    # `config` prints the file; every other command applies it. Loading it here
+    # means one parse per run and one answer, rather than each command finding
+    # its own -- which is how two commands come to disagree about which file
+    # governs a directory.
+    load_project_config(
+        getattr(args, "project_config", None),
+        disabled=bool(getattr(args, "no_config", False)),
+    )
     try:
         result: Any = args.func(args)
         return int(result)

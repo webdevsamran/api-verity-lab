@@ -17,6 +17,7 @@ from apiverity.cli.commands.common import (
     NL,
     _emit,
     _load,
+    config_setting,
     set_last_contract,
     set_last_seed,
     set_last_target,
@@ -36,10 +37,22 @@ _GATING = frozenset({"WARN", "ERROR"})
 
 
 def _gate(findings: list[Any]) -> int:
-    """EXIT_FINDINGS when anything is at or above WARN, else EXIT_OK."""
+    """EXIT_FINDINGS when anything is at or above the threshold, else EXIT_OK.
+
+    The threshold is WARN here, not ERROR: a runtime observation that the
+    contract does not describe is a finding about the deployment, and the
+    catalogue's severities were written for contract changes. `fail_on` in the
+    project config still overrides it -- that key reached no code at all until
+    now, so a team adopting the gate on an existing API had the documented way
+    to say "report, do not block" and it did nothing.
+    """
+    floor = str(config_setting("fail_on", "")).lower()
+    if floor == "never":
+        return EXIT_OK
+    gating = {"error": frozenset({"ERROR"})}.get(floor, _GATING)
     return (
         EXIT_FINDINGS
-        if any(str(getattr(f, "severity", "ERROR")).upper() in _GATING for f in findings)
+        if any(str(getattr(f, "severity", "ERROR")).upper() in gating for f in findings)
         else EXIT_OK
     )
 

@@ -14,6 +14,9 @@ from apiverity.cli.commands.common import (
     _emit,
     _load,
     _pair,
+    apply_project_suppressions,
+    config_setting,
+    merged_severity_overrides,
 )
 
 
@@ -22,7 +25,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
     from apiverity.security import run_security_checks
 
     sec = run_security_checks(service)
-    all_findings = findings + sec
+    all_findings, suppressed = apply_project_suppressions(findings + sec)
     errors = sum(1 for f in all_findings if f.severity.value == "ERROR")
     data = {
         "tool": "apiverity",
@@ -41,9 +44,10 @@ def cmd_validate(args: argparse.Namespace) -> int:
         "operation_count": len(service.operations),
         "findings": all_findings,
         "errors": errors,
+        **({"suppressions": suppressed} if suppressed else {}),
     }
     _emit(data, args.json)
-    return EXIT_FINDINGS if errors else EXIT_OK
+    return _exit_for(all_findings)
 
 
 def cmd_diff(args: argparse.Namespace) -> int:
@@ -64,6 +68,32 @@ def cmd_diff(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _config_default(args: argparse.Namespace, flag: str) -> bool:
+    """A boolean flag: the command line if it was given, else the config.
+
+    `store_true` cannot distinguish "not passed" from "passed false", so a
+    config value can only ever turn one *on*. That is the right direction --
+    a project declaring `check_semver: true` wants it everywhere, and nobody
+    writes `check_semver: false` to defeat a flag they did not type.
+    """
+    return bool(getattr(args, flag, False)) or bool(config_setting(flag, False))
+
+
+def _exit_for(findings: list[Any]) -> int:
+    """Exit code for a set of findings, at the project's declared threshold.
+
+    `fail_on` was a config key that reached no code: every command failed on
+    ERROR and nothing else, so a team adopting the gate on an existing API had
+    the documented way to say "report, do not block" and it did nothing.
+    """
+    floor = str(config_setting("fail_on", "error")).lower()
+    if floor == "never":
+        return EXIT_OK
+    wanted = {"error": ("ERROR",), "warn": ("ERROR", "WARN")}.get(floor, ("ERROR",))
+    hit = any(getattr(f.severity, "value", str(f.severity)) in wanted for f in findings)
+    return EXIT_FINDINGS if hit else EXIT_OK
+
+
 def cmd_breaking(args: argparse.Namespace) -> int:
     from apiverity.diff.engine import diff_services
     from apiverity.rules.breaking import evaluate_breaking
@@ -76,12 +106,19 @@ def cmd_breaking(args: argparse.Namespace) -> int:
         for item in args.severity_override:
             rule_id, _, sev = item.partition("=")
             overrides[rule_id] = sev.upper()
-    findings = evaluate_breaking(changes, overrides or None)
+    # `.apiverity.yaml` under the command line. Its `severity_overrides` were
+    # parsed, schema-checked and then applied to nothing at all -- so a project
+    # that wrote them got the catalogue defaults and no indication of it.
+    findings = evaluate_breaking(changes, merged_severity_overrides(overrides))
     # whole-contract HTTP compatibility + protocol-specific (GraphQL/gRPC) rules
     from apiverity.diff.compat import analyze_compat
     from apiverity.diff.protocol_compat import analyze_protocol_compat
 
     findings = findings + analyze_compat(old, new) + analyze_protocol_compat(old, new)
+    # Scoped suppressions with an owner, a reason and an expiry. The module
+    # implementing them was imported by nothing, so a project keeping a
+    # suppressions file had it read by no command.
+    findings, suppressed = apply_project_suppressions(findings)
 
     if getattr(args, "suggest_fix", False):
         # The non-breaking route to the same destination, attached to the
@@ -134,7 +171,7 @@ def cmd_breaking(args: argparse.Namespace) -> int:
         radius = blast_radius(findings, registry)
         affected_names = sorted(radius["by_consumer"])
 
-    if args.check_semver:
+    if _config_default(args, "check_semver"):
         policy = SemverPolicy(
             args.old_version or old.version,
             args.new_version or new.version,
@@ -147,7 +184,7 @@ def cmd_breaking(args: argparse.Namespace) -> int:
     # given, and "release this as 2.0.0" is a more useful sentence than
     # "release this behind a major version bump".
     advice = None
-    if getattr(args, "suggest_version", False):
+    if _config_default(args, "suggest_version"):
         from apiverity.rules.semver import suggest_bump
 
         advice = suggest_bump(
@@ -204,10 +241,14 @@ def cmd_breaking(args: argparse.Namespace) -> int:
                 if summary is not None
                 else {}
             ),
+            # Reported, never merely dropped. A gate that silences findings on
+            # the say-so of a file, without saying which, is a gate nobody can
+            # audit.
+            **({"suppressions": suppressed} if suppressed else {}),
         },
         args.json,
     )
-    return EXIT_FINDINGS if errors else EXIT_OK
+    return _exit_for(findings)
 
 
 def cmd_changelog(args: argparse.Namespace) -> int:
