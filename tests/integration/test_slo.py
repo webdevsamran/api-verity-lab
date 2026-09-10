@@ -24,7 +24,7 @@ import pytest
 
 from apiverity.core.model import Finding, Operation, OperationKind, Protocol, Service
 from apiverity.mock import MockServer
-from apiverity.performance.engine import measure
+from apiverity.performance.engine import OperationStats, PerformanceReport, measure
 from apiverity.performance.slo import (
     MEASURABLE,
     NOT_MEASURABLE,
@@ -171,6 +171,21 @@ def test_nothing_is_both_measurable_and_not() -> None:
 # ------------------------------------------------------------- measuring
 
 
+def _report(p95_by_key: dict[str, float]) -> PerformanceReport:
+    """A measurement with the p95 values a test wants to reason about.
+
+    Everything else is left at zero, so a rule that read some other metric
+    would fail rather than pass by coincidence.
+    """
+    return PerformanceReport(
+        target="http://127.0.0.1:0",
+        operations=[
+            OperationStats(operation_key=key, samples=20, p95_ms=p95)
+            for key, p95 in p95_by_key.items()
+        ],
+    )
+
+
 @pytest.fixture(scope="module")
 def measured(service: Service):
     with MockServer(service, port=8134) as mock:
@@ -215,14 +230,27 @@ def test_the_finding_carries_the_numbers_it_compared(service: Service, measured)
     assert finding.metadata["samples"] > 0
 
 
-def test_a_met_objective_produces_nothing(service: Service, measured) -> None:
-    """`GET /users` declares 250 ms against a local mock."""
-    keys = [
-        f.operation_key
-        for f in evaluate(service, measured)
-        if f.rule_id == "SLO-RUN-EXCEEDS-OBJECTIVE"
-    ]
+def test_a_met_objective_produces_nothing(service: Service) -> None:
+    """`GET /users` declares 250 ms; a run that measured 40 ms says nothing.
+
+    Measured values are constructed rather than timed. This assertion used a
+    live mock and `p95_ms: 250`, which made it a stopwatch: on a loaded runner
+    the p95 of a handful of local requests crosses 250 ms, the met case becomes
+    the exceeded case, and the test fails for a reason that has nothing to do
+    with the code it covers. The other tests in this file still measure a real
+    server, because what they check needs one.
+    """
+    findings = evaluate(service, _report({"GET /users": 40.0}))
+    keys = [f.operation_key for f in findings if f.rule_id == "SLO-RUN-EXCEEDS-OBJECTIVE"]
     assert "GET /users" not in keys
+
+
+def test_the_same_objective_missed_by_the_same_run_is_reported(service: Service) -> None:
+    """The control. Without it the test above passes against an `evaluate`
+    that never reports anything at all."""
+    findings = evaluate(service, _report({"GET /users": 400.0}))
+    keys = [f.operation_key for f in findings if f.rule_id == "SLO-RUN-EXCEEDS-OBJECTIVE"]
+    assert "GET /users" in keys
 
 
 def test_a_malformed_objective_is_not_compared_against(service: Service, measured) -> None:
