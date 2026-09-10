@@ -31,7 +31,7 @@ fuzzing, drift detection, mocking and performance budgets. Each has its own
 result format, its own CI wiring and its own mental model — so findings never
 compose: you can't ask "which endpoints are both under-tested *and* drifting?"
 
-api-verity-lab answers thirty-three questions from one place:
+api-verity-lab answers thirty-four questions from one place:
 
 | Question | Command |
 |---|---|
@@ -61,6 +61,7 @@ api-verity-lab answers thirty-three questions from one place:
 | Can an agent ask *this* whether its change is breaking? | `apiverity-mcp --root .` |
 | Can schema-derived edge cases break it? | `apiverity test` |
 | Do multi-step workflows fail? | `apiverity workflow run` |
+| Is our workflow file portable, or locked to this tool? | `apiverity workflow wf.yaml --to-arazzo --spec openapi.yaml` |
 | Can sanitized traffic be replayed safely? | `apiverity replay` |
 | Did latency/error rate regress? | `apiverity regression` |
 | Which endpoints lack coverage? | `apiverity coverage` |
@@ -360,7 +361,7 @@ Browsable at **<https://webdevsamran.github.io/api-verity-lab/>**, or as files h
 | [docs/spec-support.md](docs/spec-support.md) | What is supported per format: OpenAPI, AsyncAPI, GraphQL, gRPC, MCP, WSDL |
 | [PROTOCOL_SUPPORT.md](PROTOCOL_SUPPORT.md) | Per-protocol status, graded EXISTING / PARTIAL / BLOCKED |
 | [docs/capability-status.md](docs/capability-status.md) | Honest per-capability status, same grading |
-| [docs/workflow-authoring.md](docs/workflow-authoring.md) | Writing stateful workflow manifests |
+| [docs/workflow-authoring.md](docs/workflow-authoring.md) · [docs/arazzo.md](docs/arazzo.md) | Writing stateful workflow manifests, and reading and writing them as Arazzo 1.1.0 |
 | [docs/sdk.md](docs/sdk.md) · [docs/self-hosting.md](docs/self-hosting.md) | Using the library directly; running the server |
 | [docs/ci.md](docs/ci.md) | Wiring the contract gate into a pipeline |
 | [SAFETY_MODEL.md](SAFETY_MODEL.md) · [docs/privacy.md](docs/privacy.md) | What this tool will and will not do to a target |

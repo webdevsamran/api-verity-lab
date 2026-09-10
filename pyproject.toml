@@ -49,6 +49,10 @@ dev = [
   "pytest-cov>=5.0,<8.0",
   "pytest-asyncio>=0.23,<2.0",
   "hypothesis>=6.100,<7.0",
+  # The Arazzo export is checked against the OAI's own published JSON Schema
+  # (schemas/vendor/). Without this the check would skip, and a skipped
+  # conformance test is indistinguishable from a passing one.
+  "jsonschema>=4.0,<5.0",
   "ruff>=0.5,<1.0",
   "mypy>=1.10,<3.0",
   "types-PyYAML",

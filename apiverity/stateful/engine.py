@@ -82,6 +82,7 @@ def load_workflow_manifest(path: str) -> Workflow:
         name=str(raw.get("name", Path(path).stem)),
         description=raw.get("description"),
         base_url=raw.get("base_url"),
+        inputs=[str(i) for i in raw.get("inputs") or []],
         allowed_hosts=[str(h) for h in raw.get("allowed_hosts") or []],
         allowed_methods=[
             str(m).upper()
@@ -132,10 +133,37 @@ def _deep_substitute(value: Any, variables: dict[str, Any]) -> Any:
 class WorkflowEngine:
     """Executes an authored workflow against an allowlisted base URL."""
 
-    def __init__(self, workflow: Workflow, base_url: str) -> None:
+    def __init__(
+        self, workflow: Workflow, base_url: str, inputs: dict[str, Any] | None = None
+    ) -> None:
         self.workflow = workflow
         self.base_url = base_url.rstrip("/")
+        self.inputs = dict(inputs or {})
         self._check_host(base_url)
+        self._check_inputs()
+
+    def _check_inputs(self) -> None:
+        """Refuse to start with an input the caller did not supply.
+
+        `Workflow.inputs` is documented as "variables supplied by the caller"
+        and until an Arazzo description needed one, nothing supplied any: the
+        field was declared on the model, read only by the graph validator, and
+        parsed out of no manifest. A workflow that declared `user_name` and
+        never received it did not fail -- `_substitute` leaves an unknown
+        `{user_name}` exactly as written, so the request went out with a
+        literal brace in it and the run reported whatever the server made of
+        that.
+
+        Refusing is the only honest option. Substituting an empty string would
+        send a different request from the one that was authored, and both are
+        worse than saying which input is missing.
+        """
+        missing = [name for name in self.workflow.inputs if name not in self.inputs]
+        if missing:
+            raise ValueError(
+                f"workflow '{self.workflow.name}' declares input(s) {missing} that were "
+                "not supplied; pass --input name=value for each"
+            )
 
     def _check_host(self, url: str) -> None:
         parsed = urlparse(url)
@@ -157,7 +185,12 @@ class WorkflowEngine:
 
     def run(self) -> WorkflowResult:
         result = WorkflowResult(workflow=self.workflow.name, status="pass")
-        variables: dict[str, Any] = {}
+        variables: dict[str, Any] = dict(self.inputs)
+        # Set before the loop as well as inside it: the supplied inputs are
+        # part of the run's variable table whether or not a step ever adds to
+        # it, and a result that reported none of them would be describing a
+        # different run from the one that happened.
+        result.variables = dict(variables)
 
         for step in self.workflow.steps:
             step_result = self._run_step(step, variables)
@@ -256,6 +289,8 @@ class WorkflowEngine:
         )
 
 
-def run_workflow_manifest(path: str, base_url: str) -> WorkflowResult:
+def run_workflow_manifest(
+    path: str, base_url: str, inputs: dict[str, Any] | None = None
+) -> WorkflowResult:
     wf = load_workflow_manifest(path)
-    return WorkflowEngine(wf, base_url).run()
+    return WorkflowEngine(wf, base_url, inputs).run()

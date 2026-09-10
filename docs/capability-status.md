@@ -72,6 +72,7 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
 - Pluggable case generators via `apiverity.generators`, invoked by `apiverity test --generator` — EXISTING (`fuzz/generators.py`); built-ins: unicode, nesting, numeric, header-safety
 - Workflow engine v2 (extraction/guards/cleanup), graph validation, templates, model-based CRUD — EXISTING
 - Workflow inference from OpenAPI Links (`workflow --infer`) — EXISTING (`stateful/infer.py`); links-only, every step emitted commented out, destructive steps commented twice
+- Arazzo 1.1.0 import and export (`workflow --to-arazzo`; an Arazzo description runs directly) — EXISTING (`stateful/arazzo.py`); the export is validated against the OAI's own published JSON Schema, and every construct with no equivalent in this engine — `goto`, `retry`, nested workflows, AsyncAPI channel steps — is reported rather than dropped. See [Arazzo workflows](arazzo.md)
 
 ## Runtime: drift, replay, performance
 - Drift monitor, field-frequency analysis, HAR normalization with redaction DSL,

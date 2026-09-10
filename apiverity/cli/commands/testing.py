@@ -96,13 +96,23 @@ def cmd_workflow(args: argparse.Namespace) -> int:
     if getattr(args, "infer", False):
         return _infer_workflow(args)
 
-    wf = load_workflow_manifest(args.manifest)
+    if getattr(args, "to_arazzo", False):
+        return _to_arazzo(args)
+
+    imported = _read_arazzo_if_it_is_one(args)
+    if isinstance(imported, int):
+        return imported
+    wf = imported if imported is not None else load_workflow_manifest(args.manifest)
     base_url = args.base_url or wf.base_url
     if not base_url:
         print("error: no base URL (pass --base-url or set base_url in manifest)", file=sys.stderr)
         return EXIT_USAGE
+    inputs, bad = _workflow_inputs(args)
+    if bad is not None:
+        print(f"error: --input {bad!r} is not NAME=VALUE", file=sys.stderr)
+        return EXIT_USAGE
     try:
-        result = WorkflowEngine(wf, base_url).run()
+        result = WorkflowEngine(wf, base_url, inputs).run()
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_USAGE
@@ -199,6 +209,138 @@ def _infer_workflow(args: argparse.Namespace) -> int:
         # better than an exit code that reads like the spec was rejected.
         return EXIT_OK
     return EXIT_OK
+
+
+def _workflow_inputs(args: argparse.Namespace) -> tuple[dict[str, Any], str | None]:
+    """`--input name=value` pairs, or the first one that is not a pair.
+
+    Values stay strings. The manifest has no types for them -- `inputs` is a
+    list of names -- so parsing `1` into an integer here would be this command
+    deciding something the contract did not say.
+    """
+    out: dict[str, Any] = {}
+    for raw in getattr(args, "input", None) or []:
+        name, sep, value = str(raw).partition("=")
+        if not sep or not name:
+            return {}, str(raw)
+        out[name] = value
+    return out, None
+
+
+def _read_arazzo_if_it_is_one(args: argparse.Namespace) -> Any:
+    """An Arazzo description read into a runnable workflow, or None.
+
+    Returns an exit code instead when the description names several workflows
+    and the caller did not say which, or when the one it names does not exist.
+    Guessing would run a different workflow from the one the operator meant,
+    against whatever `--base-url` points at.
+    """
+    from pathlib import Path
+
+    import yaml
+
+    from apiverity.stateful.arazzo import from_arazzo, is_arazzo
+
+    try:
+        raw = yaml.safe_load(Path(args.manifest).read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return None  # load_workflow_manifest reports it in its own words
+    if not is_arazzo(raw):
+        return None
+
+    result = from_arazzo(raw)
+    wanted = getattr(args, "workflow_id", None)
+    chosen = None
+    for workflow in result.workflows:
+        if wanted is None or workflow.name == wanted:
+            chosen = workflow
+            break
+    if chosen is None:
+        known = ", ".join(w.name for w in result.workflows) or "none"
+        print(
+            f"error: no workflow {wanted!r} in {args.manifest} (it declares: {known})",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+    if wanted is None and len(result.workflows) > 1:
+        print(
+            f"note: {args.manifest} declares {len(result.workflows)} workflows; "
+            f"running {chosen.name!r}. Pass --workflow-id to choose another.",
+            file=sys.stderr,
+        )
+
+    # Printed to stderr so a `--json` run is still one JSON document on stdout,
+    # and printed at all because a description that lost a retry, a goto or a
+    # whole step imports and runs looking complete.
+    print(f"note: {result.note}", file=sys.stderr)
+    for entry in result.untranslated:
+        if entry.workflow == chosen.name:
+            print(f"  not carried: {entry}", file=sys.stderr)
+    return chosen
+
+
+def _to_arazzo(args: argparse.Namespace) -> int:
+    """Write a manifest as an Arazzo 1.1.0 description.
+
+    `--json` here selects the document's serialisation rather than wrapping a
+    result: Arazzo is defined in both YAML and JSON, and the output of this
+    flag is a specification document, not a run.
+    """
+    import json
+    from pathlib import Path
+
+    from apiverity.stateful.arazzo import to_arazzo
+    from apiverity.stateful.engine import load_workflow_manifest
+
+    spec = getattr(args, "spec", None)
+    if not spec:
+        print(
+            "error: --to-arazzo requires --spec. An Arazzo description must name at "
+            "least one source description, and the contract is also what turns this "
+            "engine's `{user_id}` into the path parameter the contract declares.",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+
+    service, _, _ = _load(spec)
+    workflow = load_workflow_manifest(args.manifest)
+    export = to_arazzo(
+        workflow,
+        source_name=_source_name(spec),
+        source_url=spec,
+        service=service,
+    )
+    text = (
+        json.dumps(export.document, indent=2) + NL
+        if getattr(args, "json", False)
+        else export.to_yaml()
+    )
+
+    output = getattr(args, "output", None)
+    if output:
+        target = Path(output)
+        if target.exists():
+            print(f"error: {output} already exists; refusing to overwrite", file=sys.stderr)
+            return EXIT_USAGE
+        target.write_text(text, encoding="utf-8")
+        print(f"wrote {output}")
+    else:
+        print(text, end="")
+
+    for entry in export.untranslated:
+        print(f"note: not carried into the description: {entry}", file=sys.stderr)
+    for old, new in sorted(export.renamed.items()):
+        print(f"note: renamed {old!r} to {new!r} for Arazzo's id charset", file=sys.stderr)
+    return EXIT_OK
+
+
+def _source_name(spec: str) -> str:
+    """A Source Description name from a path: `[A-Za-z0-9_-]+`, non-empty."""
+    import re
+    from pathlib import Path
+
+    stem = re.sub(r"[^A-Za-z0-9_\-]+", "-", Path(spec).stem).strip("-")
+    return stem or "source"
 
 
 def _emit_template(args: argparse.Namespace, name: str) -> int:

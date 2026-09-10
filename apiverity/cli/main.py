@@ -363,6 +363,36 @@ def build_parser() -> argparse.ArgumentParser:
         help="emit a built-in manifest template instead of running one (see --list-templates)",
     )
     p.add_argument("--list-templates", action="store_true", help="list built-in templates and exit")
+    p.add_argument(
+        "--to-arazzo",
+        action="store_true",
+        help=(
+            "write the manifest as an Arazzo 1.1.0 description instead of running it. "
+            "Requires --spec: Arazzo needs a source description, and inventing a URL "
+            "for one would put a document nobody serves into the output"
+        ),
+    )
+    p.add_argument(
+        "--spec",
+        help="the contract the manifest is run against, for --to-arazzo",
+    )
+    p.add_argument(
+        "--workflow-id",
+        help=(
+            "which workflow to run from an Arazzo description that declares several "
+            "(default: the first)"
+        ),
+    )
+    p.add_argument(
+        "--input",
+        action="append",
+        metavar="NAME=VALUE",
+        help=(
+            "supply one of the workflow's declared inputs. Repeatable. A declared "
+            "input that is not supplied stops the run rather than being sent as a "
+            "literal `{name}`"
+        ),
+    )
     p.add_argument("-o", "--output", help="write the draft to a file instead of stdout")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_workflow)

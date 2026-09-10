@@ -97,7 +97,12 @@ what this pass built.
 - 📋 Plugin marketplace documentation + example plugin repo
 - 📋 OpenTelemetry trace correlation for drift findings, and the GenAI
   semantic conventions
-- 📋 Arazzo workflow import/export; GraphQL federation; SOAP/WSDL
+- ✅ SOAP/WSDL 1.1 as a spec format (`apiverity/specs/wsdl.py`)
+- ✅ Arazzo 1.1.0 workflow import/export (`workflow --to-arazzo`, and an
+  Arazzo description runs directly) — what does not survive the conversion
+  is reported rather than dropped, and the export is validated against the
+  OAI's own published JSON Schema
+- 📋 GraphQL federation / supergraph diffing
 - 📋 Live-traffic capture (proxy/sidecar) — the interface is specified,
   the socket work is not done
 - ✅ Multi-contract aggregation with CODEOWNERS-derived ownership

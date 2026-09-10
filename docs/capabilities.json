@@ -399,9 +399,13 @@
       "options": [
         "--base-url",
         "--infer",
+        "--input",
         "--json",
         "--list-templates",
+        "--spec",
         "--template",
+        "--to-arazzo",
+        "--workflow-id",
         "-o"
       ]
     }

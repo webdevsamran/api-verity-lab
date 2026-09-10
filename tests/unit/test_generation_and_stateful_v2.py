@@ -247,3 +247,68 @@ class TestModelBasedRunner:
         assert result.status == "fail"
         failed = [s for s in result.steps if s.status == "fail"]
         assert failed and "not persisted" in failed[0].violations[0]
+
+
+class TestDeclaredInputs:
+    """`Workflow.inputs` was a field nothing filled.
+
+    It is documented on the model as "variables supplied by the caller", it is
+    read by the graph validator when deciding whether a step's variables are
+    available, and until an Arazzo description needed one: no manifest key
+    parsed into it, no engine argument accepted one, and no command passed one.
+
+    A workflow declaring `user_name` therefore ran with the variable absent,
+    and `_substitute` leaves an unknown `{user_name}` exactly as written -- so
+    the request went out with a literal brace in it and the run reported
+    whatever the server made of that.
+    """
+
+    def test_a_manifest_declaring_inputs_parses_them(self, tmp_path: Path) -> None:
+        from apiverity.stateful.engine import load_workflow_manifest
+
+        manifest = tmp_path / "wf.yaml"
+        manifest.write_text(
+            "name: needs-input\n"
+            "inputs: [tenant]\n"
+            "steps:\n"
+            "  - name: get\n"
+            '    request: {method: GET, path: "/t/{tenant}"}\n',
+            encoding="utf-8",
+        )
+        assert load_workflow_manifest(str(manifest)).inputs == ["tenant"]
+
+    def test_a_missing_input_stops_the_run_rather_than_being_sent_literally(self) -> None:
+        from apiverity.stateful.engine import WorkflowEngine
+
+        workflow = Workflow(
+            name="needs-input",
+            inputs=["tenant"],
+            steps=[WorkflowStep(name="get", request=WorkflowRequest(path="/t/{tenant}"))],
+        )
+        try:
+            WorkflowEngine(workflow, "http://127.0.0.1:1")
+            raised = ""
+        except ValueError as exc:
+            raised = str(exc)
+        assert "['tenant']" in raised and "--input" in raised
+
+    def test_a_supplied_input_seeds_the_variable_table(self) -> None:
+        from apiverity.stateful.engine import WorkflowEngine
+
+        workflow = Workflow(
+            name="needs-input",
+            inputs=["tenant"],
+            steps=[WorkflowStep(name="get", request=WorkflowRequest(path="/t/{tenant}"))],
+        )
+        engine = WorkflowEngine(workflow, "http://127.0.0.1:1", {"tenant": "acme"})
+        assert engine.inputs == {"tenant": "acme"}
+
+    def test_an_undeclared_input_is_still_available(self) -> None:
+        """Declaring is how a workflow says an input is *required*. Supplying
+        one it did not declare is the caller's business, not an error -- and a
+        template that used it would otherwise have no way to be filled."""
+        from apiverity.stateful.engine import WorkflowEngine
+
+        workflow = Workflow(name="w", steps=[])
+        engine = WorkflowEngine(workflow, "http://127.0.0.1:1", {"extra": "1"})
+        assert engine.run().variables == {"extra": "1"}

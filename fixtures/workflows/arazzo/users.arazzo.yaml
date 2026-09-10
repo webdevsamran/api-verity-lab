@@ -1,0 +1,115 @@
+# An Arazzo 1.1.0 description over fixtures/apis/crud/openapi.yaml.
+#
+# Written to exercise both halves of the importer: the constructs that have a
+# manifest equivalent, and the ones that do not and must be reported rather
+# than dropped. Every step below is one of the rows in the table in
+# `apiverity/stateful/arazzo.py`.
+#
+# It is a real description, not a sketch: tests/unit/test_arazzo.py validates it
+# against the OAI's own published schema, vendored at
+# schemas/vendor/arazzo-1.1-2026-04-15.schema.json. If it were not valid Arazzo,
+# every import test would be measuring a document no runtime would accept.
+arazzo: 1.1.0
+info:
+  title: Verity CRUD lifecycle (fixture)
+  summary: create a user, read it back, delete it
+  version: 1.0.0
+sourceDescriptions:
+  - name: crud
+    url: ../../apis/crud/openapi.yaml
+    type: openapi
+workflows:
+  - workflowId: user-lifecycle
+    summary: create -> get -> delete against the CRUD fixture
+    inputs:
+      type: object
+      properties:
+        user_name: {type: string}
+        user_role: {type: string}
+      required: [user_name]
+    steps:
+      # Reads cleanly: the pointer names the path and the method literally, so
+      # no source document is needed to know what to send.
+      - stepId: create
+        description: create the user the workflow will operate on
+        operationPath: "{$sourceDescriptions.crud.url}#/paths/~1users/post"
+        requestBody:
+          contentType: application/json
+          payload:
+            name: $inputs.user_name
+            role: $inputs.user_role
+        successCriteria:
+          - condition: $statusCode == 201
+        outputs:
+          user_id: $response.body#/id
+        timeout: 15000
+
+      # Path, query and header parameters all land; the cookie does not,
+      # because a WorkflowRequest has nowhere to put it.
+      - stepId: read-back
+        operationPath: "{$sourceDescriptions.crud.url}#/paths/~1users~1{id}/get"
+        parameters:
+          - name: id
+            in: path
+            value: $steps.create.outputs.user_id
+          - name: limit
+            in: query
+            value: 1
+          - name: X-Request-Id
+            in: header
+            value: "verity-{$inputs.user_name}"
+          - name: session
+            in: cookie
+            value: "not-a-real-session"
+        successCriteria:
+          - condition: $statusCode == 200
+          # A plain literal: this one becomes an assert_jsonpath entry.
+          - condition: $response.body#/role == 'user'
+          # The same shape with a runtime expression on the right. The manifest
+          # engine substitutes variables into paths, bodies, headers and query
+          # values -- not into an expected value -- so this one is reported.
+          - condition: $response.body#/name == '{$inputs.user_name}'
+          # A JSONPath criterion. Valid Arazzo, outside this engine's subset.
+          - context: $response.body
+            condition: $[?@.id]
+            type: jsonpath
+
+      # A retry has no equivalent in a straight-line run, so the step still
+      # imports and the retry is reported.
+      - stepId: delete
+        operationPath: "{$sourceDescriptions.crud.url}#/paths/~1users~1{id}/delete"
+        parameters:
+          - name: id
+            in: path
+            value: $steps.create.outputs.user_id
+        successCriteria:
+          - condition: $statusCode == 200 || $statusCode == 204
+        onFailure:
+          - name: retry-the-delete
+            type: retry
+            retryAfter: 2
+            retryLimit: 3
+
+      # Named in a source description rather than pointed at. The method and
+      # path are in that document, which the importer does not read.
+      - stepId: confirm-gone
+        operationId: getUser
+        successCriteria:
+          - condition: $statusCode == 404
+
+      # A step that is a whole other workflow. This engine does not nest.
+      - stepId: run-the-audit
+        workflowId: audit
+
+      # 1.1.0 added AsyncAPI steps. This engine sends HTTP requests.
+      - stepId: announce
+        channelPath: "{$sourceDescriptions.crud.url}#/channels/~1user-events"
+        action: send
+
+  - workflowId: audit
+    summary: the sub-workflow the lifecycle calls
+    steps:
+      - stepId: list-users
+        operationPath: "{$sourceDescriptions.crud.url}#/paths/~1users/get"
+        successCriteria:
+          - condition: $statusCode == 200
