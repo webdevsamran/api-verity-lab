@@ -68,8 +68,9 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   cannot emit
 
 ## Generation & stateful testing
-- Seeded positive/negative generation, boundary values, pairwise, example mutation, shrinking, corpus export/import/replay — EXISTING
-- Pluggable case generators via `apiverity.generators`, invoked by `apiverity test --generator` — EXISTING (`fuzz/generators.py`); built-ins: unicode, nesting, numeric, header-safety
+- Seeded positive/negative generation, example mutation, shrinking, corpus export/import/replay — EXISTING
+- Boundary values and pairwise parameter coverage (`test --generator pairwise`): every *combination* of two parameter values at least once, where every other generator varies one thing at a time — EXISTING (`fuzz/boundary.py`)
+- Pluggable case generators via `apiverity.generators`, invoked by `apiverity test --generator` — EXISTING (`fuzz/generators.py`); built-ins: unicode, nesting, numeric, header-safety, pairwise
 - Workflow engine v2 (extraction/guards/cleanup), templates, model-based CRUD — EXISTING
 - Graph validation before a run: `workflow` checks the manifest for variables nothing fills, duplicate step names and cleanup that deletes what it did not create, and refuses to send anything when it finds one (`--no-preflight` overrides) — EXISTING (`stateful/graph.py`)
 - Workflow inference from OpenAPI Links (`workflow --infer`) — EXISTING (`stateful/infer.py`); links-only, every step emitted commented out, destructive steps commented twice
@@ -157,7 +158,7 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
 ## Library-only capabilities
 
 Every entry above is graded EXISTING when the capability is implemented and
-tested. Three of them are implemented, tested, and **reachable from no
+tested. Two of them are implemented, tested, and **reachable from no
 command** -- importable from Python, absent from the CLI. That is a different
 thing from EXISTING and a reader will not distinguish them unless told, so
 they are listed here.
@@ -170,7 +171,6 @@ cannot join or leave it quietly.
 | Module | What it provides | Reachable from |
 |---|---|---|
 | `apiverity.core.model_v2` | Stable entity ids, canonical entity hashes, `result-v1` -> `2.0` artifact migration, and `ContractBundle` -- several services combined into one versioned surface | import only |
-| `apiverity.fuzz.boundary` | Explicit boundary values for numeric, string and array constraints, beyond the random generator | import only |
 | `apiverity.stateful.model_based` | A CRUD transition model executed against an authorized target | import only |
 
 Two notes on how to read that.

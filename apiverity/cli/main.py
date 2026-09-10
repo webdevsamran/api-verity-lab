@@ -340,7 +340,9 @@ def build_parser() -> argparse.ArgumentParser:
         "test",
         help="generate cases from the schema and run them against a live service",
     )
-    p.add_argument("spec")
+    # Optional so `--list-generators` works on its own. It is documented as
+    # "list ... and exit", and argparse required a contract to reach it.
+    p.add_argument("spec", nargs="?")
     p.add_argument("--base-url")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument(
@@ -384,7 +386,14 @@ def build_parser() -> argparse.ArgumentParser:
         "workflow",
         help="run a multi-step workflow manifest, or infer a draft from a contract",
     )
-    p.add_argument("manifest", help="a workflow manifest to run, or a spec with --infer")
+    p.add_argument(
+        "manifest",
+        nargs="?",
+        help=(
+            "a workflow manifest to run, or a spec with --infer. Optional so "
+            "--list-templates works on its own"
+        ),
+    )
     p.add_argument("--base-url")
     p.add_argument(
         "--infer",

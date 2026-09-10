@@ -24,6 +24,11 @@ strategies have genuinely different opinions about what a correct server does:
   friends, to check the service rejects or sanitizes them. There is no exploit
   payload here and there is not meant to be: the generator's job is to find
   out whether untrusted bytes reach a header, not to weaponise it.
+- `pairwise` -- every *combination* of two parameter values at least once.
+  Everything above varies one thing at a time, so a validator that is correct
+  about `page` and correct about `per_page` and wrong about the two together
+  is invisible to all of them. Positive: every value comes from
+  `boundary_values`, which returns only what the contract permits.
 
 Determinism is per generator: each is handed a seed derived from the run seed
 and its own name, so adding a generator does not renumber the cases of the
@@ -46,6 +51,7 @@ __all__ = [
     "HeaderSafetyGenerator",
     "NestingGenerator",
     "NumericBoundaryGenerator",
+    "PairwiseGenerator",
     "UnicodeGenerator",
     "load_generators",
 ]
@@ -510,6 +516,76 @@ class HeaderSafetyGenerator:
 
 # ------------------------------------------------------------------ dispatch
 
+
+class PairwiseGenerator:
+    """Every pair of parameter values, at least once, without the Cartesian product.
+
+    The other generators vary one thing at a time. A validator that is right
+    about `page`, right about `per_page`, and wrong about the two together is
+    invisible to every one of them -- and "wrong together" is the normal shape
+    of a paging bug, a filter bug and a range bug.
+
+    Positive cases only. Every value comes from `boundary_values`, which
+    returns what a constraint *permits*; a combination of permitted values is
+    a request the contract says the service must accept, so a 4xx here is the
+    finding. Values that violate a constraint belong to the generators that
+    say so.
+
+    Five parameters with six values each produce 276 cases against a Cartesian
+    product of 7,776, covering all 360 pairs. That is not an optimal covering
+    array -- an optimal one needs about 36 -- and `MAX_CASES` is what keeps a
+    wide operation from dominating a run.
+    """
+
+    name = "pairwise"
+
+    #: Per operation. A generator that quietly produced four hundred cases for
+    #: one endpoint would be turned off, taking the useful ones with it.
+    MAX_CASES: ClassVar[int] = 60
+
+    def generate(self, op: Operation, seed: int) -> Iterable[dict[str, Any]]:
+        from apiverity.fuzz.boundary import pairwise_parameter_cases
+
+        combinable = [p for p in op.parameters if p.location.value in ("query", "header")]
+        if len(combinable) < 2:
+            # There is no pair to cover. `pairwise_parameter_cases` still
+            # returns one case per value for a lone parameter, and every other
+            # generator already covers a single field better than this one.
+            return []
+
+        combinations = pairwise_parameter_cases(op, seed=seed)
+        by_name = {p.name: p for p in op.parameters}
+        path_params, base_query = _path_and_query(op, seed)
+        cases: list[dict[str, Any]] = []
+        for assignment in combinations[: self.MAX_CASES]:
+            query = dict(base_query)
+            headers: dict[str, str] = {}
+            for name, value in assignment.items():
+                parameter = by_name.get(name)
+                if parameter is not None and parameter.location.value == "header":
+                    headers[name] = str(value)
+                else:
+                    query[name] = value
+            cases.append(
+                GeneratedCase(
+                    kind="positive",
+                    description="parameter combination "
+                    + ", ".join(f"{k}={v!r}" for k, v in sorted(assignment.items())),
+                    path_params=path_params,
+                    query=query,
+                    headers=headers,
+                )
+            )
+        if len(combinations) > self.MAX_CASES:
+            # Said out loud in a case description rather than dropped: a run
+            # that covered two thirds of the pairs and reported nothing about
+            # it reads as a run that covered them all.
+            cases[-1]["description"] += (
+                f" (capped at {self.MAX_CASES} of {len(combinations)} combinations)"
+            )
+        return cases
+
+
 BUILTIN_GENERATORS: dict[str, CaseGenerator] = {
     generator.name: generator
     for generator in (
@@ -517,6 +593,7 @@ BUILTIN_GENERATORS: dict[str, CaseGenerator] = {
         NestingGenerator(),
         NumericBoundaryGenerator(),
         HeaderSafetyGenerator(),
+        PairwiseGenerator(),
     )
 }
 

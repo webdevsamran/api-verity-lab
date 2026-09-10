@@ -1,9 +1,41 @@
-"""Boundary-aware and pairwise case generation.
+"""Boundary values, and every pair of parameters at least once.
 
-Extends the base random generator with:
-- explicit boundary values for numeric/string/array constraints;
-- seeded deterministic "near-boundary" valid and invalid values;
-- pairwise parameter-interaction coverage without Cartesian explosion.
+`apiverity test --generator pairwise` is what reaches this. Until it did,
+`docs/capability-status.md` published "boundary values, pairwise -- EXISTING"
+about a module no command could run, and the thing below had gone unnoticed for
+exactly that long.
+
+## `boundary_values` returned values that violate the schema
+
+Its docstring says "interesting values for a schema's constraints" and it
+returned, among the valid ones:
+
+- `"a" * (min_length - 1)` and `"a" * (max_length + 1)`, both marked `# invalid
+  near-boundary` in the source and both already produced by
+  `near_boundary_invalid_cases`;
+- the exclusive bound itself. `exclusiveMinimum: 5` means 5 is forbidden, and
+  `lo` was appended before `lo + 1`;
+- `"A1-"` for any `pattern`, which is a guess at a regex nobody read.
+
+That did not matter while the only caller was `pairwise_parameter_cases`, which
+treats every value the same. It matters the moment a generator has to say
+whether a case is positive or negative, because a case built from those values
+expects a 4xx and would have been sent expecting a 2xx -- reporting a service
+as broken for rejecting a value its own contract forbids.
+
+So `boundary_values` returns only values that **satisfy** the schema, and
+everything that violates one lives in `near_boundary_invalid_cases`. A
+`pattern` yields nothing: a string that matches an arbitrary regex cannot be
+derived here, and inventing one is how a generator ends up asserting that its
+own guess is correct.
+
+## Pairwise, measured rather than claimed
+
+Five parameters with six values each: 276 cases against a Cartesian product of
+7,776, covering all 360 pairs. It is not an optimal covering array -- an
+optimal one needs about 36 -- and `tests/unit/test_pairwise_generator.py`
+asserts the coverage rather than the optimality, because coverage is the
+property the caller depends on.
 """
 
 from __future__ import annotations
@@ -16,7 +48,13 @@ from apiverity.core.model import Operation, Parameter, SchemaNode
 
 
 def boundary_values(schema: SchemaNode | None) -> list[Any]:
-    """Deterministic interesting values for a schema's constraints."""
+    """Values that sit on a constraint and **satisfy** it.
+
+    Every value here is one the contract permits, so a case built from them is
+    a positive case. What violates a constraint is in
+    `near_boundary_invalid_cases`, and the two used to overlap -- see the
+    module docstring.
+    """
     if schema is None:
         return [None]
     out: list[Any] = []
@@ -25,31 +63,17 @@ def boundary_values(schema: SchemaNode | None) -> list[Any]:
         out.extend(schema.enum)
         return out
     if t in ("integer", "number"):
-        lo = schema.minimum if schema.minimum is not None else schema.exclusive_minimum
-        hi = schema.maximum if schema.maximum is not None else schema.exclusive_maximum
-        if lo is not None:
-            out.append(lo)
-            if schema.exclusive_minimum is not None:
-                out.append(lo + 1)
-        if hi is not None:
-            out.append(hi)
-            if schema.exclusive_maximum is not None:
-                out.append(hi - 1)
-        if lo is None and hi is None:
-            out.extend([0, 1])
-        if schema.multiple_of:
-            base = int(lo or 0)
-            out.append(base + schema.multiple_of)
+        out.extend(_numeric_boundaries(schema))
     elif t == "string":
+        if schema.pattern:
+            # A string matching an arbitrary regex cannot be derived here, and
+            # a guess would be a value this module asserts is valid without
+            # having checked. The random generator still covers this field.
+            return []
         if schema.min_length is not None:
             out.append("a" * schema.min_length)
-            if schema.min_length > 0:
-                out.append("a" * (schema.min_length - 1))  # invalid near-boundary
         if schema.max_length is not None:
             out.append("a" * schema.max_length)
-            out.append("a" * (schema.max_length + 1))  # invalid near-boundary
-        if schema.pattern:
-            out.append("A1-")
         if not out:
             out.extend(["", "seeded-value"])
     elif t == "array":
@@ -66,6 +90,39 @@ def boundary_values(schema: SchemaNode | None) -> list[Any]:
     else:
         out.append(None)
     return out or [None]
+
+
+def _numeric_boundaries(schema: SchemaNode) -> list[Any]:
+    """The smallest and largest permitted values, and one `multipleOf` step.
+
+    `minimum` includes its bound; `exclusiveMinimum` does not, so the smallest
+    permitted value is one step past it. Returning the exclusive bound itself
+    -- which this did -- is returning the one value the contract singles out as
+    forbidden.
+    """
+    out: list[Any] = []
+    step = schema.multiple_of or 1
+    low = None
+    if schema.minimum is not None:
+        low = schema.minimum
+    elif schema.exclusive_minimum is not None:
+        low = schema.exclusive_minimum + step
+    high = None
+    if schema.maximum is not None:
+        high = schema.maximum
+    elif schema.exclusive_maximum is not None:
+        high = schema.exclusive_maximum - step
+    if low is not None:
+        out.append(low)
+    if high is not None and high != low:
+        out.append(high)
+    if low is None and high is None:
+        out.extend([0, 1])
+    if schema.multiple_of:
+        candidate = (low if low is not None else 0) + schema.multiple_of
+        if high is None or candidate <= high:
+            out.append(candidate)
+    return out
 
 
 def _param_choice_sets(params: list[Parameter]) -> dict[str, list[Any]]:
@@ -142,15 +199,28 @@ def pairwise_parameter_cases(op: Operation, seed: int = 0) -> list[dict[str, Any
 
 
 def near_boundary_invalid_cases(schema: SchemaNode | None) -> list[Any]:
-    """Values that violate constraints by exactly one step where possible."""
+    """Values that violate a constraint by exactly one step where possible.
+
+    Off-by-one validators live here: a service that accepts its own
+    `exclusiveMinimum` is accepting the one value its contract singles out as
+    forbidden, and nothing else in the suite sends that value.
+    """
     if schema is None:
         return []
     out: list[Any] = []
     t = schema.type or ""
-    if t in ("integer", "number") and schema.minimum is not None:
-        out.append(schema.minimum - 1)
-    if t in ("integer", "number") and schema.maximum is not None:
-        out.append(schema.maximum + 1)
+    if t in ("integer", "number"):
+        step = schema.multiple_of or 1
+        if schema.minimum is not None:
+            out.append(schema.minimum - step)
+        if schema.maximum is not None:
+            out.append(schema.maximum + step)
+        # The exclusive bound itself. `boundary_values` used to return it as a
+        # permitted value; it is the opposite.
+        if schema.exclusive_minimum is not None:
+            out.append(schema.exclusive_minimum)
+        if schema.exclusive_maximum is not None:
+            out.append(schema.exclusive_maximum)
     if t == "string":
         if schema.min_length:
             out.append("a" * max(0, schema.min_length - 1))
@@ -158,6 +228,9 @@ def near_boundary_invalid_cases(schema: SchemaNode | None) -> list[Any]:
             out.append("a" * (schema.max_length + 1))
         if schema.enum:
             out.append("__not_in_enum__")
-    if t == "array" and schema.min_items:
-        out.append([None] * (schema.min_items - 1))
+    if t == "array":
+        if schema.min_items:
+            out.append([None] * (schema.min_items - 1))
+        if schema.max_items is not None:
+            out.append([None] * (schema.max_items + 1))
     return out

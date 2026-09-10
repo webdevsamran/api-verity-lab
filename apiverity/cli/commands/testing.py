@@ -35,6 +35,9 @@ def cmd_test(args: argparse.Namespace) -> int:
         print(f"{'schema':16} {'built-in':9} Valid and invalid values derived from the schema.")
         return EXIT_OK
 
+    if not args.spec:
+        print("error: a contract is required (or use --list-generators)", file=sys.stderr)
+        return EXIT_USAGE
     if not args.base_url:
         print("error: --base-url is required", file=sys.stderr)
         return EXIT_USAGE
@@ -97,6 +100,13 @@ def cmd_workflow(args: argparse.Namespace) -> int:
     template = getattr(args, "template", None)
     if template:
         return _emit_template(args, template)
+
+    if not args.manifest:
+        print(
+            "error: a manifest is required (or use --list-templates, --template NAME)",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
 
     if getattr(args, "infer", False):
         return _infer_workflow(args)
