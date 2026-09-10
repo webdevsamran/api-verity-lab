@@ -67,6 +67,7 @@ nav:
   - Project:
       - Contributing: contributing.md
       - Security policy: security.md
+      - Supply chain: supply-chain.md
       - Safety model: safety-model.md
       - Privacy: privacy.md
       - Changelog: changelog.md

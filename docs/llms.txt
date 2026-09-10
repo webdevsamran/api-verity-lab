@@ -42,6 +42,7 @@ thing they count by a test.
 - [Migrating from oasdiff](https://webdevsamran.github.io/api-verity-lab/oasdiff-migration/): Emitting oasdiff's own JSON shape, and which rules map onto its check ids
 - [CI integration](https://webdevsamran.github.io/api-verity-lab/ci/): Wiring the gate into a pipeline
 - [Safety model](https://webdevsamran.github.io/api-verity-lab/safety-model/): What this tool will and will not do to a target
+- [Supply chain](https://webdevsamran.github.io/api-verity-lab/supply-chain/): SBOM, SLSA provenance and pinned actions -- including what has not run yet
 - [Privacy](https://webdevsamran.github.io/api-verity-lab/privacy/): What reaches an artifact, and what never does
 - [Self-hosting](https://webdevsamran.github.io/api-verity-lab/self-hosting/): Running the server
 - [SDK](https://webdevsamran.github.io/api-verity-lab/sdk/): Using the library directly

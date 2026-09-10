@@ -151,6 +151,14 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
 - Mock v2 scenarios/state/faults/seed control; virtualization workspace from bundles; request validation mode — EXISTING
 
 ## Security & privacy
+- SBOM, SLSA provenance and release checksums — NEW. A tagged release now
+  writes `SHA256SUMS` and an SPDX SBOM beside the distributions, attests both
+  through Sigstore, and attests the container image **by digest** — a tag can
+  be moved onto different bytes, and an attestation naming one would describe
+  an image nobody is running. Verified with `gh attestation verify`. The honest
+  caveat is on [the page itself](supply-chain.md): these steps are on the
+  tag-push path and no tag has been cut since they were added, so they are
+  configured and unexercised
 - Defensive security packs, OAuth scope coverage, sensitive-field redaction, auth profiles — EXISTING
 - OTLP trace export with attribute redaction — EXISTING (`exporters/otel.py`),
   reachable from the CLI since 2026-09-10 (`drift --otlp-endpoint`) and following the

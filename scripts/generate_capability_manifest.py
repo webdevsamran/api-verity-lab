@@ -103,6 +103,11 @@ _GUIDE: tuple[tuple[str, str, str], ...] = (
     ),
     ("CI integration", "ci.md", "Wiring the gate into a pipeline"),
     ("Safety model", "safety-model.md", "What this tool will and will not do to a target"),
+    (
+        "Supply chain",
+        "supply-chain.md",
+        "SBOM, SLSA provenance and pinned actions -- including what has not run yet",
+    ),
     ("Privacy", "privacy.md", "What reaches an artifact, and what never does"),
     ("Self-hosting", "self-hosting.md", "Running the server"),
     ("SDK", "sdk.md", "Using the library directly"),

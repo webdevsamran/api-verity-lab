@@ -11,6 +11,14 @@ jobs:
   build:
     name: Build sdist & wheel
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Both needed by the attestation steps below: `id-token` for the OIDC
+      # exchange with Sigstore, `attestations` to record the result against
+      # this repository. Requested here rather than at the workflow level so
+      # every other job keeps the read-only default.
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -24,6 +32,37 @@ jobs:
         run: |
           pip install twine
           twine check dist/*
+      # An SBOM produced from the same tree that produced the artifacts, in
+      # the same job. The `sbom` job in ci.yml scans `main` on every push,
+      # which answers a different question: what is in the branch, not what is
+      # in this release.
+      - name: Generate SBOM for this release
+        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        with:
+          format: spdx-json
+          output-file: dist/api-verity-lab.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+      # Checksums that travel with the release rather than being recomputed by
+      # whoever downloads it. `SHA256SUMS` is the file `sha256sum -c` reads.
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum ./* > SHA256SUMS
+      # SLSA provenance: a signed statement of which workflow, at which commit,
+      # produced these exact bytes. Sigstore-backed through the OIDC token
+      # above, so there is no key for anyone to lose or leak.
+      #
+      # Verify a downloaded artifact with:
+      #     gh attestation verify <file> --repo <owner>/<repo>
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: "dist/*.whl, dist/*.tar.gz"
+      - name: Attest SBOM
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        with:
+          subject-path: "dist/*.whl, dist/*.tar.gz"
+          sbom-path: dist/api-verity-lab.spdx.json
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: distributions
@@ -44,6 +83,11 @@ jobs:
         with:
           name: distributions
           path: dist/
+      # `twine` uploads every file in the directory, and the SBOM and the
+      # checksum file are not distributions -- it rejects them and the upload
+      # fails with the release already tagged.
+      - name: Keep only the distributions
+        run: rm -f dist/SHA256SUMS dist/api-verity-lab.spdx.json
       # Guarded rather than unconditional. Publishing needs a Trusted
       # Publisher registered for this project on pypi.org, which cannot be
       # created from a repository -- it is a form on the PyPI account that
@@ -99,6 +143,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up Docker Buildx
@@ -119,6 +165,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable=${{ !contains(github.ref_name, '-') }}
       - name: Build and push
+        id: push
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
           context: .
@@ -127,3 +174,15 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      # Attested by digest, not by tag: a tag can be moved to different bytes
+      # and the attestation would then describe an image nobody is running.
+      #
+      # Verify with:
+      #     gh attestation verify oci://ghcr.io/<owner>/<repo>-server:<tag> \
+      #       --repo <owner>/<repo>
+      - name: Attest image provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ghcr.io/${{ github.repository }}-server
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
