@@ -32,7 +32,10 @@ paths:
                   type: string
               example:
                 username: sam
-                # A committed credential: SEC-SECRET-IN-CONTRACT.
+                # A committed credential: SEC-SECRET-IN-CONTRACT. The fixture
+                # exists to make that rule fire, so it has to look to the
+                # publication gate exactly like the thing the gate blocks.
+                # secret-scan: allow
                 password: "hunter2-not-a-real-password"
       responses:
         "201":
