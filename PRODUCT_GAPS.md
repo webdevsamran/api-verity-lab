@@ -20,5 +20,5 @@ Derived from `docs/competitive-analysis.md` / `data/competitive-capabilities.jso
 - Hosted SaaS collaboration platform (Postman/Hive/BSR model) — self-hosted server instead.
 - Browser/UI test automation (Karate territory).
 - Scripting-language load engine (k6 territory) — declarative load shapes (`regression --shape 'ramp:60s@1..20'`, open loop, Poisson arrivals optional) plus budgets and concurrency curves.
-- Hand-authored stub DSLs (WireMock territory) — virtualization derives from contracts.
+- Hand-authored stub DSLs (WireMock territory) — virtualization derives from contracts (`mock --workspace`: several services, one seed, one address table).
 - API Blueprint support (Dredd legacy, archived).

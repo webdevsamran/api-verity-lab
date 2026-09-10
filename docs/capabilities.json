@@ -258,7 +258,8 @@
         "--latency-ms",
         "--malformed",
         "--port",
-        "--rate-limit-after"
+        "--rate-limit-after",
+        "--workspace"
       ]
     },
     {

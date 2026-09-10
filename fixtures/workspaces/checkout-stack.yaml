@@ -1,0 +1,20 @@
+# Three contracts served together under one seed.
+#
+# `apiverity mock --workspace fixtures/workspaces/checkout-stack.yaml`
+#
+# Ports are omitted deliberately: an ephemeral port is the normal case for a
+# test harness, and the addresses are printed before the servers block.
+name: checkout-stack
+seed: 42
+services:
+  - name: users
+    spec: ../apis/crud/openapi.yaml
+  - name: catalogue
+    spec: ../apis/versioned/v2.yaml
+  - name: billing
+    spec: ../apis/governance/openapi.yaml
+    faults:
+      # One slow dependency, which is the point of a workspace: the same
+      # frontend run, against the same data, with one service degraded.
+      latency_ms: 120
+      rate_limit_after: 50

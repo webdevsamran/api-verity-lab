@@ -4,6 +4,109 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — Arazzo, load shapes and virtualization workspaces
+
+- **`apiverity workflow --to-arazzo`**, and an Arazzo description runs
+  directly. Arazzo is the OpenAPI Initiative's workflow specification —
+  version 1.1.0, released 2026-05-18 — and this project's workflow manifest is
+  its own invention, which is a reason not to adopt a tool regardless of the
+  engine behind it.
+
+  Most of the work is what does *not* convert. Arazzo describes a graph:
+  `goto`, `retry`, `dependsOn`, steps that are whole other workflows, and (new
+  in 1.1.0) AsyncAPI steps that publish to a channel. This engine runs a
+  straight line. All of it could be dropped while leaving a workflow that still
+  runs, so every construct with no equivalent is reported as an `Untranslated`
+  entry naming the workflow, the step, the construct and the reason.
+
+  The export is validated against the OAI's **own published JSON Schema**,
+  vendored under `schemas/vendor/` with its URL, fetch date and SHA-256. What
+  is checked nowhere is the grammar inside a criterion's `condition`, because
+  no Arazzo runtime is vendored here — so a condition this project writes is
+  known to be structurally valid and known to round-trip, and is not known to
+  have been executed by another implementation.
+
+- **`apiverity regression --shape 'ramp:60s@1..20' --operation 'GET /users'`**
+  drives one operation at a declared arrival rate. `constant`, `ramp`, `spike`
+  and `soak`, each optionally `+poisson`.
+
+  Open loop, which is the point: a request goes out when it is due, whether or
+  not earlier ones came back. `regression` and `--curve` are closed loop and
+  cannot answer "what happens at 200 requests a second", because a service that
+  stalls simply receives less traffic and the queue never builds.
+
+  The run reports `achieved_rps` against the rate that was asked for and how
+  far behind its own schedule the generator fell — a p99 from a generator three
+  seconds behind describes a load nobody asked for.
+
+- **`apiverity mock --workspace stack.yaml`** serves several contracts at once,
+  under one seed, printing the address of each before it blocks. Change a fault
+  on one service and the generated data everywhere stays where it was, which is
+  the only way "run the frontend with billing degraded" is a test rather than
+  an anecdote.
+
+  One run serves several contracts, so the artifact is stamped with the
+  workspace file's hash and each service carries its own contract's path and
+  hash.
+
+- **`--input NAME=VALUE` on `workflow`.** `Workflow.inputs` was documented on
+  the model as "variables supplied by the caller", read by the graph validator,
+  parsed out of no manifest and supplied by no command.
+
+### Fixed
+
+- **A suppressions file could turn the gate off in one line.** The module said
+  suppressions "must carry an owner and reason, and expire automatically" and
+  `docs/ci.md` said "each one needs an owner, a reason and an expiry". Nothing
+  enforced any of it: `{"rule_id": "BRK-RESP-FIELD-REMOVED"}` was a valid entry
+  that silenced the rule across every operation, permanently, with nobody's
+  name on it.
+
+  An entry now has to be justified (`owner`, `reason`) and bounded (`expires`,
+  within `suppression_max_days`, default 90) or it does not suppress — it fails
+  closed, and `SUPPRESSION-INCOMPLETE` names every missing field. An expiry far
+  enough away is a permanent ignore with a date on it and is treated as one.
+  `approved_by` is new, required when `suppression_require_approver: true`.
+
+- **`profile: strikt` validated clean**, from the command whose stated premise
+  is rejecting a typo before it becomes a silently ignored key. `profile` was
+  checked for type and not for value; the run then failed later with
+  `internal error: unknown severity profile`. `CONFIG-PROFILE-INVALID`.
+
+- **Twelve rules `explain` did not know.** Every `SUPPRESSION-*` and `CONFIG-*`
+  rule was emitted, published in `docs/ci.md`, and catalogued nowhere — and
+  these are the findings that appear while somebody is setting the gate up.
+
+- **`CheckRuleSpec.family` had no reader.** Every catalogue set it; the
+  document generator grouped by a hand-maintained prefix table and swept the
+  rest into a heading called "Other", where two SEC rules added after that
+  table was written had been sitting.
+
+- **A load profile's shape did nothing.** `execute` computed the arrival
+  schedule and discarded every offset, so a ramp, a spike, a soak and a Poisson
+  process produced the same run, differing only in request count.
+  `capacity_search` is deleted: it swept concurrency against a transport the
+  *caller* supplied, so it never sent a request, and `regression --curve` does
+  that job against a real target.
+
+- **A virtualization workspace's seed reached a service only when that service
+  had no fault override.** `faults.get(name) or FaultConfig(seed=...)` took a
+  per-service config whole, and one written for latency carries the default
+  seed of 0 — so configuring latency on a service silently reseeded its data,
+  in a feature whose entire premise is one seed across the set.
+
+- **The publication gate had been red for three commits.** The governance
+  fixture carries a planted credential to make `SEC-SECRET-IN-CONTRACT` fire,
+  and `scripts/secret_scan.py` did exactly what it should with it. The
+  scanner's existing per-line `secret-scan: allow` marker is used, rather than
+  weakening the scanner or exempting `fixtures/` wholesale.
+
+- **An ignore rule was swallowing files whose names contain "fix".**
+  `.gitignore` carried `*_fix*.py`, which matched `test_swagger2_fixture.py`.
+  ruff honours `.gitignore`, so lint and format both reported clean while
+  skipping it entirely.
+
+
 ### Added — plain-English summaries
 
 - **`apiverity breaking --summary`** renders what changed, who it affects and

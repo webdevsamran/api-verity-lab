@@ -17,6 +17,9 @@ agree about what an operation is.
 | Know which rule fired, and why | [Rule catalog](rule-catalog.md) |
 | Know what each format supports | [Spec support](spec-support.md) · [Protocol support](protocol-support.md) |
 | Gate a pipeline on contract changes | [CI contract gate](ci.md) |
+| Run a multi-step workflow, or read one somebody else wrote | [Workflow authoring](workflow-authoring.md) · [Arazzo](arazzo.md) |
+| Ask at what rate a service stops coping | [Load shapes](load-shapes.md) |
+| Serve a stack of mocks reproducibly | [Virtualization workspaces](virtualization.md) |
 | Use it as a library | [SDK](sdk.md) |
 | Branch on results in a script | [Exit codes](exit-codes.md) |
 | Judge whether it is ready for you | [Capability status](capability-status.md) · [Product gaps](product-gaps.md) |

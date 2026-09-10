@@ -400,7 +400,15 @@ def build_parser() -> argparse.ArgumentParser:
         "mock",
         help="serve a deterministic mock of a contract, with optional misbehaviour",
     )
-    p.add_argument("spec")
+    p.add_argument("spec", nargs="?", help="one contract to mock; omit it when using --workspace")
+    p.add_argument(
+        "--workspace",
+        metavar="FILE",
+        help=(
+            "serve several contracts at once from one workspace file, under one seed, "
+            "and print the address of each. See docs/virtualization.md"
+        ),
+    )
     p.add_argument("--port", type=int, default=8090)
     p.add_argument("--latency-ms", type=int, default=0)
     p.add_argument("--force-status", type=int)

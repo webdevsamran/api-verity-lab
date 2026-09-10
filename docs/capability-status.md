@@ -150,12 +150,13 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   loop speaks HTTP; neither has a client here)
 
 ## Mock & virtualization
-- Mock v2 scenarios/state/faults/seed control; virtualization workspace from bundles; request validation mode — EXISTING
+- Mock v2 scenarios/state/faults/seed control; request validation mode — EXISTING
+- Virtualization workspace: several contracts served together from one file, under one seed, with per-service faults and the address of each printed before the servers block (`mock --workspace`) — EXISTING (`mock/virtualization.py`). See [Virtualization workspaces](virtualization.md)
 
 ## Library-only capabilities
 
 Every entry above is graded EXISTING when the capability is implemented and
-tested. Six of them are implemented, tested, and **reachable from no
+tested. Five of them are implemented, tested, and **reachable from no
 command** -- importable from Python, absent from the CLI. That is a different
 thing from EXISTING and a reader will not distinguish them unless told, so
 they are listed here.
@@ -169,7 +170,6 @@ cannot join or leave it quietly.
 |---|---|---|
 | `apiverity.core.model_v2` | Stable entity ids, canonical entity hashes, `result-v1` -> `2.0` artifact migration, and `ContractBundle` -- several services combined into one versioned surface | import only |
 | `apiverity.fuzz.boundary` | Explicit boundary values for numeric, string and array constraints, beyond the random generator | import only |
-| `apiverity.mock.virtualization` | Several dependent mock APIs from one workspace definition, under a shared seed | import only |
 | `apiverity.stateful.graph` | Validates a workflow manifest as a graph -- variable ordering, cycles -- before it runs | import only |
 | `apiverity.stateful.model_based` | A CRUD transition model executed against an authorized target | import only |
 | `apiverity.traffic.auth` | Auth profiles resolved from environment variables or files at request time, never persisted | import only |
@@ -178,8 +178,8 @@ Two notes on how to read that.
 
 **"Import only" is not "broken".** Each has tests that run in CI, and the SDK
 is a supported surface. What it means is that no flag on any command reaches
-them: there is no `--auth-profile`, no workspace flag on `mock`, and `workflow run`
-does not call the graph validator.
+them: there is no `--auth-profile`, and `workflow run` does not call the graph
+validator.
 
 **It is also not a plan.** Some of these should probably be wired up and some
 should probably be deleted, and deciding which is a judgement about the

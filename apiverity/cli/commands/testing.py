@@ -14,6 +14,7 @@ from apiverity.cli.commands.common import (
     NL,
     _emit,
     _load,
+    set_last_contract,
     set_last_seed,
     set_last_target,
 )
@@ -129,6 +130,12 @@ def cmd_workflow(args: argparse.Namespace) -> int:
 def cmd_mock(args: argparse.Namespace) -> int:
     from apiverity.mock import FaultConfig, serve
 
+    if getattr(args, "workspace", None):
+        return _serve_workspace(args)
+    if not args.spec:
+        print("error: pass a contract to mock, or --workspace FILE", file=sys.stderr)
+        return EXIT_USAGE
+
     service, _, _ = _load(args.spec)
     faults = FaultConfig(
         latency_ms=args.latency_ms,
@@ -158,6 +165,113 @@ def cmd_mock(args: argparse.Namespace) -> int:
         )
     serve(service, host=host, port=args.port, faults=faults)
     return EXIT_OK
+
+
+def _serve_workspace(args: argparse.Namespace) -> int:
+    """Serve every contract a workspace names, under one seed.
+
+    The address table is printed *before* the servers block, and to stdout,
+    because ports may be ephemeral: a workspace whose addresses only appear
+    after Ctrl+C is a workspace nothing can connect to.
+    """
+    from apiverity.core.artifact import contract_hash
+    from apiverity.mock.virtualization import (
+        VirtualizationWorkspace,
+        WorkspaceError,
+        load_workspace,
+    )
+
+    try:
+        definition = load_workspace(args.workspace)
+    except (OSError, WorkspaceError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    if args.spec:
+        # Both would be two different answers to "what is being served", and
+        # picking one silently is how somebody ends up debugging a service
+        # that is not running.
+        print(
+            f"error: --workspace serves the contracts {args.workspace} names; "
+            f"drop the {args.spec!r} argument",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+
+    # The artifact is stamped with the workspace file, not with nothing. One
+    # run served three contracts, so no single `contract_hash` names what was
+    # served -- but the file that named all three does, and each service
+    # carries its own hash below.
+    set_last_contract(str(args.workspace), "workspace")
+
+    workspace = VirtualizationWorkspace(definition)
+    addresses = workspace.start()
+    try:
+        if getattr(args, "json", False):
+            _emit(
+                {
+                    "tool": "apiverity",
+                    "command": "mock",
+                    "workspace": definition.name,
+                    "seed": definition.seed,
+                    "services": [
+                        {
+                            "name": name,
+                            "base_url": url,
+                            "operations": len(_virtual(definition, name).service.operations),
+                            "contract": _virtual(definition, name).spec_path,
+                            "contract_hash": contract_hash(_virtual(definition, name).spec_path),
+                            "faults": _fault_dict(definition, name),
+                        }
+                        for name, url in addresses.items()
+                    ],
+                },
+                True,
+            )
+        else:
+            print(f"workspace {definition.name!r}, seed {definition.seed}")
+            width = max(len(name) for name in addresses)
+            for name, url in addresses.items():
+                faults = _fault_dict(definition, name)
+                suffix = f"   faults: {faults}" if faults else ""
+                print(f"  {name:<{width}}  {url}{suffix}")
+            print("Ctrl+C to stop.")
+        _block()
+    except KeyboardInterrupt:  # pragma: no cover - interactive
+        pass
+    finally:
+        workspace.stop()
+    return EXIT_OK
+
+
+def _virtual(definition: Any, name: str) -> Any:
+    return next(vs for vs in definition.services if vs.name == name)
+
+
+def _fault_dict(definition: Any, name: str) -> dict[str, Any]:
+    """The faults configured for one service, without the seed.
+
+    The seed is a property of the workspace and is reported once, beside its
+    name. Repeating it per service would suggest it can differ, and it is
+    exactly the thing that must not.
+    """
+    from dataclasses import asdict
+
+    config = definition.faults.get(name)
+    if config is None:
+        return {}
+    return {k: v for k, v in asdict(config).items() if k != "seed" and v not in (0, False, None)}
+
+
+def _block() -> None:
+    """Wait until interrupted.
+
+    Separated so a test can drive `_serve_workspace` to the point where the
+    addresses are printed and the servers are up, without hanging.
+    """
+    import threading
+
+    threading.Event().wait()
 
 
 def cmd_coverage(args: argparse.Namespace) -> int:
