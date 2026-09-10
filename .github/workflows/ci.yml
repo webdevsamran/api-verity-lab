@@ -65,6 +65,12 @@ jobs:
         # rules that actually fire.
         run: python scripts/generate_check_rules.py --check
 
+      - name: Rule parity matrix matches what the rules do
+        # Derived by making every rule fire rather than written down: a matrix
+        # asserting coverage nobody demonstrated is worse than no matrix,
+        # because it is the kind of thing quoted in an evaluation.
+        run: python scripts/generate_rule_parity.py --check
+
       - name: Compliance mapping doc matches the code
         # The OWASP control -> rule mapping is published in
         # docs/compliance-mapping.md. A renamed rule would leave that table

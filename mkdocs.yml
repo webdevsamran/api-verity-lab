@@ -35,6 +35,7 @@ nav:
   - Reference:
       - Rule catalog: rule-catalog.md
       - Check rules: check-rules.md
+      - Rule parity: rule-parity.md
       - Spec support: spec-support.md
       - Protocol support: protocol-support.md
       - Exit codes: exit-codes.md
