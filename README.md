@@ -31,7 +31,7 @@ fuzzing, drift detection, mocking and performance budgets. Each has its own
 result format, its own CI wiring and its own mental model — so findings never
 compose: you can't ask "which endpoints are both under-tested *and* drifting?"
 
-api-verity-lab answers thirty-six questions from one place:
+api-verity-lab answers thirty-seven questions from one place:
 
 | Question | Command |
 |---|---|
@@ -60,6 +60,7 @@ api-verity-lab answers thirty-six questions from one place:
 | Something is wrong — how do I stop releases right now? | `apiverity freeze on --reason ...` |
 | Can an agent ask *this* whether its change is breaking? | `apiverity-mcp --root .` |
 | Can schema-derived edge cases break it? | `apiverity test` |
+| Does an update actually persist, and is a delete actually a delete? | `apiverity test --model-based` |
 | Do multi-step workflows fail? | `apiverity workflow run` |
 | Can I run the whole stack of mocks reproducibly? | `apiverity mock --workspace stack.yaml` |
 | Is our workflow file portable, or locked to this tool? | `apiverity workflow wf.yaml --to-arazzo --spec openapi.yaml` |

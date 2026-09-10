@@ -377,6 +377,21 @@ def build_parser() -> argparse.ArgumentParser:
             "is a write against whatever --base-url names."
         ),
     )
+    p.add_argument(
+        "--model-based",
+        action="store_true",
+        help=(
+            "drive the CRUD model instead of generating cases: create a resource, read "
+            "it back, update it, read it again, delete it, and check it is gone. Every "
+            "one of those is a service that satisfies its contract on each request and "
+            "is broken across a sequence. Writes, so it needs --include-mutations"
+        ),
+    )
+    p.add_argument(
+        "--collection",
+        metavar="PATH",
+        help="only exercise this collection (default: every one the contract declares)",
+    )
     p.add_argument("--timeout", type=float, default=10.0)
     p.add_argument("--minimize", action="store_true")
     p.add_argument("--json", action="store_true")

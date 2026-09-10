@@ -71,7 +71,8 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
 - Seeded positive/negative generation, example mutation, shrinking, corpus export/import/replay — EXISTING
 - Boundary values and pairwise parameter coverage (`test --generator pairwise`): every *combination* of two parameter values at least once, where every other generator varies one thing at a time — EXISTING (`fuzz/boundary.py`)
 - Pluggable case generators via `apiverity.generators`, invoked by `apiverity test --generator` — EXISTING (`fuzz/generators.py`); built-ins: unicode, nesting, numeric, header-safety, pairwise
-- Workflow engine v2 (extraction/guards/cleanup), templates, model-based CRUD — EXISTING
+- Workflow engine v2 (extraction/guards/cleanup), templates — EXISTING
+- Model-based CRUD (`test --model-based`): create a resource, read it back, update it, read it again, delete it, check it is gone. Collections are discovered from the contract and payloads derived from it. These are the questions a per-request check cannot ask, because they are about sequences — EXISTING (`stateful/model_based.py`)
 - Graph validation before a run: `workflow` checks the manifest for variables nothing fills, duplicate step names and cleanup that deletes what it did not create, and refuses to send anything when it finds one (`--no-preflight` overrides) — EXISTING (`stateful/graph.py`)
 - Workflow inference from OpenAPI Links (`workflow --infer`) — EXISTING (`stateful/infer.py`); links-only, every step emitted commented out, destructive steps commented twice
 - Arazzo 1.1.0 import and export (`workflow --to-arazzo`; an Arazzo description runs directly) — EXISTING (`stateful/arazzo.py`); the export is validated against the OAI's own published JSON Schema, and every construct with no equivalent in this engine — `goto`, `retry`, nested workflows, AsyncAPI channel steps — is reported rather than dropped. See [Arazzo workflows](arazzo.md)
@@ -152,16 +153,16 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   loop speaks HTTP; neither has a client here)
 
 ## Mock & virtualization
-- Mock v2 scenarios/state/faults/seed control; request validation mode — EXISTING
+- Mock v2 scenarios/state/faults/seed control; request validation mode — EXISTING. Stateful across the whole of CRUD: a create is stored, an update persists (PATCH merges, PUT replaces), a delete removes, and a read of a deleted resource is a 404
 - Virtualization workspace: several contracts served together from one file, under one seed, with per-service faults and the address of each printed before the servers block (`mock --workspace`) — EXISTING (`mock/virtualization.py`). See [Virtualization workspaces](virtualization.md)
 
 ## Library-only capabilities
 
 Every entry above is graded EXISTING when the capability is implemented and
-tested. Two of them are implemented, tested, and **reachable from no
+tested. One of them is implemented, tested, and **reachable from no
 command** -- importable from Python, absent from the CLI. That is a different
-thing from EXISTING and a reader will not distinguish them unless told, so
-they are listed here.
+thing from EXISTING and a reader will not distinguish them unless told, so it
+is listed here.
 
 They are found mechanically: `tests/unit/test_check_catalog.py` walks imports
 from `apiverity.cli.main` and `apiverity.mcp.server`, and
@@ -171,19 +172,16 @@ cannot join or leave it quietly.
 | Module | What it provides | Reachable from |
 |---|---|---|
 | `apiverity.core.model_v2` | Stable entity ids, canonical entity hashes, `result-v1` -> `2.0` artifact migration, and `ContractBundle` -- several services combined into one versioned surface | import only |
-| `apiverity.stateful.model_based` | A CRUD transition model executed against an authorized target | import only |
 
 Two notes on how to read that.
 
-**"Import only" is not "broken".** Each has tests that run in CI, and the SDK
-is a supported surface. What it means is that no flag on any command reaches
-them.
+**"Import only" is not "broken".** It has tests that run in CI, and the SDK is
+a supported surface. What it means is that no flag on any command reaches it.
 
-**It is also not a plan.** Some of these should probably be wired up and some
-should probably be deleted, and deciding which is a judgement about the
-product rather than a fact about the code. Publishing the list is what stops
-the question being invisible -- which it was until a reachability walk went
-looking.
+**It is also not a plan.** It should probably be wired up or deleted, and
+deciding which is a judgement about the product rather than a fact about the
+code. Publishing the list is what stops the question being invisible -- which
+it was until a reachability walk went looking. It began at seven.
 
 ## Security & privacy
 - SBOM, SLSA provenance and release checksums — NEW. A tagged release now

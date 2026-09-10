@@ -46,7 +46,6 @@ REACHED_OTHERWISE = {
 #: docs/capability-status.md under "Library-only capabilities".
 LIBRARY_ONLY = {
     "apiverity.core.model_v2",
-    "apiverity.stateful.model_based",
 }
 
 

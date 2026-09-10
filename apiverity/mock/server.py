@@ -30,6 +30,21 @@ class _State:
     request_count: int = 0
     store: dict[str, dict[str, Any]] = field(default_factory=dict)  # resource -> id -> item
     next_id: int = 1
+    #: resource -> ids a DELETE removed. Kept rather than only dropping them
+    #: from `store`, so a GET for one answers 404 instead of falling through
+    #: to a freshly generated body -- which is what made a deleted resource
+    #: still readable.
+    deleted: dict[str, set[str]] = field(default_factory=dict)
+
+
+#: Statuses RFC 9110 says carry no content.
+_NO_BODY_STATUS = frozenset({204, 304})
+
+
+def _address(path: str) -> tuple[str, str]:
+    """`/widgets/7` -> `("widgets", "7")`; a collection path has no id."""
+    parts = [p for p in path.strip("/").split("/") if p]
+    return (parts[0] if parts else ""), (parts[-1] if len(parts) > 1 else "")
 
 
 class MockServer:
@@ -93,13 +108,61 @@ class MockServer:
                     return
 
                 status_code = outer.faults.force_status or self._pick_status(op)
+                if outer.faults.force_status is None and self._is_gone(method, op, path):
+                    # A resource this mock deleted. Answering 200 with the old
+                    # body would make every "delete, then read it back" check
+                    # pass against a mock where nothing was ever deleted.
+                    self._respond(404, {"error": "not found"})
+                    return
+
+                # Before the body: a 204 has no response schema, so
+                # `_build_body` returns early and a DELETE recorded nothing --
+                # which is how a deleted resource stayed readable.
+                self._apply_state(method, op, path, request_body)
+
                 body = self._build_body(op, status_code, method, path, request_body=request_body)
 
                 if outer.faults.malformed_json:
                     payload = b'{"truncated...'
+                elif status_code in _NO_BODY_STATUS:
+                    # RFC 9110: a 204 or a 304 carries no content. This sent
+                    # `{"error": "mock error 204"}`, because `_build_body`
+                    # treats "no response schema" as an error case.
+                    self._respond(status_code, b"", raw=True, content_type=None)
+                    return
                 else:
                     payload = json.dumps(body).encode("utf-8")
                 self._respond(status_code, payload, raw=True)
+
+            def _apply_state(
+                self, method: str, op: Operation, path: str, request_body: Any
+            ) -> None:
+                """Record what this request does to the mock's store."""
+                if "{" not in (op.path or ""):
+                    return
+                resource, item_id = _address(path)
+                if method == "DELETE":
+                    outer.state.store.get(resource, {}).pop(item_id, None)
+                    outer.state.deleted.setdefault(resource, set()).add(item_id)
+                elif method in ("PATCH", "PUT"):
+                    stored = outer.state.store.get(resource, {}).get(item_id)
+                    if stored is None:
+                        return
+                    # PATCH merges, PUT replaces. A mock that merged on PUT
+                    # would let a client believe a field it stopped sending was
+                    # still being cleared.
+                    updated = dict(stored) if method == "PATCH" else {}
+                    if isinstance(request_body, dict):
+                        updated.update(request_body)
+                    updated["id"] = item_id
+                    outer.state.store.setdefault(resource, {})[item_id] = updated
+
+            def _is_gone(self, method: str, op: Operation, path: str) -> bool:
+                """Whether this addresses a resource a DELETE has removed."""
+                if method in ("POST",) or "{" not in (op.path or ""):
+                    return False
+                resource, item_id = _address(path)
+                return item_id in outer.state.deleted.get(resource, set())
 
             def _match_template(self, method: str, path: str) -> Operation | None:
                 parts = [p for p in path.split("/") if p]
@@ -151,28 +214,36 @@ class MockServer:
                     return {"error": f"mock error {status}"}
 
                 value = generate_valid(schema, outer._rng)
-                # stateful CRUD behavior for collections
+                resource, item_id = _address(path)
                 if method == "POST" and isinstance(value, dict):
-                    item_id = str(outer.state.next_id)
+                    new_id = str(outer.state.next_id)
                     outer.state.next_id += 1
-                    value.setdefault("id", item_id)
+                    value.setdefault("id", new_id)
                     if isinstance(request_body, dict):
                         value.update(request_body)
-                        value["id"] = item_id
-                    resource = path.strip("/").split("/")[0]
-                    outer.state.store.setdefault(resource, {})[item_id] = value
-                elif method == "GET" and "{" in (op.path or ""):
-                    resource = path.strip("/").split("/")[0]
-                    item_id = path.rstrip("/").split("/")[-1]
+                        value["id"] = new_id
+                    outer.state.store.setdefault(resource, {})[new_id] = value
+                    outer.state.deleted.get(resource, set()).discard(new_id)
+                elif method in ("GET", "PATCH", "PUT") and "{" in (op.path or ""):
+                    # `_apply_state` has already merged an update, so reading
+                    # the store here answers a PATCH with what it stored.
                     stored = outer.state.store.get(resource, {}).get(item_id)
                     if stored is not None:
                         return stored
                 return value
 
-            def _respond(self, status: int, body: Any, *, raw: bool = False) -> None:
+            def _respond(
+                self,
+                status: int,
+                body: Any,
+                *,
+                raw: bool = False,
+                content_type: str | None = "application/json",
+            ) -> None:
                 data = body if raw else json.dumps(body).encode("utf-8")
                 self.send_response(status)
-                self.send_header("Content-Type", "application/json")
+                if content_type is not None:
+                    self.send_header("Content-Type", content_type)
                 self.send_header("Content-Length", str(len(data)))
                 self.end_headers()
                 self.wfile.write(data)

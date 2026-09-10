@@ -42,6 +42,9 @@ def cmd_test(args: argparse.Namespace) -> int:
         print("error: --base-url is required", file=sys.stderr)
         return EXIT_USAGE
 
+    if getattr(args, "model_based", False):
+        return _model_based(args)
+
     selected = list(getattr(args, "generator", None) or [])
     if "all" in selected:
         selected = sorted(load_generators())
@@ -84,6 +87,96 @@ def cmd_test(args: argparse.Namespace) -> int:
         args.json,
     )
     return EXIT_FINDINGS if failures else EXIT_OK
+
+
+def _model_based(args: argparse.Namespace) -> int:
+    """Drive the CRUD model against every collection the contract declares.
+
+    `apiverity/stateful/model_based.py` has existed since the stateful engine
+    did and no command called it -- so the questions it asks, which are the
+    ones a schema check cannot ask, were asked by nothing.
+    """
+    import httpx
+
+    from apiverity.stateful.model_based import ModelBasedRunner, discover_collections
+
+    service, _, _ = _load(args.spec)
+    set_last_target(args.base_url)
+
+    if not getattr(args, "include_mutations", False):
+        print(
+            "error: --model-based creates, updates and deletes a resource at "
+            f"{args.base_url}. Pass --include-mutations if that is what you mean.",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+
+    collections = discover_collections(service)
+    wanted = getattr(args, "collection", None)
+    if wanted:
+        collections = [c for c in collections if c.path == wanted]
+        if not collections:
+            print(f"error: no CRUD collection at {wanted!r} in this contract", file=sys.stderr)
+            return EXIT_USAGE
+    if not collections:
+        # Not an error: a contract with no create-and-read-back pair has no
+        # CRUD resource, which is a fact about the API rather than a fault.
+        _emit(
+            {
+                "tool": "apiverity",
+                "command": "test",
+                "model_based": {
+                    "collections": [],
+                    "note": (
+                        "this contract declares no collection with a POST and a sibling "
+                        "{id} GET, so there is no CRUD resource to drive"
+                    ),
+                },
+            },
+            getattr(args, "json", False),
+        )
+        return EXIT_OK
+
+    headers, cert = auth_material(args)
+    runs: list[dict[str, Any]] = []
+    failed = False
+    with httpx.Client(
+        base_url=str(args.base_url).rstrip("/"),
+        timeout=float(getattr(args, "timeout", 10.0) or 10.0),
+        headers=headers or None,
+        cert=cert,
+    ) as client:
+
+        def transport(method: str, path: str, body: Any) -> tuple[int, Any]:
+            response = client.request(method, path, json=body)
+            try:
+                return response.status_code, response.json() if response.content else None
+            except ValueError:
+                return response.status_code, None
+
+        for collection in collections:
+            result = ModelBasedRunner.for_collection(
+                transport, collection, seed=int(getattr(args, "seed", 0) or 0)
+            ).run()
+            failed = failed or result.status != "pass"
+            runs.append(
+                {
+                    "collection": collection.path,
+                    "status": result.status,
+                    "steps": [step.model_dump() for step in result.steps],
+                    # Reported, not dropped: a collection with no DELETE was
+                    # exercised without the check that a deleted resource is
+                    # gone, and a reader has to be able to tell that from a
+                    # collection where the check passed.
+                    "not_checked": collection.notes,
+                }
+            )
+
+    _emit(
+        {"tool": "apiverity", "command": "test", "model_based": {"collections": runs}},
+        getattr(args, "json", False),
+    )
+    return EXIT_FINDINGS if failed else EXIT_OK
 
 
 def cmd_workflow(args: argparse.Namespace) -> int:
