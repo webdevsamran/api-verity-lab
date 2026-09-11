@@ -43,6 +43,8 @@ the live catalog at any time with `apiverity rules --json`.
 | `BRK-REQ-FIELD-BECAME-REQUIRED` | ERROR | A request body field became required. | Default it server-side instead. If there is no sensible default, the operation is doing something new and deserves a new version rather than a stricter schema. |
 | `BRK-REQ-FIELD-OPTIONALIZED` | INFO | A request body field became optional; senders are unaffected. | Nothing to do: senders that still supply it are unaffected. |
 | `BRK-REQ-FIELD-REMOVED` | ERROR | A request body field was removed. | Keep accepting the field and ignore it. Removing it from the schema turns a request that used to work into one that fails validation. |
+| `BRK-REQ-NULLABLE-ADDED` | INFO | A request field now accepts null as well (additive). | Nothing to do for senders. Worth deciding deliberately, because null and absent now both reach the handler and they usually mean different things. |
+| `BRK-REQ-NULLABLE-REMOVED` | ERROR | A request field that accepted null no longer does; payloads that were valid are now rejected. | Keep accepting null and treat it as absent, or default it server-side. Refusing a null a sender has been sending since the field was added turns a working request into a validation error with no other change on either side. |
 
 ## Responses
 
@@ -56,6 +58,8 @@ the live catalog at any time with `apiverity rules --json`.
 | `BRK-RESP-FIELD-GUARANTEED` | INFO | A response field that was optional is now always present; consumers gain a guarantee they did not have. | Nothing to undo -- a promise was strengthened, not withdrawn. Worth checking the server really does populate it in every path that returns this response, because the contract now says it does. |
 | `BRK-RESP-FIELD-OPTIONALIZED` | ERROR | A response field is no longer guaranteed; consumers reading it unconditionally will break. | Keep returning it unconditionally. Consumers written against a guarantee do not check for absence, so the first missing value is a crash rather than a fallback. |
 | `BRK-RESP-FIELD-REMOVED` | ERROR | A response body field was removed; readers of it break. | Keep returning the field until consumers stop reading it -- empty, null or a frozen value -- and mark it deprecated in the schema. Then remove it in the next major. |
+| `BRK-RESP-NULLABLE-ADDED` | WARN | A response value that was never null may now be null; every reader that did not check breaks on the first one, and in a generated client the field changes type at every use site. | Add a new nullable field instead of widening this one, or ship it behind a version. Every consumer written against a value that was never null now has a null path it does not have -- and in a generated client the field changes type, so the break is at every use site rather than at the one that mattered. |
+| `BRK-RESP-NULLABLE-REMOVED` | INFO | A response value can no longer be null (narrowing a response is safe for readers). | Nothing to do. A response that can no longer be null is a narrower promise, and every reader that handled the null still handles the value. |
 | `BRK-RESP-STATUS-ADDED` | INFO | A new response status was declared. | Nothing to do, though a client with an exhaustive status handler will meet the new one before it has a branch for it. |
 | `BRK-RESP-STATUS-REMOVED` | ERROR | A declared response status was removed. | Keep declaring the status while the service can still return it. Removing it from the contract does not stop it happening; it stops clients being told it can. |
 | `BRK-RESP-TYPE-CHANGED` | WARN | A response field's type changed; consumers may misparse values. | Add a new field with the new type and keep the old one for a release. Changing a type in place misparses on every strongly-typed client. |
@@ -138,8 +142,8 @@ Profiles cover this catalogue only. Security-lint, drift, MCP-conformance and lo
 
 | Profile | Fails on | Rules raised | What it means |
 |---|---|---|---|
-| `strict` | `error` | 22 | Anything that might break a consumer blocks: every WARN in the catalogue is raised to ERROR. |
+| `strict` | `error` | 23 | Anything that might break a consumer blocks: every WARN in the catalogue is raised to ERROR. |
 | `balanced` | `error` | 0 | The catalogue as shipped. Definite breakage blocks; everything else reports. |
 | `advisory` | `never` | 0 | Nothing blocks. Every finding is still reported, at its catalogue severity. |
 
-_70 rules, each with a non-breaking alternative._
+_74 rules, each with a non-breaking alternative._

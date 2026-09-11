@@ -349,6 +349,26 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--severity-override", action="append")
     p.add_argument("--json", action="store_true")
+    p.add_argument(
+        "--sdk",
+        action="store_true",
+        help=(
+            "also report changes that are wire-compatible and break generated "
+            "clients -- a renamed operationId, a retagged operation, a widened "
+            "response enum. Off by default: every rule in the family assumes a "
+            "generator convention"
+        ),
+    )
+    p.add_argument(
+        "--sdk-convention",
+        action="append",
+        metavar="NAME",
+        help=(
+            "restrict --sdk to these generator conventions (repeatable). Rules "
+            "depending on the others do not run, rather than being downgraded. "
+            "See `apiverity explain SDK-OPERATION-ID-CHANGED`"
+        ),
+    )
     p.set_defaults(func=cmd_breaking)
     p = sub.add_parser(
         "changelog",

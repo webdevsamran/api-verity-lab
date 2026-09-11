@@ -148,6 +148,29 @@ CATALOG: dict[str, RuleSpec] = {
         ),
         RuleSpec("BRK-ENUM-WIDENED", Severity.INFO, "Enum values were added (additive)."),
         RuleSpec(
+            "BRK-RESP-NULLABLE-ADDED",
+            Severity.WARN,
+            "A response value that was never null may now be null; every reader that "
+            "did not check breaks on the first one, and in a generated client the "
+            "field changes type at every use site.",
+        ),
+        RuleSpec(
+            "BRK-RESP-NULLABLE-REMOVED",
+            Severity.INFO,
+            "A response value can no longer be null (narrowing a response is safe for readers).",
+        ),
+        RuleSpec(
+            "BRK-REQ-NULLABLE-REMOVED",
+            Severity.ERROR,
+            "A request field that accepted null no longer does; payloads that were "
+            "valid are now rejected.",
+        ),
+        RuleSpec(
+            "BRK-REQ-NULLABLE-ADDED",
+            Severity.INFO,
+            "A request field now accepts null as well (additive).",
+        ),
+        RuleSpec(
             "BRK-RESP-CONSTRAINT-LOOSENED",
             Severity.WARN,
             "A bound on a response field was relaxed or removed; the service may now return "
@@ -610,6 +633,16 @@ class BreakingEngine:
 
         if kind == ChangeKind.PARAMETER_CONSTRAINT_CHANGED:
             return self._evaluate_constraint(change)
+
+        if kind == ChangeKind.NULLABILITY_CHANGED:
+            # Direction inverts, as it does for every other widening: relaxing
+            # a response breaks readers, tightening a request breaks senders.
+            became = bool(change.new_value)
+            if direction == "request":
+                rule = "BRK-REQ-NULLABLE-ADDED" if became else "BRK-REQ-NULLABLE-REMOVED"
+            else:
+                rule = "BRK-RESP-NULLABLE-ADDED" if became else "BRK-RESP-NULLABLE-REMOVED"
+            return [self._finding(rule, change, change.description)]
 
         if kind == ChangeKind.ENUM_CHANGED:
             # decide by comparing values directly when available

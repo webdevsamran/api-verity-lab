@@ -74,7 +74,11 @@ _PHRASES: tuple[tuple[str, str], ...] = (
     ("BRK-REQ-BODY-REMOVED", "the request body was removed"),
     ("BRK-CONSTRAINT-LOOSENED", "constraints were loosened, so previously invalid input passes"),
     ("BRK-ENUM-WIDENED", "enum values were added"),
+    ("BRK-REQ-NULLABLE-REMOVED", "request fields stopped accepting null"),
+    ("BRK-REQ-NULLABLE-ADDED", "request fields now accept null as well"),
     # Responses.
+    ("BRK-RESP-NULLABLE-ADDED", "response values that were never null may now be null"),
+    ("BRK-RESP-NULLABLE-REMOVED", "response values can no longer be null"),
     ("BRK-RESP-CONSTRAINT-TIGHTENED", "response constraints were tightened"),
     (
         "BRK-RESP-CONSTRAINT-LOOSENED",

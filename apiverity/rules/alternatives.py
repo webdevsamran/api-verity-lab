@@ -127,6 +127,25 @@ ALTERNATIVES: dict[str, str] = {
         "Nothing to do for senders. Worth telling consumers, because a new response value "
         "reaches a client that was written when the set was closed."
     ),
+    "BRK-RESP-NULLABLE-ADDED": (
+        "Add a new nullable field instead of widening this one, or ship it behind a "
+        "version. Every consumer written against a value that was never null now has "
+        "a null path it does not have -- and in a generated client the field changes "
+        "type, so the break is at every use site rather than at the one that mattered."
+    ),
+    "BRK-RESP-NULLABLE-REMOVED": (
+        "Nothing to do. A response that can no longer be null is a narrower promise, "
+        "and every reader that handled the null still handles the value."
+    ),
+    "BRK-REQ-NULLABLE-REMOVED": (
+        "Keep accepting null and treat it as absent, or default it server-side. "
+        "Refusing a null a sender has been sending since the field was added turns a "
+        "working request into a validation error with no other change on either side."
+    ),
+    "BRK-REQ-NULLABLE-ADDED": (
+        "Nothing to do for senders. Worth deciding deliberately, because null and "
+        "absent now both reach the handler and they usually mean different things."
+    ),
     # --- request bodies ---------------------------------------------------
     "BRK-REQ-FIELD-REMOVED": (
         "Keep accepting the field and ignore it. Removing it from the schema turns a request "

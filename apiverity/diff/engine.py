@@ -922,6 +922,33 @@ class DiffEngine:
                 ),
             )
 
+        if old.nullable != new.nullable:
+            # `nullable` was parsed out of every 3.0 `nullable: true` and every
+            # 3.1 `type: [x, "null"]` and then compared by nothing, so a field
+            # that started returning null produced no change, no finding and a
+            # green gate. Which direction is safe depends on who reads it, and
+            # `breaking.py` decides that from `direction`.
+            self._add(
+                ChangeKind.NULLABILITY_CHANGED,
+                operation_key,
+                direction,
+                f"{label}: {'became nullable' if new.nullable else 'is no longer nullable'}",
+                old_value=old.nullable,
+                new_value=new.nullable,
+                old_location=old.source_location,
+                new_location=new.source_location,
+                breaking_hint=(
+                    "a response value that may now be null breaks every reader that did not check"
+                    if new.nullable and direction == "response"
+                    else (
+                        "a request field that may no longer be null rejects payloads "
+                        "that were valid"
+                        if not new.nullable and direction == "request"
+                        else None
+                    )
+                ),
+            )
+
         if old.type != new.type:
             self._add(
                 ChangeKind.PARAMETER_TYPE_CHANGED

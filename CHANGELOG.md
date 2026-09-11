@@ -4,6 +4,62 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — `breaking --sdk`: safe on the wire, broken in every client
+
+- **Seven `SDK-*` rules.** Rename an `operationId` from `getUser` to
+  `fetchUser`: the request and the response are byte-identical, every rule in
+  the catalogue is silent, and `apiverity diff` reports *no change at all* —
+  `operation_id` is compared by nothing, because nothing on the wire depends on
+  it. Every generated client's `client.getUser(...)` stops compiling.
+
+  Also covered: an operationId dropped or introduced, a changed first tag
+  (which moves the method to a different client class), a renamed response
+  schema `title`, a widened response enum, and reordered required parameters.
+
+- **Each rule names the convention it rests on.** Nothing here is tested against
+  any particular generator, so nothing here asserts anything about one. A rule
+  applies only while its convention is in force — `operation-id-names`,
+  `tag-namespaces`, `title-model-names`, `closed-enums`,
+  `positional-parameters` — the assumption travels on the finding in
+  `metadata`, and `--sdk-convention` narrows the set. Rules outside it do not
+  run rather than being downgraded, and the artifact records
+  `sdk_conventions`, because a narrowed run and a full one would otherwise read
+  as the same run with fewer problems.
+
+- **Two verdicts that disagree, on purpose.** A response enum gaining a value
+  is `BRK-ENUM-WIDENED` at INFO — additive, nothing valid becomes invalid — and
+  `SDK-ENUM-VALUE-ADDED` at WARN, because a generated closed type has no member
+  for it. Both are true, and that disagreement is the point of the family.
+  Where the two agree there is only one rule: see nullability below.
+
+- **Nothing in the family is ERROR**, and it is off by default. A rule that
+  outranks "you deleted a required response field" because a class got renamed
+  is a rule somebody switches off along with everything near it.
+
+- The one silent failure is named as such. `SDK-PARAMETER-ORDER-CHANGED` is the
+  only rule here that is not a compile error: swap two required parameters of
+  the same type, and a positional generated signature still accepts every
+  existing call site with the arguments the other way round.
+
+### Fixed — 3.1 nullability, twice over
+
+Found while building the fixture for the above.
+
+- **`type: [string, "null"]` did not load.** It is the only spelling OpenAPI 3.1
+  has for a nullable value, and it raised a pydantic error *inside*
+  `SchemaNode`'s constructor — `type` is a `str | None`. The parser's branch for
+  type arrays was three lines further down, so the code written for exactly this
+  case could never run for it, and the whole document failed to load. `type` is
+  normalized before the model is built now.
+
+- **`SchemaNode.nullable` was written by the parser and read by nothing.** Every
+  3.0 `nullable: true` was faithfully recorded and then compared by no rule, so
+  a response field that started returning null produced no change, no finding,
+  and a green gate. `BRK-RESP-NULLABLE-ADDED` (WARN),
+  `BRK-REQ-NULLABLE-REMOVED` (ERROR) and their INFO inverses classify it by
+  direction, the way every other widening in this catalogue is classified.
+
+
 ### Added — `apiverity digest`, per team, and the contracts nobody swept
 
 - **`apiverity digest`** turns a `sweep` artifact into one contract-health

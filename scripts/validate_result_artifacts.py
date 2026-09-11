@@ -286,6 +286,19 @@ COMMANDS: list[tuple[str, list[str]]] = [
         "audit verify",
         ["audit", "verify", str(_SCRATCH / "audit" / "export.json"), "--json"],
     ),
+    # `--sdk` adds a top-level key of its own (`sdk_conventions`), so the
+    # artifact it produces is a different shape from a plain `breaking` run and
+    # is checked as one.
+    (
+        "breaking (--sdk)",
+        [
+            "breaking",
+            str(FIXTURES / "apis/sdk/v1.yaml"),
+            str(FIXTURES / "apis/sdk/v2.yaml"),
+            "--sdk",
+            "--json",
+        ],
+    ),
     # `digest` reads a sweep rather than a contract, so `run_json` is called
     # for it at import time the way the evidence pack's seed artifact is.
     (

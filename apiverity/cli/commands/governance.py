@@ -128,6 +128,22 @@ def cmd_breaking(args: argparse.Namespace) -> int:
     from apiverity.diff.protocol_compat import analyze_protocol_compat
 
     findings = findings + analyze_compat(old, new) + analyze_protocol_compat(old, new)
+
+    # Wire-compatible changes that move a generated client's surface. Opt-in,
+    # and narrowable: every rule in the family depends on a convention a
+    # generator may or may not follow, and a run that asserted them all
+    # unconditionally would be claiming things about tools this project has
+    # not run.
+    sdk_conventions: list[str] | None = None
+    if getattr(args, "sdk", False):
+        from apiverity.diff.sdk_surface import CONVENTIONS, analyze_sdk_surface
+
+        sdk_conventions = sorted(getattr(args, "sdk_convention", None) or CONVENTIONS)
+        try:
+            findings = findings + analyze_sdk_surface(old, new, set(sdk_conventions))
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return EXIT_USAGE
     # Scoped suppressions with an owner, a reason and an expiry. The module
     # implementing them was imported by nothing, so a project keeping a
     # suppressions file had it read by no command.
@@ -245,6 +261,10 @@ def cmd_breaking(args: argparse.Namespace) -> int:
             # rather than converted: the count is genuinely useful here, and
             # `breaking` reports findings, not the changes themselves.
             "change_count": len(changes),
+            # What the SDK rules were allowed to assume. A run narrowed to two
+            # conventions reports fewer findings than one that assumed six, and
+            # an artifact that did not say which would read as the same run.
+            **({"sdk_conventions": sdk_conventions} if sdk_conventions is not None else {}),
             "findings": findings,
             "errors": errors,
             **({"blast_radius": radius} if radius is not None else {}),

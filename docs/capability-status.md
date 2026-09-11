@@ -108,6 +108,24 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   good news. A first digest labels nothing "still failing", because that is a
   claim about a week nobody looked at. Unlike the monitor, standing debt is
   never quiet: nagging about it weekly is the point
+- Generated-SDK break detection (`breaking --sdk`) — NEW. Seven `SDK-*` rules for
+  changes that are wire-compatible and break every generated client: a renamed
+  `operationId`, a retagged operation, a renamed model title, a widened response
+  enum, reordered required parameters. The headline case produces **no change at
+  all** in `diff` today, because `operation_id` is compared by nothing. Each rule
+  names the generator convention it rests on and carries it on the finding; a
+  narrowed run reports which conventions it was allowed to assume, and rules
+  outside them do not run rather than being downgraded. Nothing in the family is
+  ERROR — a rule that outranks a removed response field because a class got
+  renamed is one somebody disables along with everything near it
+- 3.1 nullability, twice over — FIX. `type: [string, "null"]` — the only spelling
+  OpenAPI 3.1 has for a nullable value — raised a pydantic error *inside*
+  `SchemaNode`'s constructor, and the parser's branch for type arrays sat three
+  lines below it, unreachable for the case it was written for: the document did
+  not load at all. And `SchemaNode.nullable`, populated from every 3.0
+  `nullable: true`, was compared by nothing, so a response field that started
+  returning null produced no change, no finding and a green gate. Four rules now
+  classify it by direction, the way every other widening is classified
 - Synthetic monitoring (`apiverity monitor`) — NEW. Runs any other command on a
   schedule and reports the transitions rather than the snapshot, because a cron
   entry that posts the same twelve findings every five minutes is muted inside a

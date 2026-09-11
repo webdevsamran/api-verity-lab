@@ -245,8 +245,26 @@ class OpenApiParser:
             )
             return None
 
+        # `type` is normalized *before* the model is built, not after. The
+        # block below used to run afterwards, and `SchemaNode.type` is a
+        # `str | None`: a 3.1 document writing `type: [string, "null"]` -- the
+        # specification's own way to say nullable, and the only one 3.1 has --
+        # raised a pydantic error inside the constructor and the whole document
+        # failed to load. The code that handles type arrays was three lines
+        # below and could never be reached for the case it was written for.
+        declared = node.get("type")
+        nullable = node.get("nullable") is True
+        if isinstance(declared, list):
+            types = [str(x) for x in declared]
+            if "null" in types:
+                nullable = True
+                types = [x for x in types if x != "null"]
+            # One remaining type is that type; several is a union, joined the
+            # way `oneOf` branches are elsewhere so the differ sees one value.
+            declared = types[0] if len(types) == 1 else ("|".join(types) if types else "null")
+
         out = SchemaNode(
-            type=node.get("type"),
+            type=declared,
             format=node.get("format"),
             title=node.get("title"),
             description=node.get("description"),
@@ -261,16 +279,9 @@ class OpenApiParser:
         if "const" in node:
             out.const = node["const"]
 
-        # nullable: 3.0 uses x-nullable style boolean; 3.1 may use type arrays
-        if node.get("nullable") is True:
-            out.nullable = True
-        t = node.get("type")
-        if isinstance(t, list):
-            types = [str(x) for x in t]
-            if "null" in types:
-                out.nullable = True
-                types = [x for x in types if x != "null"]
-            out.type = types[0] if len(types) == 1 else "|".join(types)
+        # 3.0 says nullable with a boolean; 3.1 says it with a type array.
+        # Both are resolved above, before the model refuses the array.
+        out.nullable = nullable
 
         for key, attr in (
             ("minProperties", "min_properties"),

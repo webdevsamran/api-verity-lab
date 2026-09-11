@@ -1,0 +1,48 @@
+openapi: 3.1.0
+info:
+  title: Verity SDK-Surface API (fixture)
+  version: 1.0.0
+# Paired with v2.yaml. Every difference between the two is wire-compatible:
+# the same paths, the same methods, the same required fields, the same types
+# on the socket. What moves is the surface a generator derives from them.
+paths:
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+        - name: tenant
+          in: query
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: one user
+          content:
+            application/json:
+              schema:
+                title: User
+                type: object
+                required: [id, plan]
+                properties:
+                  id: {type: string}
+                  plan:
+                    type: string
+                    enum: [free, pro]
+                  nickname: {type: string}
+  /reports:
+    get:
+      operationId: listReports
+      tags: [reports]
+      responses:
+        "200":
+          description: report list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {type: string}

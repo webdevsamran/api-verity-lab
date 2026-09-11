@@ -115,6 +115,18 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 | `AUTHZ-BOLA-WRITE` | ERROR | `test --authz` | One identity updated an object another identity created. | The same fix as the read, and worse if only this one fires: a service that hides another tenant's object from a GET and accepts a PATCH on it is checking visibility somewhere that is not the write path. |
 | `AUTHZ-SCOPES-UNDECLARED` | INFO | `test --authz` | An identity states no scopes, so nothing checked what it may call. | Add `scopes: []` to the profile if it genuinely holds none. An unstated list is not a basis for a finding -- assuming an identity holds nothing would report every operation it can reach as a defect. |
 
+## Generated SDKs
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `SDK-ENUM-VALUE-ADDED` | WARN | `breaking --sdk` | a response enum gained a value | roll it out behind a version, or stop declaring the field as a closed enum. Adding a value a client may receive is safe on the wire and unsafe in a generated closed type: a deserialization failure, or a match that is no longer exhaustive |
+| `SDK-MODEL-NAME-CHANGED` | INFO | `breaking --sdk` | a response schema's title changed while its shape did not | keep the title and put the new wording in the description. Where model class names come from the title, the shape is identical and the class is renamed |
+| `SDK-OPERATION-ID-ADDED` | INFO | `breaking --sdk` | an operation gained an operationId it did not have | nothing, if this is a deliberate move to declared operationIds. Clients generated before it used a name derived from the method and path, and that name is replaced, so it belongs in a major SDK version |
+| `SDK-OPERATION-ID-CHANGED` | WARN | `breaking --sdk` | an operation kept its method and path and renamed its operationId | keep the old operationId and change the summary instead, or ship the rename as a major version of the generated SDK. Nothing about the request or the response moved, so no wire-level rule reports it and `diff` shows no change at all -- while every generated client's call site for the old name stops compiling |
+| `SDK-OPERATION-ID-REMOVED` | WARN | `breaking --sdk` | an operation dropped its operationId | restore it. Generators fall back to a name derived from the method and path, so the method is not removed -- it is renamed to something the contract no longer states |
+| `SDK-PARAMETER-ORDER-CHANGED` | WARN | `breaking --sdk` | the required parameters of an operation were reordered | restore the declaration order -- nothing about the request depends on it. Where a generator emits required parameters positionally, existing call sites keep compiling and start passing the arguments the other way round, which is the one finding in this family that is silent at build time |
+| `SDK-TAG-NAMESPACE-CHANGED` | WARN | `breaking --sdk` | an operation's first tag changed | add the new tag alongside the old one rather than replacing it. Where a generator groups operations into a class per tag, this moves the method to a different client object |
+
 ## Governance
 
 | Rule | Severity | Produced by | Fires when | Instead |
@@ -176,4 +188,4 @@ The suppressions file, talking about itself. An entry that is not justified and 
 | `SUPPRESSION-INCOMPLETE` | WARN | `breaking` | A suppression is missing a field it needs, so it suppressed nothing. | Add the fields the message names: `owner`, `reason`, and an `expires` date within the project's maximum. The entry fails closed, so the finding it named is still in the run -- this is not a second failure, it is the reason the first one is still there. |
 | `SUPPRESSION-UNSCOPED` | INFO | `breaking` | A suppression silences its rule across every operation. | Nothing, if that is what you meant -- an API with no pagination does not need the pagination rule on forty operations. Add an `operation_key` if it is not: a rule silenced contract-wide will not fire on the operation added next month either. |
 
-_71 check rules._
+_78 check rules._

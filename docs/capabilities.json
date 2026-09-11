@@ -83,6 +83,8 @@
         "--new-version",
         "--old-version",
         "--require-minor-for-warnings",
+        "--sdk",
+        "--sdk-convention",
         "--severity-by-consumers",
         "--severity-override",
         "--suggest-fix",
@@ -465,7 +467,7 @@
     }
   ],
   "rules": {
-    "count": 70,
+    "count": 74,
     "ids": [
       "BRK-CONDITIONAL-SCHEMA-CHANGED",
       "BRK-CONSTRAINT-LOOSENED",
@@ -519,6 +521,8 @@
       "BRK-REQ-FIELD-BECAME-REQUIRED",
       "BRK-REQ-FIELD-OPTIONALIZED",
       "BRK-REQ-FIELD-REMOVED",
+      "BRK-REQ-NULLABLE-ADDED",
+      "BRK-REQ-NULLABLE-REMOVED",
       "BRK-RESERVATION-REMOVED",
       "BRK-RESP-CONSTRAINT-LOOSENED",
       "BRK-RESP-CONSTRAINT-TIGHTENED",
@@ -526,6 +530,8 @@
       "BRK-RESP-FIELD-GUARANTEED",
       "BRK-RESP-FIELD-OPTIONALIZED",
       "BRK-RESP-FIELD-REMOVED",
+      "BRK-RESP-NULLABLE-ADDED",
+      "BRK-RESP-NULLABLE-REMOVED",
       "BRK-RESP-STATUS-ADDED",
       "BRK-RESP-STATUS-REMOVED",
       "BRK-RESP-TYPE-CHANGED",

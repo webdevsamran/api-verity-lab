@@ -1,0 +1,54 @@
+openapi: 3.1.0
+info:
+  title: Verity SDK-Surface API (fixture)
+  version: 1.1.0
+# Paired with v1.yaml. Six deliberate differences, none of them wire-breaking:
+#
+#   1. getUser -> fetchUser            (the generated method is renamed)
+#   2. tag users -> people             (the generated client class moves)
+#   3. id, tenant -> tenant, id        (positional arguments swap places)
+#   4. title User -> UserProfile       (the generated model class is renamed)
+#   5. plan gains "enterprise"         (a closed generated enum cannot hold it)
+#   6. nickname becomes nullable       (a non-optional generated type cannot)
+#   7. listReports loses its operationId (the method is renamed to a fallback)
+paths:
+  /users/{id}:
+    get:
+      operationId: fetchUser
+      tags: [people]
+      parameters:
+        - name: tenant
+          in: query
+          required: true
+          schema: {type: string}
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: one user
+          content:
+            application/json:
+              schema:
+                title: UserProfile
+                type: object
+                required: [id, plan]
+                properties:
+                  id: {type: string}
+                  plan:
+                    type: string
+                    enum: [free, pro, enterprise]
+                  nickname:
+                    type: [string, "null"]
+  /reports:
+    get:
+      tags: [reports]
+      responses:
+        "200":
+          description: report list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {type: string}

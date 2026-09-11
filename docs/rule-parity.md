@@ -139,6 +139,8 @@ would be a parser that is not populating something.
 | `BRK-REQ-FIELD-BECAME-REQUIRED` | ERROR | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  |
 | `BRK-REQ-FIELD-OPTIONALIZED` | INFO | ✓ |  | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `BRK-REQ-FIELD-REMOVED` | ERROR | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `BRK-REQ-NULLABLE-ADDED` | INFO |  |  |  |  |  |  |  |
+| `BRK-REQ-NULLABLE-REMOVED` | ERROR |  |  |  |  |  |  |  |
 | `BRK-RESERVATION-REMOVED` | WARN |  | ✓ |  |  |  |  |  |
 | `BRK-RESP-CONSTRAINT-LOOSENED` | WARN |  |  |  |  |  |  |  |
 | `BRK-RESP-CONSTRAINT-TIGHTENED` | WARN |  |  |  |  | ✓ |  |  |
@@ -146,6 +148,8 @@ would be a parser that is not populating something.
 | `BRK-RESP-FIELD-GUARANTEED` | INFO |  | ✓ | ✓ |  | ✓ |  |  |
 | `BRK-RESP-FIELD-OPTIONALIZED` | ERROR |  |  | ✓ |  | ✓ |  | ✓ |
 | `BRK-RESP-FIELD-REMOVED` | ERROR |  | ✓ | ✓ |  | ✓ |  | ✓ |
+| `BRK-RESP-NULLABLE-ADDED` | WARN |  |  |  |  |  |  |  |
+| `BRK-RESP-NULLABLE-REMOVED` | INFO |  |  |  |  |  |  |  |
 | `BRK-RESP-STATUS-ADDED` | INFO |  | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `BRK-RESP-STATUS-REMOVED` | ERROR |  |  |  |  |  | ✓ | ✓ |
 | `BRK-RESP-TYPE-CHANGED` | WARN |  | ✓ | ✓ |  | ✓ |  | ✓ |
@@ -182,6 +186,10 @@ The interesting column. Each of these is either a mutation this harness does not
 - `BRK-PATTERN-PROPERTIES-CHANGED` — The schema applied to properties matching a name pattern was added, removed or changed; a whole family of fields changed shape at once.
 - `BRK-PROPERTY-NAMES-CHANGED` — The constraint on what property *names* are allowed changed; keys that used to be accepted may not be.
 - `BRK-REQ-BODY-ADDED-REQUIRED` — A required request body was added.
+- `BRK-REQ-NULLABLE-ADDED` — A request field now accepts null as well (additive).
+- `BRK-REQ-NULLABLE-REMOVED` — A request field that accepted null no longer does; payloads that were valid are now rejected.
 - `BRK-RESP-CONSTRAINT-LOOSENED` — A bound on a response field was relaxed or removed; the service may now return values a consumer written against the old bound rejects.
+- `BRK-RESP-NULLABLE-ADDED` — A response value that was never null may now be null; every reader that did not check breaks on the first one, and in a generated client the field changes type at every use site.
+- `BRK-RESP-NULLABLE-REMOVED` — A response value can no longer be null (narrowing a response is safe for readers).
 
-_49 of 70 rules observed firing across 7 protocol(s) and 55 mutations._
+_49 of 74 rules observed firing across 7 protocol(s) and 55 mutations._
