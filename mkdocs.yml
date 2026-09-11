@@ -67,6 +67,7 @@ nav:
       - Ghost routes: ghost-routes.md
       - Synthetic monitoring: monitoring.md
       - Recording traffic: capture.md
+      - Framework adapters: framework-adapters.md
       - Inferred contracts: inferred-contracts.md
       - Monorepo sweep: monorepo-sweep.md
       - Team digests: digest.md

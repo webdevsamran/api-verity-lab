@@ -57,6 +57,16 @@
       ]
     },
     {
+      "name": "app",
+      "summary": "read the contract out of an application object and check it",
+      "options": [
+        "--against",
+        "--json",
+        "--root",
+        "-o"
+      ]
+    },
+    {
       "name": "audit",
       "summary": "export the hash-chained audit log, or verify an exported one",
       "options": [

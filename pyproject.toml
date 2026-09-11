@@ -53,6 +53,10 @@ dev = [
   # test skips, and a skipped authentication test is the one you least
   # want indistinguishable from a passing one.
   "pyjwt[crypto]>=2.8,<3.0",
+  # And again for the application adapter. `apiverity app` reads the document
+  # a framework produces; without FastAPI installed the only tests that prove
+  # it reads a real one would skip.
+  "fastapi>=0.110,<1.0",
   "pytest>=8.2,<10.0",
   "pytest-cov>=5.0,<8.0",
   "pytest-asyncio>=0.23,<2.0",

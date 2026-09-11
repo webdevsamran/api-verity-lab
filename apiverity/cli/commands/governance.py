@@ -482,6 +482,98 @@ def cmd_infer(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def cmd_app(args: argparse.Namespace) -> int:
+    """Read the contract out of an application object, and check it.
+
+    The usual workflow exports the document to a file and checks the file, and
+    the file is the thing that goes stale. `--against` is the check that costs
+    nothing and catches it: the application's own document, held against the
+    one in the repository.
+    """
+    import json
+    import tempfile
+
+    from apiverity.specs.app import AppImportError, load_app, write_document
+
+    try:
+        document, label = load_app(args.target, root=getattr(args, "root", None) or ".")
+    except AppImportError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    written = str(write_document(document, args.out)) if getattr(args, "out", None) else None
+
+    # Written out and read back through the ordinary loader, so every engine
+    # sees it the way it sees any other contract. A second path into the model
+    # is a second thing that can disagree with the first.
+    #
+    # `_emit` happens inside this block on purpose: the artifact's
+    # `contract_hash` is computed from the file, and the file is the only
+    # record of what was checked -- a document built in memory has no path to
+    # come back to.
+    with tempfile.TemporaryDirectory() as tmp:
+        staged = Path(tmp) / "openapi.json"
+        staged.write_text(json.dumps(document), encoding="utf-8")
+
+        service, findings, plugin = _load(str(staged))
+        from apiverity.security import run_security_checks
+
+        all_findings = list(findings) + list(run_security_checks(service))
+
+        committed: dict[str, Any] | None = None
+        if getattr(args, "against", None):
+            from apiverity.diff.engine import diff_services
+            from apiverity.rules.breaking import evaluate_breaking
+            from apiverity.specs.loader import detect_and_load
+
+            try:
+                published, _, _ = detect_and_load(args.against)
+            except Exception as exc:
+                print(f"error: could not read '{args.against}': {exc}", file=sys.stderr)
+                return EXIT_USAGE
+            # The committed file is the *old* side: it is what consumers have,
+            # and the application is what they will get.
+            changes = diff_services(published, service)
+            drifted = evaluate_breaking(changes, merged_severity_overrides({}))
+            committed = {
+                "file": args.against,
+                "changes": len(changes),
+                "in_sync": not changes,
+                "findings": drifted,
+            }
+            all_findings = all_findings + drifted
+
+        all_findings, suppressed = apply_project_suppressions(all_findings)
+        errors = sum(1 for f in all_findings if f.severity.value == "ERROR")
+        _emit(
+            {
+                "tool": "apiverity",
+                "command": "app",
+                "app": label,
+                "protocol": plugin.protocol().value,
+                "title": service.title,
+                "version": service.version,
+                "operation_count": len(service.operations),
+                **({"written": written} if written else {}),
+                # Named `committed` rather than `drift`. Nothing was observed
+                # running: the document was built from the route table, and
+                # calling that drift would claim a measurement it did not make.
+                **({"committed": committed} if committed is not None else {}),
+                "findings": all_findings,
+                "suppressed": suppressed,
+                "errors": errors,
+            },
+            args.json,
+        )
+    if committed is not None and committed["changes"]:
+        # The committed contract and the application disagree, which is the
+        # finding this command exists for. It fails the run whether or not any
+        # individual change is breaking: a stale file is wrong even when it is
+        # wrong in a compatible direction.
+        return EXIT_FINDINGS
+    return EXIT_FINDINGS if errors else EXIT_OK
+
+
 def cmd_federation(args: argparse.Namespace) -> int:
     """Subgraph changes judged against what they do to the composed graph.
 

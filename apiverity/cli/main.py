@@ -32,6 +32,7 @@ from apiverity.cli.commands.common import (
     set_spec_format,
 )
 from apiverity.cli.commands.governance import (
+    cmd_app,
     cmd_breaking,
     cmd_changelog,
     cmd_diff,
@@ -309,6 +310,27 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_federation)
+    p = sub.add_parser(
+        "app",
+        help="read the contract out of an application object and check it",
+    )
+    p.add_argument(
+        "target",
+        metavar="MODULE:ATTRIBUTE",
+        help="the application, named the way uvicorn names it: `myapp.main:app`",
+    )
+    p.add_argument(
+        "--against",
+        metavar="FILE",
+        help=(
+            "the committed contract. Reports every way it and the application "
+            "disagree, which is the check that catches a stale file"
+        ),
+    )
+    p.add_argument("-o", "--out", metavar="FILE", help="also write the document here")
+    p.add_argument("--root", help="directory to import from (default: .)")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_app)
 
     p = sub.add_parser(
         "infer",

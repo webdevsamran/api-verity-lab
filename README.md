@@ -31,13 +31,14 @@ fuzzing, drift detection, mocking and performance budgets. Each has its own
 result format, its own CI wiring and its own mental model — so findings never
 compose: you can't ask "which endpoints are both under-tested *and* drifting?"
 
-api-verity-lab answers forty-nine questions from one place:
+api-verity-lab answers fifty questions from one place:
 
 | Question | Command |
 |---|---|
 | We have no traffic recorded either | `apiverity capture --target URL --out traffic.har` |
 | We have no contract at all — can you draft one? | `apiverity infer traffic.har -o draft.yaml` |
 | We only have a Postman collection — is that enough? | `apiverity infer collection.json -o draft.yaml` |
+| Is the contract we committed still what the app serves? | `apiverity app myapp:app --against openapi.yaml` |
 | What changed between API versions? | `apiverity diff old.yaml new.yaml` |
 | Is it breaking, risky or safe? | `apiverity breaking` |
 | Whose build does it break? | `apiverity breaking --consumers consumers.yaml` |

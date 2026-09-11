@@ -4,6 +4,62 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — the contract read out of the application, so the file cannot go stale
+
+Every check in this project is only as true as the document it reads, and the
+document is the thing that goes stale. A service whose handlers changed and
+whose committed `openapi.yaml` did not passes all seventy-four rules and
+describes something that no longer exists.
+
+- **`apiverity app module:attribute`** reads the document the application
+  itself produces. The target is named the way `uvicorn` and `gunicorn` name
+  it, because that string already exists in every deployment that runs the
+  application.
+
+- **`--against openapi.yaml` is the check worth having.** It answers the
+  question the committed file cannot answer about itself: is it still true? A
+  stale file fails the run whether or not the difference is breaking — an added
+  operation breaks nobody and the file is still wrong, and a command that
+  passed there would catch only the staleness that happened to be breaking,
+  which is the smaller half of it.
+
+- **Duck-typed on `openapi()`, not on `isinstance(app, FastAPI)`.** The class
+  check would make FastAPI a dependency of a tool that does not need one, and
+  would refuse an application that produces exactly the right document because
+  its class belongs to somebody else. Any object with an `openapi()` method —
+  or an `openapi` attribute holding the document — is read.
+
+- **The document is copied before it is returned.** FastAPI builds it once and
+  hands back the same object on every call, so a caller who edited what this
+  returned would be editing the running application's published schema, and the
+  edit would be invisible: the next read returns the object that was edited. A
+  test in `tests/unit/test_app_adapter.py` found that by mutating the result and
+  reading again.
+
+- **What it does not do is stated as plainly as what it does.** It does not
+  start the application, bind a port or send a request — the document is built
+  in process from the route table. So the comparison is reported under
+  `committed`, not `drift`: `apiverity drift --base-url` is the command for
+  asking what a *running* service does, and naming this one drift would claim a
+  measurement it never made. Importing an application runs its top-level code,
+  which is the whole cost of the feature and is documented rather than buried.
+
+- **One adapter ships, not six.** The roadmap entry listed FastAPI, Express,
+  NestJS, Laravel, Spring and gin. An adapter is only worth writing where this
+  tool shares a runtime with the framework and can hold the application object
+  in memory — that is Python, and in Python one adapter covers every framework
+  producing an OpenAPI document. For the rest, a maintained generator already
+  exists and the "adapter" is `their-generator > openapi.json && apiverity …`,
+  which needs no code here. `docs/framework-adapters.md` gives the table.
+  Shipping five thin wrappers would have added five things to be out of date
+  with and no capability.
+
+- `fastapi` joins the `dev` extra, for the reason `graphql-core` and `pyjwt`
+  are already there: without it the only tests that prove the adapter reads a
+  real framework's document would skip, and a suite that silently skips its
+  coverage of a feature is indistinguishable from one that passes it.
+
+
 ### Added — the gate runs where merges happen
 
 A contract gate that runs only on `pull_request` proves something about that
