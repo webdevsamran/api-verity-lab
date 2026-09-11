@@ -4,6 +4,74 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — `apiverity capture`, a recording proxy
+
+`drift --corpus` and `infer` both want real traffic, and until now the only way
+to get some was to already have a HAR from somewhere else.
+
+```bash
+apiverity capture --target https://staging.example.com --out corpus.har
+apiverity drift openapi.yaml --corpus corpus.har
+```
+
+- **Redaction happens before the write, not after.** A recorder that wrote the
+  HAR and then sanitized it has already put an `Authorization` header on disk —
+  and on a crash between the two, left it there. Headers, query strings, request
+  URLs and bodies are redacted in memory; the entry appended to the log is the
+  redacted one. The client still gets the real response, because it asked and
+  this is a proxy.
+
+- **What it refuses to be.** An open relay: every request goes to the one
+  `--target` the run named. Reachable from the network: it binds `127.0.0.1` and
+  refuses anything else without `--i-know-this-is-exposed`, because an
+  unauthenticated recording proxy on a routable address is a credential
+  collector that writes to a file. A TLS interceptor: there is no `CONNECT`,
+  since tunnelling would either record nothing or require issuing certificates
+  for hosts this process does not own.
+
+- **Every skip is named, in the file.** Oversized bodies, non-text content
+  types, an upstream that never answered, traffic that arrived after the entry
+  limit — counted in the JSON output *and* written into the HAR's own
+  `log.comment`. A corpus whose gaps are described only in the console output of
+  the run that made it has gaps that read as facts about the service.
+
+- An empty corpus is still written. Nobody sent anything through is a fact about
+  the run; a missing file reads as a crash.
+
+### Fixed — three things found by recording real traffic through it
+
+- **`request.url` carried the credential that `queryString` redaction had just
+  removed.** One field over, in the same entry. The URL is rebuilt from the
+  redacted parameters now. Found by the test that reads the written file back.
+
+- **A secret inside an opaque string value survived.** Field-name redaction
+  cannot see into a value, so a service echoing a request body into a field put
+  `{"password": "hunter2"}` in the corpus intact. JSON bodies get a second pass
+  over each string value — over the *values*, not the serialized document, since
+  in serialized form the escaping (`password\": \"x`) is exactly what hides it.
+
+  `DEFAULT_PATTERNS` gained two things in the process: `password`, which
+  `sensitive_body_fields` already treated as sensitive so the two lists
+  disagreed about the same word; and an optional quote around the name, since a
+  credential inside a string arrives as JSON or YAML where the quote sits
+  between the name and the separator.
+
+  What still cannot be caught — an unlabelled secret in free text — is stated in
+  the module and pinned by a test, because a recorder claiming to catch
+  everything is the claim that gets one committed.
+
+- **`--max-entries` was a threshold, not a cap.** The poll loop notices the
+  limit a tenth of a second later, by which time more requests have arrived, so
+  asking for two recorded three. The cap is enforced where the entry is
+  appended, and what arrives after it is counted under `skipped` rather than
+  silently absent.
+
+- `cmd_capture` installed a `SIGINT` handler unconditionally, and
+  `signal.signal` raises on any thread but the main one — so running the command
+  from a thread killed the run before it recorded anything and never wrote the
+  corpus at all.
+
+
 ### Added — an onboarding tour that will not point at nothing
 
 Four steps, on a first visit, lazily loaded — so a returning reader never

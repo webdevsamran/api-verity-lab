@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -118,6 +119,106 @@ def cmd_drift(args: argparse.Namespace) -> int:
         args.json,
     )
     return code
+
+
+def cmd_capture(args: argparse.Namespace) -> int:
+    """Record real traffic through a proxy, into a HAR corpus.
+
+    `drift --corpus` and `infer` both want traffic, and until now the only way
+    to get some was to already have a HAR. This makes one -- redacted before
+    it reaches disk, not after.
+    """
+    import signal
+    import time
+
+    from apiverity.traffic.capture import (
+        DEFAULT_MAX_BODY_BYTES,
+        Capture,
+        CaptureRefused,
+        check_bind,
+        serve,
+    )
+
+    host = str(args.host or "127.0.0.1")
+    try:
+        check_bind(host, acknowledged=bool(getattr(args, "i_know_this_is_exposed", False)))
+    except CaptureRefused as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    capture = Capture(
+        target=args.target,
+        max_body_bytes=int(args.max_body_bytes or 0) or DEFAULT_MAX_BODY_BYTES,
+        keep_response_bodies=not bool(getattr(args, "no_response_bodies", False)),
+        max_entries=int(args.max_entries) if args.max_entries else None,
+    )
+    try:
+        server, thread = serve(capture, host=host, port=int(args.port or 0), timeout=args.timeout)
+    except OSError as exc:
+        print(f"error: could not listen on {host}:{args.port}: {exc}", file=sys.stderr)
+        return EXIT_UNREACHABLE
+
+    bound = server.server_address[1]
+    print(
+        f"recording {args.target} at http://{host}:{bound} -> {args.out}\n"
+        "point a client at that address; ctrl-c to stop",
+        file=sys.stderr,
+    )
+
+    stop = threading.Event()
+
+    def _stop(*_: object) -> None:
+        stop.set()
+
+    # `signal.signal` raises on any thread but the main one, and this command
+    # is reachable from a thread -- a test harness, or anything embedding the
+    # CLI. Without the guard the whole run dies before recording anything, and
+    # the corpus file is never written at all.
+    previous = None
+    try:
+        previous = signal.signal(signal.SIGINT, _stop)
+    except ValueError:
+        previous = None
+
+    try:
+        deadline = time.monotonic() + float(args.duration) if args.duration else None
+        while not stop.is_set():
+            if deadline is not None and time.monotonic() >= deadline:
+                break
+            if args.max_entries and len(capture.entries) >= int(args.max_entries):
+                break
+            time.sleep(0.1)
+    except KeyboardInterrupt:
+        # Reachable when the handler above could not be installed. Stopping is
+        # the point of ctrl-c, and the corpus still gets written below.
+        pass
+    finally:
+        if previous is not None:
+            signal.signal(signal.SIGINT, previous)
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+    # Written even when nothing was recorded. An empty corpus is a fact about
+    # the run -- nobody sent anything through -- and a missing file reads as a
+    # crash.
+    written = capture.write(args.out)
+    _emit(
+        {
+            "tool": "apiverity",
+            "command": "capture",
+            "target": args.target,
+            "listened_on": f"http://{host}:{bound}",
+            "out": str(written),
+            "entries": len(capture.entries),
+            # Named, not merely counted away: a corpus whose gaps are invisible
+            # has gaps that read as facts about the service.
+            "skipped": capture.skips.as_dict(),
+            "redacted": True,
+        },
+        args.json,
+    )
+    return EXIT_OK
 
 
 def _drift_mcp(args: argparse.Namespace, service: Service) -> int:

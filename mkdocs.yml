@@ -60,6 +60,7 @@ nav:
       - Onboarding tour: onboarding.md
       - Ghost routes: ghost-routes.md
       - Synthetic monitoring: monitoring.md
+      - Recording traffic: capture.md
       - Inferred contracts: inferred-contracts.md
       - Monorepo sweep: monorepo-sweep.md
       - Team digests: digest.md

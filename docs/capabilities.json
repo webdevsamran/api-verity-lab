@@ -112,6 +112,23 @@
       ]
     },
     {
+      "name": "capture",
+      "summary": "record real traffic through a proxy, into a HAR corpus",
+      "options": [
+        "--duration",
+        "--host",
+        "--i-know-this-is-exposed",
+        "--json",
+        "--max-body-bytes",
+        "--max-entries",
+        "--no-response-bodies",
+        "--out",
+        "--port",
+        "--target",
+        "--timeout"
+      ]
+    },
+    {
       "name": "changelog",
       "summary": "a release note for a version bump, in markdown or HTML",
       "options": [

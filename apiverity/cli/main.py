@@ -58,6 +58,7 @@ from apiverity.cli.commands.project import cmd_config, cmd_init
 from apiverity.cli.commands.runtime import (
     cmd_baseline,
     cmd_budget,
+    cmd_capture,
     cmd_drift,
     cmd_ghosts,
     cmd_mcp_inventory,
@@ -82,6 +83,7 @@ __all__ = [
     "cmd_baseline",
     "cmd_breaking",
     "cmd_budget",
+    "cmd_capture",
     "cmd_changelog",
     "cmd_config",
     "cmd_coverage",
@@ -744,6 +746,60 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true")
     _add_auth_flags(p)
     p.set_defaults(func=cmd_drift)
+    p = sub.add_parser(
+        "capture",
+        help="record real traffic through a proxy, into a HAR corpus",
+    )
+    p.add_argument("--target", required=True, metavar="URL", help="the one upstream to forward to")
+    p.add_argument("--out", required=True, metavar="FILE", help="where to write the HAR")
+    p.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help=(
+            "address to listen on (default 127.0.0.1). Anything else needs --i-know-this-is-exposed"
+        ),
+    )
+    p.add_argument("--port", type=int, default=0, help="port to listen on (default: any free one)")
+    p.add_argument("--timeout", type=float, default=30.0, help="upstream timeout in seconds")
+    p.add_argument(
+        "--duration",
+        type=float,
+        metavar="SECONDS",
+        help="stop after this long. Without it, and without --max-entries, it runs until ctrl-c",
+    )
+    p.add_argument(
+        "--max-entries",
+        type=int,
+        metavar="N",
+        help=(
+            "record at most this many exchanges, then stop. A hard cap: anything "
+            "that arrives after it is counted under `skipped` rather than kept"
+        ),
+    )
+    p.add_argument(
+        "--max-body-bytes",
+        type=int,
+        metavar="N",
+        help=(
+            "record bodies up to this size (default 262144). A larger one is noted "
+            "as absent with the reason rather than kept"
+        ),
+    )
+    p.add_argument(
+        "--no-response-bodies",
+        action="store_true",
+        help=(
+            "record request bodies only. `drift --corpus` compares against response "
+            "bodies, so this narrows what the corpus can be used for"
+        ),
+    )
+    p.add_argument(
+        "--i-know-this-is-exposed",
+        action="store_true",
+        help="bind to an address other than localhost",
+    )
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_capture)
     p = sub.add_parser(
         "budget",
         help="check observed calls against a declared call budget",

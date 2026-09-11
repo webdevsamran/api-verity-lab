@@ -27,7 +27,20 @@ DEFAULT_SENSITIVE_QUERY = {"api_key", "apikey", "token", "access_token", "secret
 DEFAULT_PATTERNS = [
     r"(?i)bearer\s+[a-z0-9._\-]+",
     r"(?i)sk-[a-z0-9]{16,}",
-    r"(?i)(?:api[_-]?key|token|secret)\s*[=:]\s*\S+",
+    # Two changes to this one, both found by recording real traffic through
+    # `apiverity capture`:
+    #
+    # `password` belongs here for the same reason it is in
+    # `sensitive_body_fields` below -- the two lists were treating the same
+    # word as sensitive in one place and not the other, so a password in a
+    # *named field* was redacted and the identical string inside an opaque text
+    # value was not.
+    #
+    # And the name may be quoted. A credential inside a string value arrives as
+    # JSON or YAML -- `"password": "x"` -- where the quote sits between the
+    # name and the separator, so a pattern requiring them adjacent matches the
+    # bare form and misses every serialized one.
+    r"(?i)[\"']?(?:api[_-]?key|token|secret|password)[\"']?\s*[=:]\s*\S+",
 ]
 
 

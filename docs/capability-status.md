@@ -196,6 +196,23 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   reported rather than silently reappearing next visit, and About carries a way
   back, because a tour that runs once with no re-entry is one the people most
   likely to skip it never see again
+- Live-traffic capture (`apiverity capture`) — NEW. A forward-to-one-target
+  recording proxy that writes a HAR `drift --corpus` and `infer` can read;
+  until now both wanted traffic and the only way to get some was to already have
+  a HAR. Redaction runs in memory, before the append — a recorder that wrote the
+  file and then sanitized it has already put an `Authorization` header on disk,
+  and on a crash between the two, left it there. Three defects found by running
+  it: `request.url` carried the credential the `queryString` redaction had just
+  removed, one field over; a secret inside an opaque string value (a request
+  body echoed back) escaped field-name redaction, so bodies get a second pass
+  over each string and `DEFAULT_PATTERNS` gained `password` and an optional
+  quote around the name; and `--max-entries` was a poll threshold rather than a
+  cap, so asking for two gave three. Refuses to be an open relay, refuses a
+  non-localhost bind without saying so, refuses `CONNECT` rather than issuing
+  certificates for hosts it does not own — and names every skip in the HAR's own
+  comment, because a corpus whose gaps are invisible has gaps that read as facts
+  about the service. What redaction cannot catch — an unlabelled secret in free
+  text — is stated rather than implied
 - Synthetic monitoring (`apiverity monitor`) — NEW. Runs any other command on a
   schedule and reports the transitions rather than the snapshot, because a cron
   entry that posts the same twelve findings every five minutes is muted inside a
