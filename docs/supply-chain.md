@@ -84,3 +84,35 @@ defect in a new place.
 - [`docs/evidence.md`](evidence.md) — dated, checksummed records for SOC 2,
   ISO 42001, DORA and the EU AI Act
 - [`SECURITY.md`](security.md) — reporting a vulnerability
+
+## The contract's own dependencies
+
+A multi-file OpenAPI document is a dependency graph, and `validate` reports it.
+`$ref: ../../shared/error.yaml` is a build-time dependency on a tree somebody
+else maintains; `$ref: https://schemas.example.com/money.yaml` is one on a
+server somebody else operates. OWASP files that under MCP04, and it is the same
+hazard for a plain contract: the schema your gate validated against is whatever
+that host served the moment your build ran.
+
+| Rule | | |
+|---|---|---|
+| `SEC-DEP-REMOTE` | WARN | A `$ref` names a URL, so part of the schema comes from another host |
+| `SEC-DEP-UNPINNED` | WARN | That URL names no version, tag or commit, so it resolves to whatever is served today |
+| `SEC-DEP-OUTSIDE-TREE` | INFO | A `$ref` climbs out of the entry document's directory |
+
+The artifact carries the list under `dependencies`, as the document writes the
+references rather than as they resolved — `../shared/error.yaml` is what a
+reader can act on; the absolute path is a fact about one checkout.
+`contract_hash` covers the entry document only, so without this an artifact for
+a four-file contract named one file.
+
+A remote reference is reported **whether or not it was fetched**. Remote refs
+are refused unless `--allow-remote-refs` is given, and the run that did not
+fetch one is exactly the run where the schema behind it is absent from the
+model — so a dependency list built only from what resolved would omit it when
+the reader most needs it.
+
+There is deliberately **no integrity rule**. `$ref` has no digest, there is no
+lockfile for it, and a checksum sidecar only this tool understands would be a
+mechanism nobody else honours. Pinning the URL is the advice, and
+`SEC-DEP-UNPINNED` is how you find the ones that are not.

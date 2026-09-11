@@ -1,0 +1,6 @@
+Order:
+  type: object
+  required: [id]
+  properties:
+    id: {type: string}
+    total: {type: number}

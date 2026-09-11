@@ -79,6 +79,16 @@ class BundleResult:
     lines: dict[int, tuple[int, int]] = field(default_factory=dict)
     #: External refs rewritten to local ones: original -> new.
     rewritten: dict[str, str] = field(default_factory=dict)
+    #: Every external reference the document **declares**, as written, whether
+    #: or not it was resolved.
+    #:
+    #: Separate from `rewritten`, which only holds the ones that resolved. A
+    #: refused remote ref returns before it is rewritten, so a dependency
+    #: report built from `rewritten` would omit the remote reference exactly
+    #: when the reader most needs to know about it -- the run that did *not*
+    #: fetch it is the run where the schema behind it is missing from the
+    #: model.
+    declared: list[str] = field(default_factory=list)
 
     @property
     def external_count(self) -> int:
@@ -359,6 +369,11 @@ class _Bundler:
         location, fragment = _split_ref(ref)
         if not location:
             return None  # `#/...` is the parser's job; nothing external here
+
+        # Recorded before any refusal: a dependency is something the document
+        # asked for, and whether this run fetched it does not change that.
+        if location not in self.result.declared:
+            self.result.declared.append(location)
 
         if _is_remote(location) and not self.allow_remote:
             self._finding(

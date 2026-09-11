@@ -1,0 +1,44 @@
+openapi: 3.1.0
+info:
+  title: Verity Supply Chain Fixture
+  version: 1.0.0
+  description: >-
+    A contract whose schemas come from four places, so `SEC-DEP-*` has one of
+    each to report: a sibling file (fine), a file outside its own directory
+    (portable only inside the monorepo it lives in), a pinned remote URL, and
+    an unpinned one that resolves to whatever is served today.
+
+    Nothing here is fetched: `--allow-remote-refs` is off by default, so the
+    two URLs are reported as dependencies and refused as reads. That is the
+    case worth having a fixture for -- the run where the schema behind the ref
+    is absent from the model is the run where knowing about it matters most.
+paths:
+  /orders:
+    post:
+      operationId: createOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "./schemas/order.yaml#/Order"}
+      responses:
+        "201":
+          description: created
+          content:
+            application/json:
+              schema: {$ref: "./schemas/order.yaml#/Order"}
+        "402":
+          description: payment required
+          content:
+            application/json:
+              schema: {$ref: "https://schemas.example.com/v2.1.0/money.yaml#/Money"}
+        "409":
+          description: conflict
+          content:
+            application/json:
+              schema: {$ref: "https://schemas.example.com/problem.yaml#/Problem"}
+        "400":
+          description: invalid
+          content:
+            application/json:
+              schema: {$ref: "../shared/error.yaml#/Error"}

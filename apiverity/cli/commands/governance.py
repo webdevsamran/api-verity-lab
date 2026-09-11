@@ -51,6 +51,11 @@ def cmd_validate(args: argparse.Namespace) -> int:
         "operation_count": len(service.operations),
         "findings": all_findings,
         "errors": errors,
+        # What this contract was assembled from, when it was assembled from
+        # more than itself. `contract_hash` covers the entry document only, so
+        # without this an artifact for a four-file contract named one file --
+        # provenance that does not name what it came from.
+        **({"dependencies": service.dependencies} if service.dependencies else {}),
         **({"suppressions": suppressed} if suppressed else {}),
     }
     _emit(data, args.json)

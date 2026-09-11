@@ -246,6 +246,48 @@ SECURITY_CATALOG: dict[str, CheckRuleSpec] = dict(
 )
 
 
+SECURITY_CATALOG.update(
+    dict(
+        [
+            _spec(
+                "SEC-DEP-REMOTE",
+                Severity.WARN,
+                "A `$ref` names a URL, so part of the schema comes from another host.",
+                "Nothing, if that is the arrangement -- shared schemas are often "
+                "published this way. Vendor the file into the contract's own tree if a "
+                "third party deciding what your gate validates against is not "
+                "acceptable. The report has to carry it either way: the verdict "
+                "depended on a response nobody in the repository controls.",
+                produced_by="validate",
+                family="Supply chain",
+            ),
+            _spec(
+                "SEC-DEP-UNPINNED",
+                Severity.WARN,
+                "A remote `$ref` names no version, tag or commit.",
+                "Pin it -- a path carrying a semantic version, a `v2`, a commit or a "
+                "dated iteration is one anybody can re-fetch. Without that, the same "
+                "contract validated tomorrow may be validated against something else, "
+                "and the diff between the two runs will blame your API.",
+                produced_by="validate",
+                family="Supply chain",
+            ),
+            _spec(
+                "SEC-DEP-OUTSIDE-TREE",
+                Severity.INFO,
+                "A `$ref` climbs out of the entry document's directory.",
+                "Nothing inside a monorepo, where it is the normal shape. It becomes a "
+                "defect the moment the document is published on its own, because the "
+                "reader gets a `$ref` to nothing -- `apiverity export` bundles the tree, "
+                "which is the portable form.",
+                produced_by="validate",
+                family="Supply chain",
+            ),
+        ]
+    )
+)
+
+
 def spec_for(rule_id: str) -> CheckRuleSpec | None:
     """One rule, from any family -- not only the security one.
 

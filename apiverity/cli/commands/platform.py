@@ -440,6 +440,7 @@ _RULE_GUIDE: tuple[tuple[str, str, str], ...] = (
     ("SEC-NO-AUTH-", "Security: authentication", "docs/check-rules.md"),
     ("SEC-APIKEY-", "Security: credentials", "docs/check-rules.md"),
     ("SEC-BASIC-", "Security: credentials", "docs/check-rules.md"),
+    ("SEC-DEP-", "Supply chain", "docs/supply-chain.md"),
     ("SEC-SECRET-", "Security: credentials", "docs/check-rules.md"),
     ("SEC-RESPONSE-CREDENTIAL", "Security: credentials", "docs/check-rules.md"),
     ("SEC-SENSITIVE-", "Security: credentials", "docs/check-rules.md"),

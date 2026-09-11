@@ -191,6 +191,7 @@ code -- one that needs evidence, which is what the walk produces. Publishing
 the list is what stops the question being invisible.
 
 ## Security & privacy
+- Spec dependency supply chain: `validate` reports every external `$ref` a contract declares — remote URLs, unpinned ones, and references that climb out of the entry document's directory (`SEC-DEP-*`) — and the artifact names them. A remote ref is reported whether or not it was fetched — EXISTING (`security/dependencies.py`). See [Supply chain](supply-chain.md)
 - SBOM, SLSA provenance and release checksums — NEW. A tagged release now
   writes `SHA256SUMS` and an SPDX SBOM beside the distributions, attests both
   through Sigstore, and attests the container image **by digest** — a tag can

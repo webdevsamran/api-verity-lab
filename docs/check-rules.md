@@ -158,6 +158,14 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 | `CONFIG-VERSION-MISSING` | ERROR | `config validate` | `.apiverity.yaml` declares no `version`. | Add `version: 1`. The version is what lets a later build tell a file written for an older format from one with a mistake in it. |
 | `CONFIG-VERSION-UNSUPPORTED` | ERROR | `config validate` | The config's `version` is not one this build understands. | Upgrade apiverity, or write the version this build supports. Reading a future config on a guess would apply settings whose meaning has changed. |
 
+## Supply chain
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `SEC-DEP-OUTSIDE-TREE` | INFO | `validate` | A `$ref` climbs out of the entry document's directory. | Nothing inside a monorepo, where it is the normal shape. It becomes a defect the moment the document is published on its own, because the reader gets a `$ref` to nothing -- `apiverity export` bundles the tree, which is the portable form. |
+| `SEC-DEP-REMOTE` | WARN | `validate` | A `$ref` names a URL, so part of the schema comes from another host. | Nothing, if that is the arrangement -- shared schemas are often published this way. Vendor the file into the contract's own tree if a third party deciding what your gate validates against is not acceptable. The report has to carry it either way: the verdict depended on a response nobody in the repository controls. |
+| `SEC-DEP-UNPINNED` | WARN | `validate` | A remote `$ref` names no version, tag or commit. | Pin it -- a path carrying a semantic version, a `v2`, a commit or a dated iteration is one anybody can re-fetch. Without that, the same contract validated tomorrow may be validated against something else, and the diff between the two runs will blame your API. |
+
 ## The gate's escape hatch
 
 The suppressions file, talking about itself. An entry that is not justified and bounded does not suppress -- it fails closed, the finding it named stays in the run, and `SUPPRESSION-INCOMPLETE` says which field is missing. A gate that could be quietened by an unsigned one-line entry is a gate that is already off.
@@ -168,4 +176,4 @@ The suppressions file, talking about itself. An entry that is not justified and 
 | `SUPPRESSION-INCOMPLETE` | WARN | `breaking` | A suppression is missing a field it needs, so it suppressed nothing. | Add the fields the message names: `owner`, `reason`, and an `expires` date within the project's maximum. The entry fails closed, so the finding it named is still in the run -- this is not a second failure, it is the reason the first one is still there. |
 | `SUPPRESSION-UNSCOPED` | INFO | `breaking` | A suppression silences its rule across every operation. | Nothing, if that is what you meant -- an API with no pagination does not need the pagination rule on forty operations. Add an `operation_key` if it is not: a rule silenced contract-wide will not fire on the operation added next month either. |
 
-_68 check rules._
+_71 check rules._

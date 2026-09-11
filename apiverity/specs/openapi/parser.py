@@ -114,6 +114,7 @@ class OpenApiParser:
         #: Sources the bundler read, entry document first. Recorded so a run
         #: can say what it actually opened.
         self.sources: list[str] = []
+        self.dependencies: list[str] = []
 
     # -- location helpers ---------------------------------------------------
 
@@ -575,6 +576,12 @@ class OpenApiParser:
         self._lines.update(result.lines)
         self._origins.update(result.origins)
         self.sources = list(result.files)
+        # The refs as the document wrote them, which is what a reader can act
+        # on -- `../shared/customer.yaml`, not the path it resolved to. From
+        # `declared` rather than `rewritten`, so a remote ref this run refused
+        # to fetch is still reported as a dependency: that is the run where the
+        # schema behind it is missing from the model.
+        self.dependencies = sorted(set(result.declared))
         return result.document
 
     def parse(self, source: str) -> tuple[Service, list[Finding]]:
@@ -622,6 +629,9 @@ class OpenApiParser:
             description=info.get("description"),
             source_file=self.file_label,
             source_location=self._loc("/info"),
+            # What the bundler read, which it has always recorded and nothing
+            # consumed. `security/dependencies.py` is what reads it now.
+            dependencies=list(self.dependencies),
         )
 
         # OpenAPI 3.2 tag objects. Before 3.2 structured navigation could only

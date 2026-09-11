@@ -409,6 +409,19 @@ class Service(BaseModel):
     lifecycle_state: LifecycleState | None = None
     source_file: str | None = None
     source_location: SourceLocation | None = None
+    #: External references this contract declares, as the document writes them
+    #: -- `../shared/customer.yaml`, `https://schemas.example.com/money.yaml`.
+    #:
+    #: The bundler has always recorded them (`BundleResult.rewritten`) and
+    #: nothing read the list, so a run that pulled four files reported a
+    #: `contract_hash` for the entry document and said nothing about the other
+    #: three. Provenance that does not name what it came from is worse than
+    #: absent, and a `$ref` to somebody else's server is a supply chain.
+    #:
+    #: Out of the diffable surface on purpose: which files a contract is
+    #: assembled from is provenance, not contract. Splitting one document into
+    #: three is not a change to the API.
+    dependencies: list[str] = Field(default_factory=list)
     #: Protocol-specific facts about the contract as a whole, mirroring
     #: :attr:`Operation.bindings`. Kept out of the diffable surface on purpose:
     #: an MCP manifest records here whether it was a truncated page and which

@@ -182,6 +182,7 @@ def run_security_checks(
     from apiverity.rules.lint import LintEngine
     from apiverity.rules.policy import DEFAULT_PACK, PolicyEngine
     from apiverity.security.abuse import run_abuse_checks
+    from apiverity.security.dependencies import check_dependencies
     from apiverity.security.hardening import run_hardening_checks
     from apiverity.security.packs import SECURITY_PACK
 
@@ -189,6 +190,10 @@ def run_security_checks(
     # in a query string, an unbounded request array, an OAuth requirement with
     # no scope. The checks below cover what it omits; these cover what it says.
     findings: list[Finding] = list(run_hardening_checks(service))
+    # What the contract is assembled *from*. A `$ref` to somebody else's server
+    # is a build-time dependency on a host nobody here controls, and the
+    # bundler has always recorded these and had nothing read them.
+    findings.extend(check_dependencies(service))
     # Deprecation with a date attached, or without one. Run here rather than
     # from its own command because `validate` is where a contract gets read,
     # and a check nobody invokes is a check nobody has.

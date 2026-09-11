@@ -1,0 +1,9 @@
+# Shared across the fixtures under fixtures/apis/, which is exactly the shape
+# `SEC-DEP-OUTSIDE-TREE` describes: fine in this tree, a dangling `$ref` for
+# anybody who downloads fixtures/apis/supplychain/openapi.yaml on its own.
+Error:
+  type: object
+  required: [message]
+  properties:
+    message: {type: string}
+    code: {type: string}
