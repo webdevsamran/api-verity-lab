@@ -4,6 +4,64 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — one language server, so the rules reach every editor
+
+Editor support for a linter is usually five plugins, each reimplementing the
+same checks against the same rules and each drifting from the tool at its own
+speed. `apiverity lsp` speaks the Language Server Protocol on stdio, so VS Code,
+Neovim, JetBrains, Helix, Zed and Emacs all get exactly what `validate` runs —
+because it is that engine answering.
+
+- **Diagnostics** on open, change and save: every rule, security checks
+  included, with the rule id as the diagnostic `code` and a `codeDescription`
+  link to the catalogue entry, so the id in the problem list is clickable.
+
+- **Hover** shows the finding in full, including its hint. Editors truncate
+  diagnostic text in the gutter, and the sentence saying what to do about it is
+  usually the part that gets cut.
+
+- **A document that will not parse is reported, not passed over.** An empty
+  diagnostic list means "this is fine", and a file mid-edit that no longer loads
+  is not fine.
+
+- **It lints the buffer, and the scratch file goes beside your document.** A
+  contract's `$ref: ./schemas/money.yaml` resolves relative to the file holding
+  it, so linting a copy in the system temp directory would report every sibling
+  reference as unresolvable — a wall of errors caused entirely by the linter.
+  The scratch file is dot-prefixed and removed on every exit path, and there is
+  a test for each half: the directory is left clean, and a sibling `$ref` still
+  resolves.
+
+- **Only files it has an opinion about get a publish.** Not even an empty one
+  for the rest: publishing `[]` for a `.py` clears whatever another linter put
+  in the problem list for a file this server never looked at.
+
+- **Typing is debounced; opening and saving are not.** `didChange` fires per
+  keystroke, and a file that stays blank for half a second after opening reads
+  as a server that is not working.
+
+- **`Content-Length` counts bytes, and the stream is binary.** Both are where a
+  hand-rolled LSP goes wrong, and the symptom is an editor that hangs with
+  nothing in any log. `json.dumps` runs with `ensure_ascii=False` on purpose:
+  with escaping on, byte length and character length happen to agree, and the
+  length computation would look correct while never being exercised.
+
+- **The tests speak the protocol**, in real frames, and one of them launches
+  `apiverity lsp` as a subprocess and reads stdout as frames — because stdout
+  *is* the stream, a stray `print` anywhere on the import path breaks every
+  client, and no amount of reading the source finds one a plugin introduced.
+
+- `lsp` is excluded from the `--json` coverage gate through a third list rather
+  than a third entry in the existing one. Parking it beside `report` would mean
+  asserting it has `--format`, which it must not have, and the assertion would
+  then be satisfiable by adding a flag that broke the protocol. Its own check
+  asserts the opposite: that the command declares no output flags at all.
+
+Not completion, not formatting, not go-to-definition — there are editor plugins
+that already do those well for OpenAPI, and a thin one here would get in their
+way for no gain. `docs/lsp.md` has the client configuration for each editor.
+
+
 ### Added — a verified tool surface, handed to the benchmark that can measure agents against it
 
 This project answers "is this tool surface sound?". It cannot answer "will an

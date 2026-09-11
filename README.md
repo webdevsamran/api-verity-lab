@@ -38,7 +38,7 @@ fuzzing, drift detection, mocking and performance budgets. Each has its own
 result format, its own CI wiring and its own mental model — so findings never
 compose: you can't ask "which endpoints are both under-tested *and* drifting?"
 
-api-verity-lab answers fifty-one questions from one place:
+api-verity-lab answers fifty-two questions from one place:
 
 | Question | Command |
 |---|---|
@@ -59,6 +59,7 @@ api-verity-lab answers fifty-one questions from one place:
 | Can we enforce our own house rules without forking? | `apiverity validate --policy-file house.yaml` |
 | What would moving our Spectral ruleset cost? | `apiverity import-rules .spectral.yaml` |
 | Can it re-run itself while I edit the spec? | `apiverity watch -- breaking old.yaml new.yaml` |
+| Can my editor show these rules as I type? | `apiverity lsp` ([any LSP client](docs/lsp.md)) |
 | Does the running API match its contract? | `apiverity drift --base-url` |
 | How often did real traffic disagree with it? | `apiverity drift --corpus traffic.har` |
 | Is a route we deleted still answering? | `apiverity ghosts spec.yaml --was v1.yaml --base-url` |

@@ -21,7 +21,7 @@ Found by `scripts/generate_egress_map.py`: **24 call sites** across **18 modules
 
 | Module | Triggered by | Calls |
 |---|---|---|
-| `apiverity/cli/commands/platform.py` | `notify --send`, `freeze` against a server | `httpx.get` (platform.py:216), `httpx.post` (platform.py:227), `httpx.post` (platform.py:914), `httpx.request` (platform.py:229) |
+| `apiverity/cli/commands/platform.py` | `notify --send`, `freeze` against a server | `httpx.get` (platform.py:217), `httpx.post` (platform.py:1018), `httpx.post` (platform.py:228), `httpx.request` (platform.py:230) |
 | `apiverity/cli/commands/runtime.py` | `capture`, `drift` | `httpx.Client` (runtime.py:767) |
 | `apiverity/cli/commands/testing.py` | `test --base-url` | `httpx.Client` (testing.py:167), `httpx.Client` (testing.py:287) |
 | `apiverity/exporters/otel.py` | `--otlp-endpoint` | `httpx.post` (otel.py:199) |
@@ -48,7 +48,7 @@ A module here is a call site nobody has said what causes. That is the gap worth 
 
 ### Network libraries imported
 
-`http.server`, `httpx`, `socket`, `urllib.parse`
+`http.server`, `httpx`, `socket`, `urllib.parse`, `urllib.request`
 <!-- /generated:egress -->
 
 ## What this table does and does not prove

@@ -50,6 +50,7 @@ from apiverity.cli.commands.platform import (
     cmd_explain,
     cmd_freeze,
     cmd_import_rules,
+    cmd_lsp,
     cmd_monitor,
     cmd_notify,
     cmd_plugins,
@@ -1351,6 +1352,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_agent_setup)
+    p = sub.add_parser(
+        "lsp",
+        help="run the language server on stdio (editor diagnostics)",
+        description=(
+            "Speaks the Language Server Protocol on stdin/stdout. Point any LSP client at "
+            "`apiverity lsp` and a contract gets every rule `validate` runs, in the editor. "
+            "Nothing is printed: stdout is the protocol stream."
+        ),
+    )
+    p.set_defaults(func=cmd_lsp)
     p = sub.add_parser(
         "agent-tasks",
         help="export a verified MCP tool surface as a tooltrace-bench task pack",

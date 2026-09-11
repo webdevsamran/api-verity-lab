@@ -80,6 +80,7 @@ nav:
       - Agent task packs: agent-tasks.md
   - Guides:
       - Installing: install.md
+      - Editor diagnostics: lsp.md
       - CI contract gate: ci.md
       - Merge queues: merge-queue.md
       - SDK: sdk.md

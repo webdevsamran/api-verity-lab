@@ -316,6 +316,11 @@
       ]
     },
     {
+      "name": "lsp",
+      "summary": "run the language server on stdio (editor diagnostics)",
+      "options": []
+    },
+    {
       "name": "mcp-inventory",
       "summary": "list the MCP servers this machine is configured to reach, and flag unapproved ones",
       "options": [

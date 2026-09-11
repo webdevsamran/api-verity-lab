@@ -44,6 +44,17 @@ _WRAPPERS = {
     "watch": "runs another apiverity command; pass --json to that command",
 }
 
+#: Commands that own stdout for the life of the process, because a protocol is
+#: already using it. Structured output is all they produce.
+#:
+#: A third list rather than a third entry in the first, for the reason above: a
+#: `lsp` parked beside `report` would be asserted to have `--format`, which it
+#: must not have, and the assertion would be satisfied by adding a flag that
+#: broke the protocol.
+_STREAMS = {
+    "lsp": "stdout is the JSON-RPC frame stream; anything else printed desynchronises it",
+}
+
 
 def _subcommands() -> dict[str, argparse.ArgumentParser]:
     parser = build_parser()
@@ -61,6 +72,7 @@ def test_every_command_can_emit_structured_output() -> None:
         if "--json" not in _flags(sub)
         and name not in _DELIBERATE_EXCLUSIONS
         and name not in _WRAPPERS
+        and name not in _STREAMS
     }
     assert not without, (
         f"commands with no structured output: {sorted(without)}. Either add --json or "
@@ -93,6 +105,51 @@ def test_a_wrapper_forwards_the_command_it_wraps(name: str) -> None:
         f"{name} is excluded from --json on the grounds that it forwards to another "
         "command, and it takes no forwarded argv"
     )
+
+
+@pytest.mark.parametrize("name", sorted(_STREAMS))
+def test_a_streaming_command_prints_nothing_of_its_own(name: str) -> None:
+    """The exclusion holds only while the command really does own the stream.
+
+    Two things are checked, because either alone is satisfiable by accident:
+    the command declares no output flag that would print beside the protocol,
+    and its help says so, so the next person to reach for `--json` here reads
+    why before adding it.
+    """
+    sub = _subcommands()[name]
+    assert _flags(sub) <= {"-h", "--help"}, (
+        f"{name} is excluded because it owns stdout, and it has declared output flags"
+    )
+    assert "stdout" in (sub.description or "").lower()
+
+
+def test_the_streaming_command_writes_only_frames() -> None:
+    """Run it the way an editor does and read stdout as frames. A stray banner
+    from anything on the import path breaks every client, and no amount of
+    reading the source finds one that a plugin introduced."""
+    import subprocess
+    import sys
+
+    from apiverity.lsp import protocol
+
+    body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}).encode()
+    frame = b"Content-Length: " + str(len(body)).encode() + b"\r\n\r\n" + body
+    result = subprocess.run(
+        [sys.executable, "-m", "apiverity.cli.main", "lsp"],
+        input=frame,
+        capture_output=True,
+        cwd=_ROOT,
+        timeout=120,
+    )
+    stream = io.BytesIO(result.stdout)
+    seen = []
+    while True:
+        message = protocol.read_message(stream)
+        if message is None:
+            break
+        seen.append(message)
+    assert seen and seen[0]["id"] == 1
+    assert stream.read() == b"", "something was printed after the last frame"
 
 
 def test_changelog_puts_the_document_inside_the_artifact() -> None:

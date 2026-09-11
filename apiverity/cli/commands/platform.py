@@ -612,6 +612,17 @@ def cmd_agent_tasks(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def cmd_lsp(args: argparse.Namespace) -> int:
+    """Run the language server on stdio.
+
+    No `--json`, and nothing printed: stdout *is* the protocol stream, and a
+    single stray line of output desynchronises it for the rest of the session.
+    """
+    from apiverity.lsp.server import main as serve_lsp
+
+    return serve_lsp()
+
+
 def cmd_agent_setup(args: argparse.Namespace) -> int:
     """Tell the coding agents in this repository that this tool exists.
 

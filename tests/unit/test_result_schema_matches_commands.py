@@ -46,6 +46,10 @@ _NO_ARTIFACT = frozenset(
         "watch",
         # Renders an artifact into a document; the document is the output.
         "report",
+        # Speaks LSP on stdout for the life of the process. Its output is a
+        # stream of JSON-RPC frames, not one result artifact, and emitting one
+        # would corrupt the stream it shares.
+        "lsp",
     }
 )
 
