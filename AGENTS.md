@@ -158,7 +158,7 @@ Do not treat it as a tool failure.
 ### Every command
 
 ```
-agent-setup, audit, baseline, breaking, budget, capture, changelog, config, coverage, diff, digest, drift, evidence, explain, export, freeze, ghosts, graph, import-rules, infer, init, mcp-inventory, mcp-lock, mock, monitor, notify, plugins, regression, replay, report, rules, self-test, serve, server-db, sweep, test, validate, verify, watch, workflow
+agent-setup, audit, baseline, breaking, budget, capture, changelog, config, coverage, diff, digest, drift, evidence, explain, export, federation, freeze, ghosts, graph, import-rules, infer, init, mcp-inventory, mcp-lock, mock, monitor, notify, plugins, regression, replay, report, rules, self-test, serve, server-db, sweep, test, validate, verify, watch, workflow
 ```
 
 `apiverity <command> --help` for any of them.

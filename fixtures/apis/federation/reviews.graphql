@@ -1,0 +1,16 @@
+# The reviews subgraph. Owns Review; contributes `name` to Product, which is
+# why that field is @shareable in both.
+type Product @key(fields: "id") {
+  id: ID!
+  name: String @shareable
+}
+
+type Review @key(fields: "id") {
+  id: ID!
+  rating: Int
+  body: String
+}
+
+type Query {
+  review(id: ID!): Review
+}

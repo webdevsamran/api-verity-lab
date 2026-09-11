@@ -134,6 +134,21 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 | `GOV-MISSING-OPERATION-ID` | INFO | `validate` | An operation has no `operationId`. | Give it one, unique across the document. Generated SDKs name methods from it, and without one the name is derived from the path -- so it changes whenever the path does. |
 | `GOV-UNUSED-SECURITY-SCHEME` | INFO | `validate` | A security scheme is declared and required by no operation. | Remove it, or require it where it applies. A scheme in the document that nothing uses tells a reader the API supports an authentication method it does not, and that reader is often the one writing a client. |
 
+## GraphQL federation
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `FED-EXTERNAL-ADDED` | WARN | `federation` | a field became @external: declared here, owned elsewhere | confirm another subgraph resolves it. @external says this subgraph names the field without providing it, which is correct for a key field and a mistake for anything the subgraph used to own |
+| `FED-EXTERNAL-DANGLING` | ERROR | `federation` | an @external field no subgraph in this run resolves | pass every subgraph, or remove the @external declaration. This one is worth reading twice: a subgraph missing from the run is the likelier cause, which is why the finding says so rather than asserting the field is unresolvable |
+| `FED-INACCESSIBLE-ADDED` | ERROR | `federation` | a field became @inaccessible, so it left the supergraph without leaving the subgraph | deprecate it in the supergraph first, then make it inaccessible. This is the change an SDL diff cannot see: the field is unchanged in the document, same name and same type, and every client loses it |
+| `FED-KEY-CHANGED` | ERROR | `federation` | a @key an entity used to declare is gone | keep the old key alongside the new one until every subgraph has moved. A subgraph resolving references by the dropped key cannot do so any more, and it will not be the subgraph that changed |
+| `FED-KEY-INCONSISTENT` | ERROR | `federation` | a type is an entity in one subgraph and not in another | add the same @key to the subgraphs that lack it. A subgraph cannot contribute fields to an entity it does not key |
+| `FED-KEY-REMOVED` | ERROR | `federation` | a type stopped being an entity | restore the @key, or move every field that depends on it in the same change. Without a key no other subgraph can resolve a reference to the type, so every cross-subgraph join through it stops working |
+| `FED-OWNERSHIP-MOVED` | WARN | `federation` | an @override changed which subgraph resolves a field | deploy both subgraphs together. The order decides whether there is a window in which neither resolves it, and nothing in either subgraph's own SDL says the other one moved |
+| `FED-REQUIRES-UNKNOWN-FIELD` | WARN | `federation` | a @requires names a field no subgraph in this run defines on that type | pass every subgraph, or correct the selection. WARN rather than ERROR for the same reason as FED-EXTERNAL-DANGLING: an incomplete run and a broken selection look identical from here |
+| `FED-SHAREABLE-REMOVED` | ERROR | `federation` | a field is no longer @shareable | remove the field from the other subgraph in the same release, or keep @shareable. If anything else resolves it, composition now rejects the graph |
+| `FED-UNSHAREABLE-DUPLICATE` | ERROR | `federation` | two subgraphs resolve one field and it is not @shareable in all of them | mark it @shareable everywhere it is resolved, or remove it from all but one subgraph. Key fields are exempt: they are implicitly shareable and every subgraph keying the entity is required to declare them |
+
 ## Lint
 
 | Rule | Severity | Produced by | Fires when | Instead |
@@ -195,4 +210,4 @@ The suppressions file, talking about itself. An entry that is not justified and 
 | `SUPPRESSION-INCOMPLETE` | WARN | `breaking` | A suppression is missing a field it needs, so it suppressed nothing. | Add the fields the message names: `owner`, `reason`, and an `expires` date within the project's maximum. The entry fails closed, so the finding it named is still in the run -- this is not a second failure, it is the reason the first one is still there. |
 | `SUPPRESSION-UNSCOPED` | INFO | `breaking` | A suppression silences its rule across every operation. | Nothing, if that is what you meant -- an API with no pagination does not need the pagination rule on forty operations. Add an `operation_key` if it is not: a rule silenced contract-wide will not fire on the operation added next month either. |
 
-_80 check rules._
+_90 check rules._

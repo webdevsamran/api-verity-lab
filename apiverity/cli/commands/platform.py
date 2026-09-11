@@ -702,6 +702,7 @@ _RULE_GUIDE: tuple[tuple[str, str, str], ...] = (
     ("AUTHZ-", "Authorization, between identities", "docs/authorization.md"),
     ("SDK-", "Generated SDKs", "docs/sdk-surface.md"),
     ("GUARD-", "Outbound guardrails", "docs/guardrails.md"),
+    ("FED-", "GraphQL federation", "docs/federation.md"),
     ("SUPPRESSION-", "The gate's escape hatch", "docs/ci.md#suppressions"),
     ("CONFIG-", "Project configuration", "docs/ci.md"),
     ("SPEC-", "Spec loading", "docs/spec-support.md"),

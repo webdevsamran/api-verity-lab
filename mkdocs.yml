@@ -40,6 +40,7 @@ nav:
       - Policy DSL: policy-dsl.md
       - Spec support: spec-support.md
       - Protocol support: protocol-support.md
+      - GraphQL federation: federation.md
       - Exit codes: exit-codes.md
       - Migrating from oasdiff: oasdiff-migration.md
       - Migrating a Spectral ruleset: spectral-migration.md

@@ -482,6 +482,64 @@ def cmd_infer(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def cmd_federation(args: argparse.Namespace) -> int:
+    """Subgraph changes judged against what they do to the composed graph.
+
+    Not a composition. `rover` and `@apollo/composition` compose, properly, and
+    a second implementation whose output looked like theirs and was computed
+    differently is what this project refuses to build. This reports the
+    preconditions -- and says so in its own output, because a clean result read
+    as "this composes" is the misreading that matters.
+    """
+    from pathlib import Path as _Path
+
+    from apiverity.specs.graphql.federation import check_composition, diff_subgraph, read
+
+    def _read(path: str) -> Any:
+        return read(_Path(path).read_text(encoding="utf-8-sig"), _Path(path).stem)
+
+    findings: list[Any] = []
+    try:
+        subgraphs = [_read(p) for p in (args.subgraph or [])]
+        if args.against:
+            if len(subgraphs) != 1:
+                print(
+                    "error: --against compares one subgraph with its previous revision; "
+                    "pass exactly one --subgraph",
+                    file=sys.stderr,
+                )
+                return EXIT_USAGE
+            findings.extend(diff_subgraph(_read(args.against), subgraphs[0]))
+    except (OSError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    except Exception as exc:  # a GraphQL syntax error is a GraphQLError
+        print(f"error: could not parse a subgraph: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    composition = check_composition(subgraphs) if len(subgraphs) > 1 else []
+    findings.extend(composition)
+
+    _emit(
+        {
+            "tool": "apiverity",
+            "command": "federation",
+            "subgraphs": [s.name for s in subgraphs],
+            "against": args.against,
+            # The sentence that stops a clean run being read as a guarantee.
+            "note": (
+                "these are composition preconditions, not a composition. A clean result "
+                "is not a claim that `rover compose` succeeds, and a subgraph missing "
+                "from this run may own a field reported here as unresolved."
+            ),
+            "findings": findings,
+            "errors": sum(1 for f in findings if f.severity.value == "ERROR"),
+        },
+        args.json,
+    )
+    return EXIT_FINDINGS if findings else EXIT_OK
+
+
 def cmd_graph(args: argparse.Namespace) -> int:
     """Which contract in a tree reads whose schemas.
 

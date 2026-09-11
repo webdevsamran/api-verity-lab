@@ -299,6 +299,18 @@ COMMANDS: list[tuple[str, list[str]]] = [
             "--json",
         ],
     ),
+    # `federation` reads a set of SDL files rather than one contract.
+    (
+        "federation",
+        [
+            "federation",
+            "--subgraph",
+            str(FIXTURES / "apis/federation/products.graphql"),
+            "--subgraph",
+            str(FIXTURES / "apis/federation/reviews.graphql"),
+            "--json",
+        ],
+    ),
     # `import-rules` reads somebody else's ruleset rather than a contract.
     (
         "import-rules",

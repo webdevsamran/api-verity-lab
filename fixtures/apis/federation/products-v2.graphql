@@ -1,0 +1,18 @@
+# The same products subgraph, one release later. Every change here is invisible
+# to an SDL diff and decisive in the supergraph.
+type Product @key(fields: "id") {
+  id: ID!
+  # No longer shareable, while `reviews` still resolves it: composition fails.
+  name: String
+  # Still here, still an Int -- and gone from the graph clients query.
+  price: Int @inaccessible
+  reviews: [Review]
+}
+
+type Review @key(fields: "id") {
+  id: ID!
+}
+
+type Query {
+  product(id: ID!): Product
+}

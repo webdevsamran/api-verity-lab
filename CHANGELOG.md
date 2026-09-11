@@ -4,6 +4,51 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — `apiverity federation`
+
+An SDL diff compares two documents. In a federated graph that is the wrong
+unit: a subgraph is one contributor to the schema clients actually query.
+
+```diff
+ type Product @key(fields: "id") {
+   id: ID!
+-  price: Int
++  price: Int @inaccessible
+ }
+```
+
+Same field, same name, same type, same subgraph. `apiverity diff` reports no
+removal — and `price` is gone from the supergraph, so every client loses it.
+
+- Six rules comparing a subgraph with its previous revision (`--against`): a
+  lost or changed `@key`, `@inaccessible` added, `@shareable` removed,
+  `@external` added, `@override` moved.
+
+- Four rules over a set of subgraphs: an unshareable duplicate, an entity keyed
+  in one subgraph and not another, a dangling `@external`, a `@requires` naming
+  a field nothing defines.
+
+- **It is not a composition, and says so in every run.** `rover` and
+  `@apollo/composition` compose, properly; a second implementation whose output
+  looked like theirs and was computed differently is what this project refuses
+  to build for Spectral's rules too. So it reports preconditions, and the
+  artifact carries a note that a clean result is not a claim that composition
+  succeeds — because the alternative is a tool that reports nothing and gets
+  read as a guarantee.
+
+- **Key fields are exempt from the duplicate rule.** `@key` fields are
+  implicitly shareable in Federation v2 and every subgraph keying the entity is
+  *required* to declare them. The first version of the rule reported
+  `Product.id` on every correctly federated graph there is, which is how a rule
+  gets switched off before anybody reads its second finding.
+
+- **An incomplete run looks like a broken graph**, and the findings say so.
+  `FED-EXTERNAL-DANGLING` names a missing subgraph as the likelier cause in its
+  hint, and `FED-REQUIRES-UNKNOWN-FIELD` is a WARN rather than an ERROR for
+  exactly that reason: from inside the run, a subgraph nobody passed and a wrong
+  selection are indistinguishable.
+
+
 ### Added — house rules in YAML, without forking
 
 `apiverity validate openapi.yaml --policy-file house-style.yaml`.

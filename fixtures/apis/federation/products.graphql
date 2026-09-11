@@ -1,0 +1,15 @@
+# The products subgraph. Owns Product; references Review by key only.
+type Product @key(fields: "id") {
+  id: ID!
+  name: String @shareable
+  price: Int
+  reviews: [Review]
+}
+
+type Review @key(fields: "id") {
+  id: ID!
+}
+
+type Query {
+  product(id: ID!): Product
+}

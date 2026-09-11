@@ -272,6 +272,18 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   passing. Exemptions are operation keys, not globs. `rules
   --policy-vocabulary` publishes the vocabulary from the same tables the loader
   validates against
+- GraphQL federation (`apiverity federation`) — NEW, completing SPEC-11. Ten
+  `FED-*` rules about what a subgraph change does to the **supergraph**, which
+  is the unit an SDL diff cannot see. The flagship: `@inaccessible` on a field
+  leaves it textually unchanged in the subgraph and removes it from the graph
+  clients query, so `diff` reports nothing and every client loses it.
+  Deliberately **not a composition** — `rover` and `@apollo/composition` do that
+  properly and a second implementation is what this project refuses to build for
+  Spectral too — so every run carries a note saying a clean result is not a claim
+  that composition succeeds. Two places it declines to overreach: `@key` fields
+  are implicitly shareable and exempt from the duplicate rule (the first version
+  fired on every correctly federated graph there is), and a subgraph missing from
+  the run is named in the hint as the likelier cause of a dangling `@external`
 - Synthetic monitoring (`apiverity monitor`) — NEW. Runs any other command on a
   schedule and reports the transitions rather than the snapshot, because a cron
   entry that posts the same twelve findings every five minutes is muted inside a

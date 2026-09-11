@@ -36,6 +36,7 @@ from apiverity.cli.commands.governance import (
     cmd_changelog,
     cmd_diff,
     cmd_digest,
+    cmd_federation,
     cmd_graph,
     cmd_infer,
     cmd_sweep,
@@ -94,6 +95,7 @@ __all__ = [
     "cmd_evidence",
     "cmd_explain",
     "cmd_export",
+    "cmd_federation",
     "cmd_freeze",
     "cmd_ghosts",
     "cmd_graph",
@@ -286,6 +288,27 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_graph)
+    p = sub.add_parser(
+        "federation",
+        help="what a subgraph change does to the composed graph",
+    )
+    p.add_argument(
+        "--subgraph",
+        action="append",
+        required=True,
+        metavar="FILE",
+        help="a subgraph SDL file (repeatable). Two or more are checked against each other",
+    )
+    p.add_argument(
+        "--against",
+        metavar="FILE",
+        help=(
+            "the previous revision of the one subgraph given, to report what the change "
+            "does to the supergraph -- including the parts an SDL diff cannot see"
+        ),
+    )
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_federation)
 
     p = sub.add_parser(
         "infer",

@@ -225,6 +225,15 @@
       ]
     },
     {
+      "name": "federation",
+      "summary": "what a subgraph change does to the composed graph",
+      "options": [
+        "--against",
+        "--json",
+        "--subgraph"
+      ]
+    },
+    {
       "name": "freeze",
       "summary": "emergency stop: refuse deployments and approvals until lifted",
       "options": [
