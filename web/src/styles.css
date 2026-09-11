@@ -806,7 +806,20 @@ kbd {
 }
 
 @media print {
-  .sidebar, .topbar, .toast-stack, .palette-backdrop, footer { display: none !important; }
+  .sidebar, .topbar, .toast-stack, .palette-backdrop, footer,
+  .exports { display: none !important; }
+  /* The chart's data table is hidden on screen because the chart is beside
+   * it. On paper a printer may render neither well, so the numbers come
+   * back -- a printed chart nobody can read values off is decoration. */
+  figcaption.visually-hidden {
+    position: static;
+    width: auto;
+    height: auto;
+    clip: auto;
+    clip-path: none;
+    overflow: visible;
+    white-space: normal;
+  }
   .app { max-width: none; }
   body { background: #fff; color: #000; }
   .card, table { break-inside: avoid; }
@@ -893,4 +906,43 @@ kbd {
 }
 .linklike:hover {
   text-decoration: underline;
+}
+
+/* Export controls. Sit with the section heading rather than above the page:
+ * "export" without a subject is a button nobody trusts. */
+.exports {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin-left: auto;
+}
+.exports button {
+  padding: 2px var(--s2);
+  font-size: var(--text-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--elevated);
+  color: inherit;
+  cursor: pointer;
+}
+.exports button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.exports button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.export-error {
+  color: var(--error);
+  font-size: var(--text-sm);
+}
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+}
+.section-head h2,
+.section-head h3 {
+  margin: 0;
 }

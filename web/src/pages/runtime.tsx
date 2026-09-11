@@ -4,6 +4,7 @@ import {
   Badge,
   CopyCmd,
   Empty,
+  Exports,
   MethodTag,
   Missing,
   PageHead,
@@ -19,6 +20,20 @@ export function DriftPage({ data }: { data: PageProps['data'] }) {
   return (
     <>
       <PageHead title="Runtime Drift" sub="declared contract vs observed behavior" />
+      <div className="section-head">
+        <h2>Findings</h2>
+        {/* The rows on screen, not the whole dataset: an export that quietly
+          * widened the selection would not be an export of this view. */}
+        <Exports
+          view="drift findings"
+          rows={drift.findings.map((d) => ({
+            rule_id: d.rule_id,
+            operation_key: d.operation_key,
+            message: d.message,
+          }))}
+          columns={['rule_id', 'operation_key', 'message']}
+        />
+      </div>
       {drift.findings.length === 0 ? <Empty msg="No drift detected." /> : (
         <table><thead><tr><th>Rule</th><th>Operation</th><th>Message</th></tr></thead>
           <tbody>{drift.findings.map((d, i) => (
@@ -57,6 +72,35 @@ export function PerfPage({ data }: { data: PageProps['data'] }) {
   return (
     <>
       <PageHead title="Performance" sub="latency percentiles, payload size, and what the connection cost" />
+      <div className="section-head">
+        <h2>Latency</h2>
+        {/* No `chartIn`: this chart is CSS widths, not SVG, so there is nothing
+          * to rasterize. The CSV carries every number the bars encode, exactly,
+          * which is the better export of a list anyway. */}
+        <Exports
+          view="performance"
+          rows={ops.map((o) => ({
+            operation_key: o.operation_key,
+            p50_ms: o.p50_ms,
+            p95_ms: o.p95_ms,
+            p99_ms: o.p99_ms,
+            errors: o.errors,
+            throughput_rps: o.throughput_rps,
+            bytes_p95: o.bytes_p95,
+            bytes_max: o.bytes_max,
+          }))}
+          columns={[
+            'operation_key',
+            'p50_ms',
+            'p95_ms',
+            'p99_ms',
+            'errors',
+            'throughput_rps',
+            'bytes_p95',
+            'bytes_max',
+          ]}
+        />
+      </div>
       <BarChart rows={ops.flatMap((o) => [
         { label: `${o.operation_key} p50`, value: o.p50_ms, max },
         { label: `${o.operation_key} p95`, value: o.p95_ms, max },

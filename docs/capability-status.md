@@ -150,6 +150,17 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   markers is refused by name rather than overwritten; `.mcp.json` is merged so
   other integrations survive. This repository's own `AGENTS.md` carries the
   block and a test fails when it falls behind the CLI
+- Dashboard export (`DASH-15`) — NEW. CSV and PNG from the views that have a
+  table and a chart, plus the browser's own print dialog. Three details carry
+  the weight. **CSV:** every string in this dashboard came out of somebody
+  else's spec document, and a cell beginning with `=`, `+`, `-` or `@` is a
+  formula to Excel and Sheets — so each is neutralized before RFC 4180 quoting,
+  in that order. **PNG:** the charts are styled entirely by the external
+  stylesheet, so a serialized SVG is a black line on a transparent ground; every
+  computed presentational property is inlined onto a clone first. **PDF:** it is
+  not one. The button says "Print / Save as PDF" because the browser renders it
+  and a 300 kB PDF writer does not fit in a 220 kB entry budget — the export
+  module is a route chunk of 2.8 kB and the entry grew by 1.3 kB
 - Synthetic monitoring (`apiverity monitor`) — NEW. Runs any other command on a
   schedule and reports the transitions rather than the snapshot, because a cron
   entry that posts the same twelve findings every five minutes is muted inside a

@@ -10,7 +10,15 @@
  * library: `scripts/check-bundle.mjs` budgets the entry chunk at 210 kB, and
  * a charting dependency costs more than every page in this app combined.
  */
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from 'react'
 import type { DataSource } from '../data'
 
 /* ------------------------------------------------------------- badges */
@@ -509,5 +517,84 @@ export function CopyCmd({ cmd, label }: { cmd: string; label?: string }) {
         {state === 'copied' ? '✓ copied' : state === 'failed' ? '⚠ press ⌘C' : 'copy'}
       </span>
     </button>
+  )
+}
+
+/* -------------------------------------------------------------- exports */
+
+/**
+ * Take this view out of the dashboard.
+ *
+ * Three buttons, and the third is honest about what it is. CSV and PNG are
+ * produced here; "Print / Save as PDF" hands the page to the browser's own
+ * dialog, because a real PDF writer costs more than the entire entry budget
+ * and a button labelled "Export PDF" over `window.print()` claims a capability
+ * this bundle does not have.
+ *
+ * Failure is reported, never swallowed -- the same rule `CopyCmd` follows.
+ * `canvas.toBlob` signals failure by handing back `null`, so the unguarded
+ * version of this is a download button that looks fine and does nothing.
+ */
+export function Exports({
+  view,
+  rows,
+  columns,
+  chartIn,
+}: {
+  view: string
+  rows?: Record<string, unknown>[]
+  columns?: string[]
+  chartIn?: RefObject<HTMLElement | null>
+}) {
+  const [error, setError] = useState<string>('')
+
+  const saveCsv = async () => {
+    setError('')
+    const { csvBlob, download, filename } = await import('../export')
+    download(filename(view, 'csv', new Date()), csvBlob(rows ?? [], columns))
+  }
+
+  const savePng = async () => {
+    setError('')
+    const svg = chartIn?.current?.querySelector('svg')
+    if (!svg) {
+      setError('no chart on screen to save')
+      return
+    }
+    try {
+      const { download, filename, svgToPng } = await import('../export')
+      download(filename(view, 'png', new Date()), await svgToPng(svg))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'the image could not be produced')
+    }
+  }
+
+  const empty = !rows || rows.length === 0
+  return (
+    <div className="exports" role="group" aria-label={`export ${view}`}>
+      <button
+        type="button"
+        onClick={saveCsv}
+        disabled={empty}
+        // A header-only file looks like a successful export of nothing, and
+        // the reader finds out after opening it.
+        title={empty ? 'nothing on screen to export' : `download ${view} as CSV`}
+      >
+        CSV
+      </button>
+      {chartIn && (
+        <button type="button" onClick={savePng} title={`download the ${view} chart as PNG`}>
+          PNG
+        </button>
+      )}
+      <button type="button" onClick={() => window.print()} title="opens the browser print dialog">
+        Print / Save as PDF
+      </button>
+      {error && (
+        <span className="export-error" role="status">
+          {error}
+        </span>
+      )}
+    </div>
   )
 }

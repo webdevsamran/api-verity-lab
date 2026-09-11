@@ -4,6 +4,64 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — taking a view out of the dashboard
+
+- **CSV, PNG and the browser's own PDF**, on the views that have something to
+  take. The drift findings table and the performance table export to CSV; the
+  blast-radius graph exports to CSV and PNG; every view prints.
+
+- **The CSV will not execute.** Every string worth exporting here came from
+  somewhere else — a finding message quotes a spec file, an operation key
+  quotes a path — so "the export contains what the document said" is exactly
+  the property that makes it dangerous. A cell beginning with `=`, `+`, `-`,
+  `@`, a tab or a carriage return is a formula to Excel, Sheets and
+  LibreOffice, and each is prefixed with an apostrophe *before* RFC 4180
+  quoting. Order matters: quote first and the apostrophe lands inside the
+  quotes, where the spreadsheet has already decided the cell is a formula.
+
+- **The PNG carries the chart's appearance.** These charts are styled entirely
+  by the external stylesheet — `.blast-edge`, `.blast-node`, each resolving a
+  token — and a serialized SVG carries none of it. Every computed presentational
+  property is inlined onto a clone before serializing, and a chart embedding an
+  `<image>` or `<foreignObject>` is refused rather than exported wrong.
+
+- **"Print / Save as PDF", not "Export PDF".** The browser renders it; this
+  bundle does not. A real PDF writer is 300 kB against an entry budget of 220
+  kB with nine to spare, and a button claiming a capability the code does not
+  have is the thing this project exists to not do. The export module is a route
+  chunk (2.8 kB); the entry grew 1.3 kB.
+
+- The performance chart gets no PNG button: it is drawn with CSS widths, not
+  SVG, and its CSV carries every number the bars encode. Offering a button that
+  cannot work is worse than not offering one.
+
+### Fixed — every exported PNG would have been transparent
+
+Found by exporting one in a browser and reading the corner pixel.
+
+The background rect exists so a light-on-dark chart is not invisible in a
+viewer that assumes white. It took its colour from
+`getComputedStyle(document.body).backgroundColor`, with `|| '#ffffff'` behind
+it — and that fallback can never fire, because the value is
+`rgba(0, 0, 0, 0)`, which is a non-empty string.
+
+Two browser behaviours conspire. CSS propagates the body's background to the
+canvas when `html` declares none, so `body { background: var(--bg) }` paints
+the window and computes to transparent. And `body` carries a transition on
+`background`, so mid-theme-switch it reports the colour it is leaving: measured
+here, the same element answered `rgba(0, 0, 0, 0)` on one call and
+`rgb(255, 255, 255)` on the next while the dark theme was active and `--bg` was
+`#0d1117`.
+
+The declared token is read first now. It is what the stylesheet resolved, it
+does not interpolate, and it does not disappear into the canvas; the ancestor
+walk remains as the fallback for a page that does not use these tokens. Exports
+in both themes are now opaque and carry the right ground.
+
+The unit test missed all of this because it asserted the fill was *truthy*, and
+`rgba(0, 0, 0, 0)` is. It asserts opacity now.
+
+
 ### Added — `apiverity agent-setup`, and guidance that cannot go stale
 
 - **`apiverity agent-setup --write`** installs the same body of guidance into

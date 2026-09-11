@@ -1,9 +1,9 @@
 /* Team / enterprise pages: org dashboard, environments, approvals, policies,
  * runs/jobs, audit log, webhooks, users. */
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { readLiveConfig } from "../live";
 import { followRun, type RunProgress } from "../sse";
-import { Badge, Empty, Missing, PageHead } from "../components/ui";
+import { Badge, Empty, Exports, Missing, PageHead } from "../components/ui";
 import type { PageProps } from "./types";
 
 export function OrgDashboard({ data }: { data: PageProps["data"] }) {
@@ -528,6 +528,7 @@ function BlastGraph({
 
 export function BlastRadiusPage({ data }: { data: PageProps["data"] }) {
   const [selected, setSelected] = useState<string | null>(null);
+  const graph = useRef<HTMLDivElement>(null);
   const blast = data?.blast;
 
   const model = useMemo(() => {
@@ -616,7 +617,33 @@ export function BlastRadiusPage({ data }: { data: PageProps["data"] }) {
         </p>
       )}
 
-      <BlastGraph {...model} selected={selected} />
+      <div className="section-head">
+        <h2>Who calls what</h2>
+        {/* One row per edge, not per consumer: a consumer calling three broken
+          * operations is three facts, and a row per consumer would have to
+          * pick one of them to show. */}
+        <Exports
+          view="blast radius"
+          chartIn={graph}
+          rows={model.edges.map(([operation, consumer]) => ({
+            operation_key: operation,
+            consumer,
+            team: blast.by_consumer[consumer]?.team ?? "",
+            consumer_findings: blast.by_consumer[consumer]?.findings ?? 0,
+            operation_errors: blast.errors_by_operation[operation] ?? 0,
+          }))}
+          columns={[
+            "operation_key",
+            "consumer",
+            "team",
+            "consumer_findings",
+            "operation_errors",
+          ]}
+        />
+      </div>
+      <div ref={graph}>
+        <BlastGraph {...model} selected={selected} />
+      </div>
       {selected && (
         <p className="muted">
           Showing <code>{selected}</code>.{" "}
