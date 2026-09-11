@@ -4,6 +4,39 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Fixed — the parser's findings could not be looked up, and `validate` ignored the config
+
+Thirty-three more rules got catalogue entries, and a setting that reached one
+command now reaches the others.
+
+- **`apiverity/specs/spec_catalog.py`** documents every rule the parsers emit:
+  twenty-seven `SPEC-*`, three `SWAGGER2-*`, three `ASYNCAPI-*`.
+  `docs/check-rules.md` goes from 127 rules to 160.
+
+  These are the worst place in the tool to have had the gap. They are the
+  *first* findings anybody sees — an unresolved `$ref`, a duplicate
+  `operationId`, a WSDL construct the model does not carry — and
+  `apiverity explain SPEC-REF-UNRESOLVED` answered *"no rule with id ..."*. A
+  reader whose first command produced a finding they could not explain has no
+  reason to run a second one.
+
+- **`SPEC-` resolves to three groups, not one.** Reference resolution, document
+  structure and WSDL share a prefix because they share a cause. One heading
+  over all twenty-seven would help nobody, and `explain` would give the same
+  unhelpful answer for a dangling `$ref` and an encoded SOAP body.
+
+- **`validate` applies `severity_overrides`.** It never did. A project that
+  wrote `SEC-AUTH-MISSING: INFO` in `.apiverity.yaml` to stop `validate`
+  failing got a setting the config validator accepted, the published config
+  schema allowed, and no command applied — the exact shape of defect the
+  validator exists to prevent, one layer further in. `app` applies them too,
+  for the same reason.
+
+  Both directions are tested, because one alone could be a coincidence: a rule
+  demoted out of the error count, a rule promoted into it, and every rule
+  nobody named left where the catalogue put it.
+
+
 ### Fixed — thirty-seven rules the tool emits and `explain` said did not exist
 
 `apiverity explain BRK-RESP-FIELD-REMOVED` has worked since the beginning,

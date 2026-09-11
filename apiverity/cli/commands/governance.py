@@ -52,7 +52,13 @@ def cmd_validate(args: argparse.Namespace) -> int:
             return EXIT_USAGE
         sec.extend(PolicyEngine(packs=[pack]).evaluate(service))
 
-    all_findings, suppressed = apply_project_suppressions(findings + sec)
+    # `.apiverity.yaml`'s `severity_overrides` reached `breaking` and nothing
+    # else, so a project that wrote `SEC-AUTH-MISSING: INFO` to stop `validate`
+    # failing got a setting the config validator accepted, the schema allowed,
+    # and no command applied.
+    all_findings, suppressed = apply_project_suppressions(
+        apply_severity_overrides(findings + sec, merged_severity_overrides(None))
+    )
     errors = sum(1 for f in all_findings if f.severity.value == "ERROR")
     data = {
         "tool": "apiverity",
@@ -525,7 +531,10 @@ def cmd_app(args: argparse.Namespace) -> int:
         service, findings, plugin = _load(str(staged))
         from apiverity.security import run_security_checks
 
-        all_findings = list(findings) + list(run_security_checks(service))
+        all_findings = apply_severity_overrides(
+            list(findings) + list(run_security_checks(service)),
+            merged_severity_overrides(None),
+        )
 
         committed: dict[str, Any] | None = None
         if getattr(args, "against", None):

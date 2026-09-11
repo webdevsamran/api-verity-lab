@@ -49,7 +49,7 @@ _DOC = _ROOT / "docs" / "check-rules.md"
 #: dozen prefixes as rules nothing can explain.
 _EMITTED = re.compile(
     r"^(?:SEC|LIFECYCLE|SEMANTIC|SLO|GOV|LINT|SUPPRESSION|CONFIG|AUTHZ|SDK|GUARD|FED"
-    r"|COMPAT|PROTO|GQL)-[A-Z0-9-]*[A-Z0-9]$"
+    r"|COMPAT|PROTO|GQL|SPEC|SWAGGER2|ASYNCAPI)-[A-Z0-9-]*[A-Z0-9]$"
 )
 
 

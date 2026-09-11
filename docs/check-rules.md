@@ -105,6 +105,14 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 | `LIFECYCLE-SUNSET-PASSED` | ERROR | `validate` | A declared sunset date has passed and the operation is still here. | Remove the operation, or move the date to one the team still means. A retirement date nobody enforces teaches callers to ignore the next one. |
 | `LIFECYCLE-SUNSET-WITHOUT-DEPRECATION` | WARN | `validate` | An operation declares a retirement date and is not marked deprecated. | Mark it `deprecated: true`. The contract is currently retiring something it never told anyone to stop using. |
 
+## AsyncAPI
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `ASYNCAPI-CHANNEL-NO-MESSAGE` | WARN | `validate` | A channel operation declares no message, so there is no payload to compare. | Declare the message, even as an empty schema. A channel with no payload is a channel every payload rule skips. |
+| `ASYNCAPI-OPERATION-BAD-ACTION` | WARN | `validate` | An operation declares an action that is neither `send` nor `receive`. | Use one of the two. Direction is what decides whether a payload change breaks you or breaks your subscribers, so an unknown action makes that call impossible. |
+| `ASYNCAPI-OPERATION-NO-CHANNEL` | WARN | `validate` | An operation's `channel` reference does not resolve. | Fix the `$ref`. An operation with no channel has no address and is not modelled as an operation at all. |
+
 ## Authorization, between identities
 
 | Rule | Severity | Produced by | Fires when | Instead |
@@ -131,6 +139,23 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 | `COMPAT-SERVER-REMOVED` | WARN | `breaking` | A server URL was removed from the contract. | Check who was pointed at it. A removed localhost entry is usually housekeeping; a removed environment is somebody's base URL. |
 | `COMPAT-STATUS-ADDED` | INFO | `breaking` | An operation documents a status code it did not before. | Nothing, this is a note. A client with an exhaustive match on status codes may still want to know. |
 | `COMPAT-STATUS-REMOVED` | WARN | `breaking` | An operation no longer documents a status code it used to. | Keep documenting it while any client still handles it, or state the removal in a migration note; a client branching on that status now has a branch nothing describes. |
+
+## Document structure
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `SPEC-ALLOF-CONFLICT` | WARN | `validate` | An `allOf` could not be collapsed because its branches contradict each other. | Reconcile the branches -- two `type`s, or two incompatible constraints on one property. Until then the schema is compared uncollapsed, which produces noisier diffs. |
+| `SPEC-FORMAT-OVERRIDDEN` | WARN | `validate` | The document was loaded as the format named on the command line rather than the one detection would have chosen. | Nothing, if that is what you meant -- the flag exists for a document detection gets wrong. Drop `--spec-format` to see what it would have picked. |
+| `SPEC-OAUTH-FLOW-UNKNOWN` | WARN | `validate` | A security scheme declares an OAuth flow this parser does not model. | Check the flow name against the specification. The scheme is still carried; the flow's details are not, so scope-coverage reporting will be incomplete for it. |
+| `SPEC-OP-DUPLICATE` | ERROR | `validate` | Two operations claim the same method and path. | Remove one. Which of them a client generator or a router picks is its choice, not yours. |
+| `SPEC-OPID-DUPLICATE` | ERROR | `validate` | Two operations declare the same `operationId`. | Make them unique. Generators name client methods after this field, so a duplicate silently drops one of the two operations from the generated client. |
+| `SPEC-PARAM-LOCATION` | ERROR | `validate` | A parameter declares an `in` value that is not a parameter location. | Use `path`, `query`, `header`, `cookie` or 3.2's `querystring`. An unknown location means the parameter is not modelled at all, so no rule sees it. |
+| `SPEC-RESPONSE-MISSING` | WARN | `validate` | An operation declares no responses at all. | Declare at least the success response. An operation with no declared response cannot be drift-checked, mocked or fuzzed against anything. |
+| `SPEC-SCHEMA-INVALID` | ERROR | `validate` | A schema position holds something that is not an object. | A schema has to be a mapping. A stray string or list here usually means an indentation slip in YAML. |
+| `SPEC-SDL-BUILD` | WARN | `validate` | GraphQL SDL parsed, and building a schema from it failed. | Usually a type referenced and never defined. The operations that do resolve are still modelled, so this is a partial read rather than a failed one. |
+| `SPEC-SDL-INVALID` | ERROR | `validate` | A GraphQL SDL document could not be parsed. | The parser's own message names the position. Nothing downstream runs on an unparsed schema. |
+| `SPEC-TAG-PARENT-UNKNOWN` | WARN | `validate` | A hierarchical tag names a parent tag the document does not declare. | Declare the parent, or drop the `parent` field. A dangling parent leaves the tag orphaned in any navigation built from the hierarchy. |
+| `SPEC-VERSION-UNSUPPORTED` | ERROR | `validate` | The document declares an OpenAPI version this parser does not read. | Check the `openapi` field. 3.0, 3.1 and 3.2 are supported, and Swagger 2.0 is read through its own parser. |
 
 ## Generated SDKs
 
@@ -244,6 +269,18 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 | `PROTO-WIRE-TYPE-CHANGED` | ERROR | `breaking` | A field changed wire type; old and new peers misdecode each other's bytes. | Use a new field number for the new type and reserve the old one. A wire type change is not a schema change, it is a different message. |
 | `PROTO-WIRE-WIDTH-CHANGED` | WARN | `breaking` | An integer field changed width, which is wire-compatible and truncates. | Check the range actually in use. A 64-bit value read into a 32-bit field is silently wrong rather than an error. |
 
+## Reference resolution
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `SPEC-REF-ABSOLUTE-REFUSED` | WARN | `validate` | A reference names an absolute filesystem path, which was not followed. | Use a path relative to the document. An absolute path resolves to a different file on every machine, which is the opposite of what a committed contract is for. |
+| `SPEC-REF-BUNDLE-CAPPED` | WARN | `validate` | Bundling stopped at a limit -- on files, remote fetches or depth -- so some references were not followed. | Raise the relevant limit if the contract is genuinely that large, or check whether a cycle is generating the work. Anything past the cap is unresolved, and unresolved means invisible to every rule. |
+| `SPEC-REF-CYCLE` | ERROR | `validate` | A chain of `$ref`s returns to where it started. | Break the cycle, usually by making one side a named component that stops at a primitive. A self-referential schema has no finite expansion to compare. |
+| `SPEC-REF-DEEP` | ERROR | `validate` | A `$ref` chain is longer than the resolver will follow. | Flatten it. A chain this long is usually an accident -- a component referencing a component referencing an alias -- and the depth limit exists so a malicious document cannot make the loader run forever. |
+| `SPEC-REF-REMOTE-REFUSED` | WARN | `validate` | A reference names a URL, and remote fetching is off. | Pass `--allow-remote-refs` if you mean to fetch it, or vendor the document. Off by default because a URL in a contract turns reading a file into a network call to somebody else's host. |
+| `SPEC-REF-UNREADABLE` | ERROR | `validate` | A referenced document could not be read or is not a JSON or YAML mapping. | Check the path and the file. A multi-file contract is only as loadable as its least available file. |
+| `SPEC-REF-UNRESOLVED` | ERROR | `validate` | A `$ref` points at something this document does not contain. | Fix the pointer, or add the component it names. Everything downstream treats the referenced schema as absent, so an unresolved ref quietly shrinks what the rules can see. |
+
 ## Supply chain
 
 | Rule | Severity | Produced by | Fires when | Instead |
@@ -251,6 +288,14 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 | `SEC-DEP-OUTSIDE-TREE` | INFO | `validate` | A `$ref` climbs out of the entry document's directory. | Nothing inside a monorepo, where it is the normal shape. It becomes a defect the moment the document is published on its own, because the reader gets a `$ref` to nothing -- `apiverity export` bundles the tree, which is the portable form. |
 | `SEC-DEP-REMOTE` | WARN | `validate` | A `$ref` names a URL, so part of the schema comes from another host. | Nothing, if that is the arrangement -- shared schemas are often published this way. Vendor the file into the contract's own tree if a third party deciding what your gate validates against is not acceptable. The report has to carry it either way: the verdict depended on a response nobody in the repository controls. |
 | `SEC-DEP-UNPINNED` | WARN | `validate` | A remote `$ref` names no version, tag or commit. | Pin it -- a path carrying a semantic version, a `v2`, a commit or a dated iteration is one anybody can re-fetch. Without that, the same contract validated tomorrow may be validated against something else, and the diff between the two runs will blame your API. |
+
+## Swagger 2.0
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `SWAGGER2-OAUTH-FLOW-LOSSY` | WARN | `validate` | OAuth flow metadata does not survive the conversion to the OpenAPI 3 model intact. | Check the converted scheme if you gate on scopes. Swagger 2.0's flow names and URL fields do not map one-to-one onto 3.x's. |
+| `SWAGGER2-PARAM-IN` | ERROR | `validate` | A Swagger 2.0 parameter declares an `in` value that is not a location. | Use `path`, `query`, `header`, `formData` or `body`. An unknown location means the parameter is not modelled. |
+| `SWAGGER2-SERVER-SYNTHESIZED` | INFO | `validate` | `host`, `basePath` and `schemes` were combined into a server URL. | Nothing, this is a note. It says where the base URL in the model came from, since Swagger 2.0 has no `servers` list to read it out of. |
 
 ## The gate's escape hatch
 
@@ -262,4 +307,17 @@ The suppressions file, talking about itself. An entry that is not justified and 
 | `SUPPRESSION-INCOMPLETE` | WARN | `breaking` | A suppression is missing a field it needs, so it suppressed nothing. | Add the fields the message names: `owner`, `reason`, and an `expires` date within the project's maximum. The entry fails closed, so the finding it named is still in the run -- this is not a second failure, it is the reason the first one is still there. |
 | `SUPPRESSION-UNSCOPED` | INFO | `breaking` | A suppression silences its rule across every operation. | Nothing, if that is what you meant -- an API with no pagination does not need the pagination rule on forty operations. Add an `operation_key` if it is not: a rule silenced contract-wide will not fire on the operation added next month either. |
 
-_127 check rules._
+## WSDL and SOAP documents
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `SPEC-WSDL-ENCODED` | WARN | `validate` | An operation declares `use="encoded"`, the SOAP section-5 encoding. | Move to document/literal if you can. Section-5 encoding puts an object graph on the wire that the schema does not describe, so what is validated and what is sent are different things. |
+| `SPEC-WSDL-EXTERNAL-SCHEMA` | WARN | `validate` | An imported or included schema was not followed. | Inline it, or accept that the types it defines are unmodelled. A type nobody read is a type no rule can compare. |
+| `SPEC-WSDL-NO-SERVICE` | WARN | `validate` | The document declares no `wsdl:service`, so no endpoint address is known. | Add the service element, or treat this as an abstract WSDL. Nothing can be probed at runtime without an address. |
+| `SPEC-WSDL-NO-SOAP-BINDING` | WARN | `validate` | A port uses a binding that declares no `soap:binding`. | If it is a SOAP service, declare the binding. Without it there is no SOAPAction or style to compare, so the `BRK-SOAP-*` rules cannot fire for it. |
+| `SPEC-WSDL-PORTTYPE-UNBOUND` | WARN | `validate` | A portType is reachable from no service port, so nothing exposes it. | Bind it or remove it. An unbound portType is a set of operations no client can reach and every diff still compares. |
+| `SPEC-WSDL-PREFIX-REBOUND` | WARN | `validate` | A namespace prefix is bound to more than one URI in the document. | Rename one of the prefixes. References were resolved with the first binding, which may not be the one that was meant. |
+| `SPEC-WSDL-UNMODELLED` | WARN | `validate` | A WSDL construct is not carried into the contract model. | Nothing, if the construct does not matter to your consumers. It is reported by name so that what the model does *not* know about is visible rather than assumed absent. |
+| `SPEC-WSDL-UNRESOLVED` | ERROR | `validate` | A port or binding names something this document does not define. | Import the document that defines it, or fix the QName. An unresolved binding means the operations behind it are not modelled. |
+
+_160 check rules._

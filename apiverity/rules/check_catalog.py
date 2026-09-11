@@ -79,6 +79,11 @@ def catalog() -> dict[str, CheckRuleSpec]:
     from apiverity.security.catalog import SECURITY_CATALOG
     from apiverity.security.guardrail_catalog import GUARDRAIL_CATALOG
     from apiverity.specs.graphql.federation_catalog import FEDERATION_CATALOG
+    from apiverity.specs.spec_catalog import (
+        ASYNCAPI_CATALOG,
+        SPEC_CATALOG,
+        SWAGGER2_CATALOG,
+    )
 
     merged: dict[str, CheckRuleSpec] = {}
     merged.update(SECURITY_CATALOG)
@@ -95,6 +100,9 @@ def catalog() -> dict[str, CheckRuleSpec]:
     merged.update(COMPAT_CATALOG)
     merged.update(GRAPHQL_COMPAT_CATALOG)
     merged.update(PROTO_CATALOG)
+    merged.update(SPEC_CATALOG)
+    merged.update(SWAGGER2_CATALOG)
+    merged.update(ASYNCAPI_CATALOG)
     return merged
 
 
