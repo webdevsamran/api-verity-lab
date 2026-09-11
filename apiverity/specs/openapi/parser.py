@@ -267,6 +267,11 @@ class OpenApiParser:
         out = SchemaNode(
             type=declared,
             format=node.get("format"),
+            data_classification=(
+                str(node["x-data-classification"])
+                if isinstance(node.get("x-data-classification"), str)
+                else None
+            ),
             title=node.get("title"),
             description=node.get("description"),
             deprecated=bool(node.get("deprecated", False)),

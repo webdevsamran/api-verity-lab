@@ -284,6 +284,18 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   are implicitly shareable and exempt from the duplicate rule (the first version
   fired on every correctly federated graph there is), and a subgraph missing from
   the run is named in the hint as the likelier cause of a dangling `@external`
+- PII detection and redaction hardening (`SEC-07`) — was PARTIAL, now shipped.
+  `security/pii.py` recognises what has a shape worth trusting — Luhn for cards,
+  mod-97 for IBANs, parsed IP addresses, email structure — and states what it
+  refuses to guess at: names, addresses and dates of birth have no shape, and a
+  detector for them is wrong most of the time. Redaction runs in `capture`
+  before the HAR is written; `DRIFT-RESPONSE-PII` reports personal data at a
+  path the contract does *not* classify, which is the mismatch worth attention
+  rather than the fact that an endpoint returns an email. Two defects fixed
+  behind it: `SEC-SENSITIVE-FIELD` read `data_classification` off a model that
+  never declared the field, so the annotation its own hint recommends silenced
+  nothing — and it read it off the parent object rather than the sensitive
+  property, so it would not have worked even if the field had existed
 - Synthetic monitoring (`apiverity monitor`) — NEW. Runs any other command on a
   schedule and reports the transitions rather than the snapshot, because a cron
   entry that posts the same twelve findings every five minutes is muted inside a

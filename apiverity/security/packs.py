@@ -106,8 +106,12 @@ def _sensitive_fields_unclassified(svc: Service) -> list[Finding]:
         props = getattr(schema, "properties", None)
         if isinstance(props, dict):
             for name, child in props.items():
+                # On the child, not on the parent. The annotation belongs to
+                # the sensitive property, and reading it off the object that
+                # contains it meant annotating the field itself silenced
+                # nothing -- the second half of the same defect.
                 if _SENSITIVE_FIELD_HINTS.match(str(name)) and not getattr(
-                    schema, "data_classification", None
+                    child, "data_classification", None
                 ):
                     out.append(
                         Finding(

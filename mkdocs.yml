@@ -58,6 +58,7 @@ nav:
       - Auth profiles: auth-profiles.md
       - Authorization probes: authorization.md
       - Outbound guardrails: guardrails.md
+      - Personal data: pii.md
       - Migration guides: migration-guides.md
       - Blast radius: blast-radius.md
       - Dependency graph: dependency-graph.md

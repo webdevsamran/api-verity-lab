@@ -8,7 +8,7 @@ from typing import Any
 import httpx
 from pydantic import BaseModel, Field
 
-from apiverity.core.model import Service
+from apiverity.core.model import Operation, Service
 from apiverity.core.validation import validate_value
 from apiverity.fuzz.generate import fill_path, generate_valid
 from apiverity.security.leakage import scan_body, scan_headers
@@ -47,6 +47,74 @@ def _leaks(response: httpx.Response) -> list[Any]:
     for leak in leaks:
         seen.setdefault((leak.kind, leak.pointer), leak)
     return sorted(seen.values(), key=lambda leak: (leak.pointer, leak.kind))
+
+
+def _classified_paths(schema: Any, prefix: str = "", depth: int = 0) -> set[str]:
+    """Dotted paths the contract annotates with `x-data-classification`."""
+    if schema is None or depth > 12:
+        return set()
+    out: set[str] = set()
+    if getattr(schema, "data_classification", None):
+        out.add(prefix)
+    for name, child in (getattr(schema, "properties", None) or {}).items():
+        out |= _classified_paths(child, f"{prefix}.{name}" if prefix else str(name), depth + 1)
+    items = getattr(schema, "items", None)
+    if items is not None:
+        # An array's annotation belongs to its member, and the observed path
+        # carries an index -- so the declared path is recorded without one and
+        # compared against the index stripped out.
+        out |= _classified_paths(items, f"{prefix}[]" if prefix else "[]", depth + 1)
+    return out
+
+
+def _undeclared_pii(op: Operation, resp: Any) -> list[DriftFinding]:
+    """Personal data at a path the contract does not classify."""
+    import re as _re
+
+    from apiverity.security import pii
+
+    try:
+        body = resp.json()
+    except Exception:
+        return []
+
+    hits = pii.scan(body)
+    if not hits:
+        return []
+
+    declared: set[str] = set()
+    for response in op.responses:
+        if response.status in (str(resp.status_code), "default"):
+            for schema in response.content.values():
+                declared |= _classified_paths(schema)
+
+    out: list[DriftFinding] = []
+    seen: set[tuple[str, str]] = set()
+    for hit in hits:
+        # `items[3].email` is declared at `items[].email`.
+        generic = _re.sub(r"\[\d+\]", "[]", hit.pointer)
+        if generic in declared or hit.pointer in declared:
+            continue
+        key = (hit.kind, generic)
+        if key in seen:
+            # One finding per kind per path. A list of two hundred customers
+            # is one problem, not two hundred.
+            continue
+        seen.add(key)
+        out.append(
+            DriftFinding(
+                operation_key=op.key,
+                rule_id="DRIFT-RESPONSE-PII",
+                severity="WARN",
+                message=(
+                    f"the response carries what looks like a {hit.kind} at "
+                    f"{hit.pointer or '(root)'} ({hit.length} characters), and the contract "
+                    "does not classify that field. The value is deliberately not reported "
+                    "and does not reach the artifact"
+                ),
+            )
+        )
+    return out
 
 
 def detect_drift(
@@ -106,6 +174,16 @@ def detect_drift(
                 )
                 for leak in _leaks(resp)
             )
+
+            # Personal data the contract does not say is there. Returning an
+            # email from `GET /users/{id}` is the endpoint working, and a check
+            # that fired on that would produce hundreds of findings per
+            # contract -- which is how the useful ones get switched off with
+            # it. What is worth a person's attention is the *mismatch*: the
+            # document declares `nickname: string`, the service returns an
+            # address. Either the contract is wrong about what it returns or
+            # the service is returning something it should not.
+            report.findings.extend(_undeclared_pii(op, resp))
 
             declared = next((r for r in op.responses if r.status == str(resp.status_code)), None)
             if declared is None:

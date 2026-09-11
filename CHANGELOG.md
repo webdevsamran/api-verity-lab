@@ -4,6 +4,47 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — personal data, found by shape and never reported by value
+
+- **`security/pii.py`** recognises what has a shape worth trusting: a card
+  number that passes Luhn, an IBAN that passes mod-97, an email, an IP address
+  that actually parses. A sixteen-digit number failing Luhn is an order
+  reference, and `999.1.1.1` is a version string.
+
+- **Names, addresses and dates of birth are deliberately not detected**, and
+  the module says so. They have no shape — "Paris" is a city and a person,
+  `1990-03-14` is a birthday and a release date — so a detector for them is
+  wrong most of the time, which trains people to ignore the times it is right.
+  The field-name rules in `traffic/redact.py` cover the other half: a field
+  *called* `date_of_birth` is redactable by name even though its value is not
+  recognisable.
+
+- **`apiverity capture` redacts it before the HAR is written**, with a
+  replacement distinct from the credential one so a reader of a corpus can tell
+  which rule fired.
+
+- **`DRIFT-RESPONSE-PII`** reports personal data at a path the contract does
+  not classify. Returning an email from an endpoint that says it returns one is
+  the endpoint working, and firing on that would produce hundreds of findings
+  per contract; the *mismatch* — `nickname: string` on the wire carrying an
+  address — is the thing worth a person's attention. The kind, path and length
+  reach the finding; the value never does.
+
+### Fixed — the classification annotation did nothing
+
+`SEC-SENSITIVE-FIELD` has always read `getattr(schema, "data_classification",
+None)`, and `SchemaNode` never declared that field — so the value was
+unconditionally `None`, the rule fired whatever the document said, and its own
+hint told people to add an annotation that changed nothing.
+
+Two defects, in fact. It also read the attribute off the **parent** object
+rather than the sensitive property, so annotating the field itself would not
+have silenced it even once the field existed.
+
+`SchemaNode.data_classification` is declared and populated from
+`x-data-classification` now, and the check reads it on the property.
+
+
 ### Added — `apiverity federation`
 
 An SDL diff compares two documents. In a federated graph that is the wrong

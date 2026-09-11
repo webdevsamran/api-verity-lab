@@ -25,7 +25,14 @@ paths:
                 properties:
                   id: {type: string}
                   name: {type: string}
-                  email: {type: string}
+                  # Classified, because it is one. Without the annotation
+                  # `DRIFT-RESPONSE-PII` reports it every run, and it is
+                  # right to: an email arriving at a field the contract
+                  # does not say carries one is the mismatch that rule is
+                  # about.
+                  email:
+                    type: string
+                    x-data-classification: pii
                   plan: {type: string, enum: [free, pro]}
   /reports:
     get:

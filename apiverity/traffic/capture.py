@@ -24,6 +24,12 @@ decision below follows from that being the safe shape:
 the HAR and then sanitized it would have already put an `Authorization` header
 on disk -- and on a crash between the two, left it there.
 
+Personal data goes the same way. `security/pii.py` recognises what has a shape
+worth trusting -- an email, an IP address, a card number that passes Luhn, an
+IBAN that passes mod-97 -- and those are replaced too, because a corpus is
+committed and no credential pattern names the field a customer's email arrived
+in.
+
 So headers, query strings, request URLs and bodies are redacted in memory, and
 the entry appended to the log is the redacted one. The URL is rebuilt from the
 redacted parameters rather than carried through: redacting `queryString` and
@@ -165,6 +171,11 @@ class Capture:
     #: Response bodies are what `drift --corpus` compares against, so unlike
     #: `import_har` this keeps them -- redacted -- and says so in the file.
     keep_response_bodies: bool = True
+    #: Replace recognised personal data as well as credentials. On by default:
+    #: a corpus is committed, and the cost of an unnecessary `[PII]` is a
+    #: replayed request that is slightly less realistic, while the cost of the
+    #: opposite is a customer's email address in a repository.
+    redact_pii: bool = True
     #: A hard cap, not a threshold. The command's poll loop notices the limit
     #: a tenth of a second later, by which time more requests have arrived --
     #: so asking for two and getting three was the first behaviour here, and
@@ -212,6 +223,14 @@ class Capture:
         # `password\": \"x`, and the patterns match a name next to a colon.
         # The escaping is exactly what hides it.
         redacted = _scrub(redact_json(parsed, self.redaction), self.redaction)
+        if self.redact_pii:
+            from apiverity.security import pii
+
+            # After the credential rules, and over the values rather than the
+            # document. A corpus is something people commit, and an email in a
+            # field no credential pattern names is the case those rules cannot
+            # reach.
+            redacted = pii.redact(redacted)
         return json.dumps(redacted, separators=(",", ":")), None
 
     def record(

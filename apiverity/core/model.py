@@ -62,6 +62,15 @@ class SchemaNode(BaseModel):
     description: str | None = None
     nullable: bool = False
     deprecated: bool = False
+    #: `x-data-classification` on this node: `pii`, `credential`, whatever the
+    #: organisation uses.
+    #:
+    #: `security/packs.py` has read this since it was written --
+    #: `getattr(schema, "data_classification", None)` -- and the model never
+    #: declared it, so the value was always `None` and `SEC-SENSITIVE-FIELD`
+    #: fired whatever the document said. Its own hint told people to add the
+    #: annotation, and adding it changed nothing.
+    data_classification: str | None = None
     enum: list[Any] | None = None
     const: Any | None = None
     default: Any | None = None
