@@ -22,6 +22,7 @@
     "command": {
       "enum": [
         "agent-setup",
+        "agent-tasks",
         "app",
         "audit",
         "baseline",

@@ -77,6 +77,7 @@ nav:
       - Emergency freeze: kill-switch.md
       - MCP exposure: mcp-exposure.md
       - Agent setup: agent-setup.md
+      - Agent task packs: agent-tasks.md
   - Guides:
       - Installing: install.md
       - CI contract gate: ci.md

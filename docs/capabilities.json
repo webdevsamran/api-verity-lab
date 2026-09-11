@@ -57,6 +57,17 @@
       ]
     },
     {
+      "name": "agent-tasks",
+      "summary": "export a verified MCP tool surface as a tooltrace-bench task pack",
+      "options": [
+        "--allow-findings",
+        "--include-flagged",
+        "--json",
+        "--pack",
+        "-o"
+      ]
+    },
+    {
       "name": "app",
       "summary": "read the contract out of an application object and check it",
       "options": [

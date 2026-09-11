@@ -45,6 +45,7 @@ from apiverity.cli.commands.governance import (
 )
 from apiverity.cli.commands.platform import (
     cmd_agent_setup,
+    cmd_agent_tasks,
     cmd_audit,
     cmd_explain,
     cmd_freeze,
@@ -1350,6 +1351,33 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_agent_setup)
+    p = sub.add_parser(
+        "agent-tasks",
+        help="export a verified MCP tool surface as a tooltrace-bench task pack",
+    )
+    p.add_argument("manifest", help="an MCP tools/list manifest")
+    p.add_argument("-o", "--out", required=True, metavar="DIR", help="directory to write into")
+    p.add_argument("--pack", help="pack name (default: the manifest's filename)")
+    p.add_argument(
+        "--allow-findings",
+        action="store_true",
+        help=(
+            "export even when this surface has error-level findings. They travel with the "
+            "pack, because every failure it then reports is ambiguous between the agent and "
+            "the manifest"
+        ),
+    )
+    p.add_argument(
+        "--include-flagged",
+        action="store_true",
+        help=(
+            "also export tools whose description was reported as poisoning. The correct "
+            "behaviour is to refuse such a description, which this task shape scores as a "
+            "failure -- so they are left out by default"
+        ),
+    )
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_agent_tasks)
     p = sub.add_parser(
         "import-rules",
         help="read a Spectral ruleset and report what migrating it would cost",

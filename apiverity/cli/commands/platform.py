@@ -18,6 +18,7 @@ from apiverity.cli.commands.common import (
     _emit,
     _load,
     active_profile,
+    apply_project_suppressions,
     merged_severity_overrides,
 )
 
@@ -517,6 +518,98 @@ def cmd_import_rules(args: argparse.Namespace) -> int:
     # The backlog is the finding. A migration tool reporting only its coverage
     # would be claiming a completeness it does not have.
     return EXIT_FINDINGS if imported.not_covered else EXIT_OK
+
+
+def cmd_agent_tasks(args: argparse.Namespace) -> int:
+    """Hand a verified MCP tool surface to tooltrace-bench as a task pack.
+
+    This project answers "is this tool surface sound?"; it cannot answer "will
+    an agent use it correctly?". That is a measurement over agents, and the
+    sibling project makes it. The contract is the scorer, so the hand-off costs
+    nothing to keep honest.
+    """
+    from apiverity.agents.tasks import ExportError, build, write
+
+    service, findings, plugin = _load(args.manifest)
+    if plugin.protocol().value != "mcp":
+        print(
+            f"error: '{args.manifest}' is a {plugin.protocol().value} contract. Task packs "
+            "are generated from MCP tool manifests -- the agent-facing surface is the one "
+            "an agent benchmark can be built from",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+
+    from apiverity.security import run_security_checks
+
+    findings = list(findings) + list(run_security_checks(service))
+    findings, suppressed = apply_project_suppressions(findings)
+    errors = [f for f in findings if f.severity.value == "ERROR"]
+    if errors and not getattr(args, "allow_findings", False):
+        # A pack built from a manifest this tool reports errors on benchmarks
+        # agents against a contract we say is broken, and every failure in it
+        # is ambiguous between the agent and the manifest.
+        for finding in errors:
+            print(
+                f"  [{finding.severity.value}] {finding.rule_id}  {finding.message}",
+                file=sys.stderr,
+            )
+        print(
+            f"error: {len(errors)} error-level finding(s) in this surface. Fix them, or pass "
+            "--allow-findings to export anyway -- the findings travel with the pack",
+            file=sys.stderr,
+        )
+        return EXIT_FINDINGS
+
+    raw = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
+
+    from apiverity import __version__
+    from apiverity.core.artifact import contract_hash
+
+    provenance = {
+        "tool": "api-verity-lab",
+        "tool_version": __version__,
+        "manifest": args.manifest,
+        "contract_hash": contract_hash(args.manifest),
+        "verified": not errors,
+    }
+    try:
+        pack = build(
+            raw,
+            findings,
+            pack=args.pack or Path(args.manifest).stem,
+            provenance=provenance,
+            service=service,
+            include_flagged=bool(getattr(args, "include_flagged", False)),
+        )
+    except ExportError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    if errors:
+        pack.findings = [
+            {"rule_id": f.rule_id, "severity": f.severity.value, "message": f.message}
+            for f in findings
+        ]
+    written = write(pack, args.out, provenance)
+
+    _emit(
+        {
+            "tool": "apiverity",
+            "command": "agent-tasks",
+            "manifest": args.manifest,
+            "protocol": plugin.protocol().value,
+            "pack": pack.name,
+            "out": str(args.out),
+            "written": [str(p) for p in written],
+            **pack.as_dict(),
+            "findings": findings,
+            "suppressed": suppressed,
+            "errors": len(errors),
+        },
+        args.json,
+    )
+    return EXIT_OK
 
 
 def cmd_agent_setup(args: argparse.Namespace) -> int:

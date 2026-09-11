@@ -38,7 +38,7 @@ fuzzing, drift detection, mocking and performance budgets. Each has its own
 result format, its own CI wiring and its own mental model — so findings never
 compose: you can't ask "which endpoints are both under-tested *and* drifting?"
 
-api-verity-lab answers fifty questions from one place:
+api-verity-lab answers fifty-one questions from one place:
 
 | Question | Command |
 |---|---|
@@ -73,6 +73,7 @@ api-verity-lab answers fifty questions from one place:
 | Can somebody else verify the audit log without trusting my server? | `apiverity audit export --db server.db --org-id 1` |
 | Something is wrong — how do I stop releases right now? | `apiverity freeze on --reason ...` |
 | Can an agent ask *this* whether its change is breaking? | `apiverity-mcp --root .` |
+| Can a benchmark measure whether agents use our tool surface correctly? | `apiverity agent-tasks tools.json -o packs/` |
 | How do the agents in my repo learn this tool exists? | `apiverity agent-setup --write` |
 | Can schema-derived edge cases break it? | `apiverity test` |
 | Could a fuzz run post a secret out of our own spec? | `apiverity test` (`GUARD-PAYLOAD-*`) |

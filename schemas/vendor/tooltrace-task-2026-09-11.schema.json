@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tooltrace-bench.dev/schemas/task.schema.json",
+  "title": "ToolTrace Bench task definition",
+  "type": "object",
+  "required": [
+    "id",
+    "category",
+    "objective",
+    "allowed_tools",
+    "assertions"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+      "description": "pack/task-name identifier"
+    },
+    "version": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "minLength": 1
+    },
+    "objective": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string"
+    },
+    "starting_workspace": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "fixtures": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "allowed_tools": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "assertions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "type",
+          "params"
+        ],
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "params": {
+            "type": "object"
+          },
+          "weight": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "timeout_seconds": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "max_steps": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "network_policy": {
+      "enum": [
+        "disabled",
+        "allowlisted"
+      ]
+    },
+    "resource_limits": {
+      "type": "object",
+      "properties": {
+        "max_memory_mb": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "max_cpus": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "max_disk_mb": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    },
+    "difficulty": {
+      "enum": [
+        "easy",
+        "medium",
+        "hard",
+        "expert"
+      ]
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "perturbations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "tool_failure",
+              "command_exit",
+              "moved_file",
+              "api_error",
+              "delay",
+              "ambiguous_error",
+              "irrelevant_files"
+            ]
+          },
+          "params": {
+            "type": "object"
+          },
+          "apply_at_step": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "long_context": {
+      "type": "boolean"
+    },
+    "metadata": {
+      "type": "object"
+    },
+    "requires_tools": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Executables that must be on PATH for this task to run. A task whose requirements are unmet is skipped, never scored as a failure."
+    }
+  }
+}

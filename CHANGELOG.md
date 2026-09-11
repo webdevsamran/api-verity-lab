@@ -4,6 +4,73 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — a verified tool surface, handed to the benchmark that can measure agents against it
+
+This project answers "is this tool surface sound?". It cannot answer "will an
+agent use it correctly?" — that is a measurement over agents, and
+[tooltrace-bench](https://github.com/webdevsamran/tooltrace-bench) is the
+sibling project that makes it. `apiverity agent-tasks` is the hand-off.
+
+- **The contract is the scorer.** For each tool in a verified MCP manifest, one
+  task: given the contract, write the arguments for a call to it, graded by a
+  `json_schema` assertion pointed at **that tool's own `inputSchema`**. A
+  hand-written expected answer would be a rubric that can disagree with what the
+  service publishes, and then the benchmark measures the rubric.
+
+- **Every task carries a reference solution**, because `tooltrace task test`
+  refuses one without: nobody has shown an unproven task is solvable, and an
+  unsolvable task in a benchmark is a score everybody loses for the author's
+  reason. That objection is this project's own ethic arriving from the other
+  side. The solution comes from `apiverity.fuzz.generate.generate_valid` — the
+  generator `apiverity test` already uses — rather than a second
+  schema-to-example implementation that would eventually disagree with the
+  first.
+
+- **A test checks the reference solution against the assertion that grades it.**
+  That is a fidelity check on the contract model, not on the exporter: the
+  solution is generated from the `SchemaNode` model and the scorer is the raw
+  JSON Schema from the manifest, so any constraint the model drops appears as a
+  reference answer that fails its own check.
+
+- **It refuses to export a surface that did not pass.** Benchmarking agents
+  against a contract this tool reports errors on makes every failure ambiguous
+  between the agent and the manifest. `--allow-findings` overrides it and writes
+  the findings into the pack's README, where whoever reads the scores will see
+  them.
+
+- **It refuses to turn a poisoned description into an instruction.** You cannot
+  ask an agent to follow a description that is an injection and then score it
+  for compliance — the correct behaviour is to refuse, and this task shape would
+  mark that wrong. Measuring resistance is a different shape, and pretending
+  this one does it would be worse than not shipping it. `--include-flagged`
+  exports them with the rule id attached, for an author writing that shape by
+  hand.
+
+- **It refuses to export a task nothing can fail.** A tool declaring
+  `{"type": "object", "properties": {}}` constrains nothing: every submission
+  validates. `fixtures/mcp/tools_v1.json` has one, so the check is exercised
+  rather than hypothetical, and the skipped tools and their reasons travel in
+  the pack's README — a reader comparing tool count to task count otherwise
+  assumes the difference was a bug.
+
+- **Built against the *published* schema, not a working tree.** tooltrace-bench's
+  checkout has `tool_descriptions` and `attachments`; its published schema does
+  not, and `tool_descriptions` would be the obvious way to measure resistance to
+  a poisoned description. Because the task schema takes
+  `additionalProperties: true`, a pack using one would still validate and the
+  runner would ignore it. The schema is vendored under `schemas/vendor/` with
+  its digest and fetch date, the way the OAI's Arazzo schema is, and a test
+  fails if either field is used — and fails the other way when one becomes
+  published and the decision is worth revisiting.
+
+- Verified end to end against tooltrace-bench 0.3.0 on 2026-09-11:
+  `tooltrace task validate` returns `{'valid': 2, 'errors': []}` and
+  `tooltrace task test` returns `{'passed': 2, 'problems': []}` for the pack
+  generated from `fixtures/mcp/tools_v1.json`. The second line is the loop
+  closing: this project's generator, graded by this project's verified contract,
+  inside the sibling project's runner.
+
+
 ### Added — the README's headline animation is generated, not recorded
 
 A project's demo GIF is a picture of whatever the tool printed on the author's
