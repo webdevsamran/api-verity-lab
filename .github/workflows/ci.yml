@@ -236,6 +236,23 @@ jobs:
       # module collapses every chunk back into the entry and nothing fails.
       - run: npm run check:bundle
 
+      # The editor extension is a second npm project in this repository, and an
+      # extension nobody has run `tsc` over is TypeScript whose first reader is
+      # whoever tries to install it. Three real errors were in the first
+      # version of it -- a wrong `DocumentSelector` type among them -- and none
+      # were visible without compiling.
+      #
+      # `working-directory` per step, because this job's default is `web`.
+      - name: Install the VS Code extension's dependencies
+        working-directory: editors/vscode
+        run: npm ci || npm install
+      - name: Compile the VS Code extension
+        working-directory: editors/vscode
+        run: npm run compile
+      - name: npm audit the extension (fail on high+)
+        working-directory: editors/vscode
+        run: npm audit --audit-level=high
+
   sbom:
     name: SBOM
     runs-on: ubuntu-latest

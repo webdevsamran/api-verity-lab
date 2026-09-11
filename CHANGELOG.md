@@ -4,6 +4,49 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — a VS Code extension, deliberately thin
+
+`editors/vscode` is a client over `apiverity lsp` and nothing more. Every rule,
+severity and message comes from the server, so the extension cannot drift from
+the CLI: there is nothing in it to drift. What it owns is the part an editor has
+to own — finding the executable, saying something useful when it is not there,
+and restarting cleanly.
+
+- **A missing executable is reported, with the fix.** The usual failure modes
+  are a silent no-op, which reads as "this contract is clean", and a spawn
+  traceback, which says nothing about what to install. This runs
+  `apiverity --version` first — a file-exists check passes for a stale shim
+  pointing at a removed virtualenv — and on failure offers the install page and
+  the setting.
+
+- **Changing the executable restarts the server**, because leaving the old one
+  running would show diagnostics from a tool the user has just replaced.
+
+- **It does not activate on `*`.** Only the languages the server actually
+  lints.
+
+- **`xml` is one of them, which was a defect until a test said so.** `.wsdl` is
+  `xml` to an editor, the server lints WSDL, and the first version of this
+  extension did not list it — so the one contract format nobody thinks of would
+  have got no diagnostics at all, silently: the client never starts, there is no
+  error, and the absence of findings reads as the absence of problems.
+  `tests/unit/test_vscode_extension.py` now holds the extension's document
+  selector and activation events against the server's own file list, in both
+  directions.
+
+- **CI compiles it.** A second npm project in the repository that nobody runs
+  `tsc` over is TypeScript whose first reader is whoever tries to install it.
+  Three real errors were in the first version — a `vscode.DocumentSelector`
+  where the client wants its own, an `OutputChannel` where version 10 requires a
+  `LogOutputChannel`, an unused parameter — and none were visible without
+  compiling. `npm audit` runs on it too, for the same reason it runs on `web/`.
+
+- What CI does **not** do is launch VS Code, and `editors/vscode/README.md`
+  says so: "it compiles and its document selector matches the server's file
+  list" is the claim being made and it is checked; "it works in the editor" is
+  not something this repository has established.
+
+
 ### Added — one language server, so the rules reach every editor
 
 Editor support for a linter is usually five plugins, each reimplementing the

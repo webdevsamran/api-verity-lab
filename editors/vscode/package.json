@@ -1,0 +1,100 @@
+{
+  "name": "api-verity-lab",
+  "displayName": "api-verity-lab",
+  "description": "Breaking-change and contract-governance diagnostics for OpenAPI, AsyncAPI, GraphQL, gRPC and MCP, from the apiverity language server.",
+  "version": "0.2.0",
+  "publisher": "webdevsamran",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/webdevsamran/api-verity-lab.git",
+    "directory": "editors/vscode"
+  },
+  "engines": {
+    "vscode": "^1.91.0"
+  },
+  "categories": [
+    "Linters",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "openapi",
+    "graphql",
+    "grpc",
+    "mcp",
+    "api-governance"
+  ],
+  "activationEvents": [
+    "onLanguage:yaml",
+    "onLanguage:json",
+    "onLanguage:jsonc",
+    "onLanguage:graphql",
+    "onLanguage:proto",
+    "onLanguage:proto3",
+    "onLanguage:xml"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "apiverity.restart",
+        "title": "Restart the language server",
+        "category": "apiverity"
+      },
+      {
+        "command": "apiverity.showOutput",
+        "title": "Show the server log",
+        "category": "apiverity"
+      }
+    ],
+    "configuration": {
+      "title": "api-verity-lab",
+      "properties": {
+        "apiverity.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run the apiverity language server."
+        },
+        "apiverity.serverPath": {
+          "type": "string",
+          "default": "apiverity",
+          "description": "The apiverity executable. Leave as `apiverity` to use the one on PATH, or give an absolute path — a virtualenv's bin/apiverity, for instance."
+        },
+        "apiverity.args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "lsp"
+          ],
+          "description": "Arguments that start the language server. Only change this if you are wrapping the executable."
+        },
+        "apiverity.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Log the traffic between this extension and the server, in the apiverity output channel."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "typecheck": "tsc -p ./ --noEmit",
+    "vscode:prepublish": "npm run compile"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^10.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/vscode": "^1.91.0",
+    "typescript": "^5.9.0"
+  }
+}

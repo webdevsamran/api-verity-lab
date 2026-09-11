@@ -17,9 +17,11 @@ anything else desynchronises every frame after it.
 
 ### VS Code
 
-No dedicated extension yet — it is the next piece of this work, and linking to
-one before it exists would be the kind of claim this project does not make. In
-the meantime, any generic LSP client extension can launch `apiverity lsp`.
+The extension in [`editors/vscode`](https://github.com/webdevsamran/api-verity-lab/tree/main/editors/vscode)
+is a thin client around this server. Build it from the repository with
+`npm ci && npm run compile`; CI compiles it on every pull request, and a test
+holds its document selector against this server's own file list, because a
+client that never activates for a format looks exactly like a clean file.
 
 ### Neovim (0.11+)
 
