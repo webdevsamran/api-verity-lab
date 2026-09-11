@@ -161,6 +161,19 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   not one. The button says "Print / Save as PDF" because the browser renders it
   and a 300 kB PDF writer does not fit in a 220 kB entry budget — the export
   module is a route chunk of 2.8 kB and the entry grew by 1.3 kB
+- Outbound payload guardrails (`GUARD-*`) — NEW. The response half of SEC-08
+  already existed (`SEC-RESPONSE-CREDENTIAL` reads what comes back); this is the
+  half nobody checks, because synthetic data feels safe by construction. It is
+  not: a generated payload is built from the contract, and `security/packs.py`
+  exists because contracts carry committed secrets in examples — so a fuzz run
+  reads one out of the repository and posts it to whatever `--base-url` names.
+  That is a leak the tool *performs*, not one it finds, so the check runs before
+  the request and the payload is not sent. Named by kind and pointer, never by
+  value. Second rule: a body over 256 kB is refused rather than truncated, since
+  `maxLength: 10000000` is a legal schema and a shortened case is one that did
+  not test what it says it tested. Deliberately not guarded: injection-shaped
+  values, which came out of the contract's own `pattern` and are what the run
+  exists to exercise
 - Synthetic monitoring (`apiverity monitor`) — NEW. Runs any other command on a
   schedule and reports the transitions rather than the snapshot, because a cron
   entry that posts the same twelve findings every five minutes is muted inside a

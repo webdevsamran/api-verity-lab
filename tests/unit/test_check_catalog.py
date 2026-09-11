@@ -48,7 +48,7 @@ _DOC = _ROOT / "docs" / "check-rules.md"
 #: table of them for `explain`'s grouping, and matching those would report a
 #: dozen prefixes as rules nothing can explain.
 _EMITTED = re.compile(
-    r"^(?:SEC|LIFECYCLE|SEMANTIC|SLO|GOV|LINT|SUPPRESSION|CONFIG|AUTHZ|SDK)-[A-Z0-9-]*[A-Z0-9]$"
+    r"^(?:SEC|LIFECYCLE|SEMANTIC|SLO|GOV|LINT|SUPPRESSION|CONFIG|AUTHZ|SDK|GUARD)-[A-Z0-9-]*[A-Z0-9]$"
 )
 
 

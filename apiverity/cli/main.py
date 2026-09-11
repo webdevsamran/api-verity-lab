@@ -486,6 +486,25 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--minimize", action="store_true")
     p.add_argument("--json", action="store_true")
     _add_auth_flags(p)
+    p.add_argument(
+        "--max-payload-bytes",
+        type=int,
+        metavar="N",
+        help=(
+            "refuse to send a generated body larger than this (default 262144). A "
+            "schema may declare `maxLength: 10000000`, and a boundary case asking "
+            "for the largest valid value produces exactly that"
+        ),
+    )
+    p.add_argument(
+        "--allow-credential-payloads",
+        action="store_true",
+        help=(
+            "send a generated body even when it carries something credential-shaped. "
+            "Off by default: the value came out of the contract, and posting it to "
+            "the target is an action that cannot be taken back"
+        ),
+    )
     p.set_defaults(func=cmd_test)
     p = sub.add_parser(
         "workflow",

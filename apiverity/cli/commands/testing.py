@@ -67,8 +67,18 @@ def cmd_test(args: argparse.Namespace) -> int:
         return EXIT_USAGE
     try:
         headers, cert = auth_material(args)
+        from apiverity.security.guardrails import Guardrails
+
         results = run_cases(
-            service, args.base_url, cases, timeout=args.timeout, headers=headers, cert=cert
+            service,
+            args.base_url,
+            cases,
+            timeout=args.timeout,
+            headers=headers,
+            cert=cert,
+            guardrails=Guardrails(
+                allow_credentials=bool(getattr(args, "allow_credential_payloads", False)),
+            ).with_limit(getattr(args, "max_payload_bytes", None)),
         )
     except Exception as exc:
         print(f"error: target unreachable: {exc}", file=sys.stderr)

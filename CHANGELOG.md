@@ -4,6 +4,46 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — guardrails on what a generated payload may carry out
+
+- **`GUARD-PAYLOAD-CREDENTIAL`.** `SEC-RESPONSE-CREDENTIAL` reads what comes
+  back from a service. This is the other direction, and it is the one nobody
+  checks because synthetic data feels safe by construction.
+
+  It is not. A generated payload is built from the contract, and a contract is
+  a document somebody wrote: an `example`, a `default`, an `enum` member.
+  `apiverity validate` reports committed secrets in examples precisely because
+  they happen — and when one does, a fuzz run reads it out of the repository
+  and posts it to whatever `--base-url` names. That is not a leak the tool
+  found; it is one the tool performed.
+
+  So the check runs **before** the request and the payload is not sent. A WARN
+  beside a request that already went out is a finding about something nobody
+  can take back. The finding names the kind and the JSON pointer, never the
+  value — the same rule `security/leakage.py` follows, for the same reason.
+
+  `--allow-credential-payloads` sends it anyway and still reports it, at WARN:
+  a contract may legitimately declare a token field with a realistic example.
+
+- **`GUARD-PAYLOAD-SIZE`.** `maxLength: 10000000` is a legal schema, and a
+  boundary generator asked for the largest valid string produces ten megabytes.
+  Sending it is a denial of service somebody wrote by running a test suite.
+  Refused above 256 kB, raisable with `--max-payload-bytes` — and refused
+  rather than truncated, because a payload silently shrunk is a case that did
+  not test what it says it tested.
+
+- A refused case is reported as `error`, not `fail`, and the run continues: a
+  run of four hundred should lose the one case that is unsendable, not the
+  other three hundred and ninety-nine. It establishes nothing about the target,
+  which is what `error` means here.
+
+- **Deliberately not guarded: injection payloads.** A generated value that
+  looks like SQL or a shell fragment came out of the contract's own `pattern`
+  or `enum`, so refusing to send it would refuse to test what the contract says
+  the operation accepts — and a service that mishandles it has a bug the run
+  exists to find. The guardrail is about what this tool must not *do*.
+
+
 ### Added — taking a view out of the dashboard
 
 - **CSV, PNG and the browser's own PDF**, on the views that have something to

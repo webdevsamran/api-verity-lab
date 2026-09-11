@@ -425,6 +425,7 @@
       "name": "test",
       "summary": "generate cases from the schema and run them against a live service",
       "options": [
+        "--allow-credential-payloads",
         "--as",
         "--auth-profile",
         "--auth-profiles",
@@ -436,6 +437,7 @@
         "--include-mutations",
         "--json",
         "--list-generators",
+        "--max-payload-bytes",
         "--minimize",
         "--model-based",
         "--operations",

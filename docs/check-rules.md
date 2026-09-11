@@ -154,6 +154,13 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 | `SLO-UNDECLARED` | INFO | `validate` | An operation states no objective, in a contract where others do. | Nothing, unless you meant to. An operation with no stated objective is not a defect -- it is an operation nobody promised anything about. |
 | `SLO-UNKNOWN-OBJECTIVE` | WARN | `validate` | An operation declares an objective this tool does not measure. | Rename it to one of the measured objectives, or accept that nothing checks it. An objective nothing compares against is a promise nobody checks. |
 
+## Outbound guardrails
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `GUARD-PAYLOAD-CREDENTIAL` | ERROR | `test` | a generated payload carried something credential-shaped, and was not sent | check the contract first: the value came from an example, a default or an enum member, and `apiverity validate` reports committed secrets in examples. If the field is a token field and the example is not a real credential, pass --allow-credential-payloads. The check runs before the request rather than after it, because a finding about a credential this process already posted is a finding about something nobody can take back |
+| `GUARD-PAYLOAD-SIZE` | WARN | `test` | a generated payload was larger than the outbound guardrail, and was not sent | raise it with --max-payload-bytes if the target is meant to take a body that size. `maxLength: 10000000` is a legal schema and a boundary case asking for the largest valid value produces exactly that, which is a denial of service somebody wrote by running a test suite. The payload is refused rather than truncated: a shortened case is a case that did not test what it says it tested |
+
 ## Project configuration
 
 `.apiverity.yaml`, checked by `apiverity config validate` and on every run that reads it. An ERROR here stops the run: a setting nobody reads is a setting the reader believes is active.
@@ -188,4 +195,4 @@ The suppressions file, talking about itself. An entry that is not justified and 
 | `SUPPRESSION-INCOMPLETE` | WARN | `breaking` | A suppression is missing a field it needs, so it suppressed nothing. | Add the fields the message names: `owner`, `reason`, and an `expires` date within the project's maximum. The entry fails closed, so the finding it named is still in the run -- this is not a second failure, it is the reason the first one is still there. |
 | `SUPPRESSION-UNSCOPED` | INFO | `breaking` | A suppression silences its rule across every operation. | Nothing, if that is what you meant -- an API with no pagination does not need the pagination rule on forty operations. Add an `operation_key` if it is not: a rule silenced contract-wide will not fire on the operation added next month either. |
 
-_78 check rules._
+_80 check rules._

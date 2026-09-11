@@ -649,6 +649,7 @@ _RULE_GUIDE: tuple[tuple[str, str, str], ...] = (
     ("DRIFT-", "Runtime drift", "docs/capability-status.md"),
     ("AUTHZ-", "Authorization, between identities", "docs/authorization.md"),
     ("SDK-", "Generated SDKs", "docs/sdk-surface.md"),
+    ("GUARD-", "Outbound guardrails", "docs/guardrails.md"),
     ("SUPPRESSION-", "The gate's escape hatch", "docs/ci.md#suppressions"),
     ("CONFIG-", "Project configuration", "docs/ci.md"),
     ("SPEC-", "Spec loading", "docs/spec-support.md"),

@@ -17,6 +17,8 @@ from apiverity.core.model import Operation, Service
 from apiverity.core.validation import validate_value
 from apiverity.fuzz.generate import fill_path, operation_cases
 from apiverity.fuzz.models import TestCase, TestResult
+from apiverity.security.guardrails import Guardrails
+from apiverity.security.guardrails import inspect as inspect_payload
 
 
 def build_cases(
@@ -180,16 +182,23 @@ def run_cases(
     max_cases: int | None = None,
     headers: dict[str, str] | None = None,
     cert: Any = None,
+    guardrails: Guardrails | None = None,
 ) -> list[TestResult]:
     """Run cases sequentially against ``base_url``.
 
     `headers` and `cert` carry whatever `--auth-profiles` resolved. They are
     applied to the client rather than to each request so a case that sets its
     own headers cannot drop the credential by replacing the dict.
+
+    `guardrails` decides what a generated payload is allowed to carry to the
+    target. A case that fails them is not sent and is reported as a failure of
+    that case: the run loses one of four hundred, not the other three hundred
+    and ninety-nine.
     """
     ops = {op.key: op for op in service.operations}
     results: list[TestResult] = []
     selected = cases if max_cases is None else cases[:max_cases]
+    limits = guardrails or Guardrails()
 
     with httpx.Client(
         base_url=base_url,
@@ -201,6 +210,26 @@ def run_cases(
         for case in selected:
             op = ops.get(case.operation_key)
             started = time.monotonic()
+
+            # Before the request, not after it. A finding about a credential
+            # this process already posted is a finding about something that
+            # cannot be taken back.
+            verdict = inspect_payload(case.body, operation_key=case.operation_key, config=limits)
+            if not verdict.allowed:
+                results.append(
+                    TestResult(
+                        case_id=case.id,
+                        operation_key=case.operation_key,
+                        kind=case.kind,
+                        description=case.description,
+                        status="error",
+                        violations=verdict.reasons,
+                        reproduction=_curl_reproduction(base_url, case),
+                        duration_ms=0,
+                    )
+                )
+                continue
+
             try:
                 response = client.request(
                     case.method,
