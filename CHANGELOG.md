@@ -4,6 +4,35 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Decided — eBPF capture is evaluated and declined
+
+The roadmap asked for Keploy's approach to be studied as prior art *before*
+committing to anything. [`docs/ebpf-evaluation.md`](docs/ebpf-evaluation.md) is
+that study, and the answer is no.
+
+Keploy checked 2026-09-11: 18,452 stars, Apache-2.0, `v3.6.57` released that
+morning, `github.com/cilium/ebpf v0.21.0` in its `go.mod`. The public tree
+carries only `pkg/core/proxy/tls`, consistent with the recorded position that
+its v3 parsers compile in from a private repository — so the part worth
+studying is the part that is not there.
+
+What eBPF buys is real: no client reconfiguration. What it costs here is Linux
+only against a three-platform test matrix, `CAP_BPF` where nothing else in this
+tool asks for more than permission to open a socket, and uprobes on every TLS
+library's read/write symbols per version per build — including Go's, which
+links its own.
+
+The deciding argument is the failure mode. A probe attached to the wrong symbol
+records nothing and exits zero, and an empty corpus because nothing happened is
+the same file as an empty corpus because the probe saw nothing. That is the
+class `SAFETY_MODEL.md` names as categorically worst. `apiverity capture`
+cannot fail that way: traffic either goes through it or does not reach the
+target.
+
+The three things that would reverse the decision are written down rather than
+left implicit.
+
+
 ### Added — the migration guide reaches the finding that blocks
 
 A breaking-change finding says *what* broke. It does not say what to do

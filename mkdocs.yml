@@ -80,6 +80,7 @@ nav:
   - Status:
       - Capability status: capability-status.md
       - Product gaps: product-gaps.md
+      - eBPF capture, evaluated: ebpf-evaluation.md
       - Competitive analysis: competitive-analysis.md
       - Benchmark vs oasdiff: benchmark.md
   - Project:

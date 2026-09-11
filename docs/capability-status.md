@@ -237,6 +237,17 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   read only the flat extension spellings, so a contract using the structured
   `x-deprecation` block was told it names no retirement date and points nowhere
   while doing both
+- eBPF zero-instrumentation capture (`RUN-14`) — EVALUATED, and declined, which
+  is what the roadmap asked for. Keploy checked 2026-09-11 (18,452 stars,
+  Apache-2.0, v3.6.57, `github.com/cilium/ebpf v0.21.0` in its `go.mod`); the
+  part worth studying is in the private repository its v3 parsers compile in
+  from. What eBPF buys is real — no client reconfiguration. What it costs here:
+  Linux only against a three-platform matrix, `CAP_BPF` where nothing else in
+  this tool wants more than a socket, and uprobes on every TLS library's symbols
+  per version — with a failure mode of recording ciphertext, or nothing, and
+  exiting zero. That last is the class `SAFETY_MODEL.md` names as worst. The
+  three things that would change the decision are written down in
+  [the evaluation](ebpf-evaluation.md)
 - Synthetic monitoring (`apiverity monitor`) — NEW. Runs any other command on a
   schedule and reports the transitions rather than the snapshot, because a cron
   entry that posts the same twelve findings every five minutes is muted inside a
