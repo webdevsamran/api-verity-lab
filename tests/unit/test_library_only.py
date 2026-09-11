@@ -31,7 +31,11 @@ _DOC = _ROOT / "docs" / "capability-status.md"
 REACHED_OTHERWISE = {
     "apiverity.cli.__main__": "a console entry point itself (`python -m apiverity.cli`)",
     "apiverity.sdk": "the supported library surface; users import it directly",
-    "apiverity.server.api": "started by docker/entrypoint.sh, which imports create_app",
+    "apiverity.server.launch": "what docker/entrypoint.sh runs "
+    "(`python -m apiverity.server.launch`), and the supported way to start the "
+    "server without Docker",
+    "apiverity.server.api": "imported by server.launch",
+    "apiverity.server.oidc": "imported by server.launch when an issuer is configured",
     "apiverity.server.auth": "imported by server.api",
     "apiverity.server.decision": "imported by server.api",
     "apiverity.server.jobs": "imported by server.api",

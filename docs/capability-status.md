@@ -309,6 +309,21 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   `Recreate` for the same reason; `tests/unit/test_helm_chart.py` holds every
   `VERITY_*` it sets against the ones the code reads, which is how
   `VERITY_LOG_LEVEL` — set by the first draft, read by nothing — was caught
+- OIDC identity provider (`TEAM-06`) — EXTENDED to a real implementation.
+  `IdentityProvider` has been a `Protocol` with one implementation and a
+  docstring saying "OIDC/SAML adapters implement this"; none did. `server/oidc.py`
+  verifies the signature against the issuer's JWKS by `kid`, plus `iss`, `aud`
+  and `exp` — skipping any one turns it into a base64 decoder — and rejects
+  `alg: none` and every symmetric algorithm before anything else. Roles are
+  mapped by configuration and an unmapped subject gets **no identity**, not a
+  default `viewer`. Signature checking calls PyJWT rather than being
+  reimplemented: a hand-rolled RSA check in an authentication path is the last
+  place to be clever, and a wrong one fails open. SAML is explicitly not
+  implemented and the reason is written down. `server/launch.py` replaces the
+  inline `python -c` block in the container entrypoint, and refuses to start on
+  half an OIDC configuration rather than falling back to local tokens — a server
+  meant to use your identity provider and quietly not using it looks exactly
+  like a working one
 - Synthetic monitoring (`apiverity monitor`) — NEW. Runs any other command on a
   schedule and reports the transitions rather than the snapshot, because a cron
   entry that posts the same twelve findings every five minutes is muted inside a

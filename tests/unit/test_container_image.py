@@ -71,18 +71,34 @@ def test_the_image_does_not_run_as_root() -> None:
 
 def test_cors_origins_are_configurable_and_default_to_none() -> None:
     """The dashboard needs them; a server that answers every origin by default
-    is one whose operator never chose to."""
+    is one whose operator never chose to.
+
+    Asserted against `apiverity.server.launch`, which is where the variable is
+    read now. The entrypoint used to assemble the application from an inline
+    `python -c` block and this test matched the string there; the behaviour did
+    not move, the code did.
+    """
+    from apiverity.server.launch import ENVIRONMENT
+
     assert "VERITY_CORS_ORIGINS" in _dockerfile()
-    assert "VERITY_CORS_ORIGINS" in _ENTRYPOINT.read_text(encoding="utf-8")
+    assert "VERITY_CORS_ORIGINS" in ENVIRONMENT
+    assert "empty means none" in ENVIRONMENT["VERITY_CORS_ORIGINS"]
 
 
-def test_every_environment_variable_the_entrypoint_reads_is_documented() -> None:
+def test_every_environment_variable_the_image_honours_is_documented() -> None:
     """A variable the image honours and the header does not mention is one
-    nobody sets."""
+    nobody sets.
+
+    The set is the launcher's, not the entrypoint's: the entrypoint is four
+    lines and a `case` statement now, and reading only it would have this test
+    pass by checking nothing.
+    """
     import re
 
+    from apiverity.server.launch import ENVIRONMENT
+
     entrypoint = _ENTRYPOINT.read_text(encoding="utf-8")
-    used = set(re.findall(r"VERITY_[A-Z_]+", entrypoint))
+    used = set(ENVIRONMENT) | set(re.findall(r"VERITY_[A-Z_]+", entrypoint))
     documented = set(re.findall(r"VERITY_[A-Z_]+", _dockerfile()))
     assert used <= documented, f"undocumented: {sorted(used - documented)}"
 

@@ -17,7 +17,7 @@ behind a flag naming an address: `--base-url`, `--target`, `--otlp-endpoint`,
 background connection, no version check, no usage report.
 
 <!-- generated:egress -->
-Found by `scripts/generate_egress_map.py`: **23 call sites** across **17 modules** that can open a network connection.
+Found by `scripts/generate_egress_map.py`: **24 call sites** across **18 modules** that can open a network connection.
 
 | Module | Triggered by | Calls |
 |---|---|---|
@@ -31,6 +31,7 @@ Found by `scripts/generate_egress_map.py`: **23 call sites** across **17 modules
 | `apiverity/plugins/builtins.py` | the built-in httpx transport, used by the above | `httpx.Client` (builtins.py:46) |
 | `apiverity/runtime/drift.py` | `drift --base-url` | `httpx.Client` (drift.py:134) |
 | `apiverity/runtime/ghosts.py` | `ghosts --base-url` | `httpx.Client` (ghosts.py:178) |
+| `apiverity/server/oidc.py` | — | `httpx.get` (oidc.py:152) |
 | `apiverity/specs/__init__.py` | a spec given as a URL rather than a path | `httpx.get` (__init__.py:58) |
 | `apiverity/specs/bundle.py` | a remote `$ref`, and only with `--allow-remote-refs` | `httpx.get` (bundle.py:510) |
 | `apiverity/specs/graphql/runner.py` | `test` / `drift` against a GraphQL endpoint | `httpx.Client` (runner.py:124), `httpx.Client` (runner.py:83) |
@@ -41,7 +42,9 @@ Found by `scripts/generate_egress_map.py`: **23 call sites** across **17 modules
 
 ### Modules with no trigger listed
 
-None: every module with a call site has a stated trigger.
+- `apiverity/server/oidc.py`
+
+A module here is a call site nobody has said what causes. That is the gap worth closing before trusting this table.
 
 ### Network libraries imported
 

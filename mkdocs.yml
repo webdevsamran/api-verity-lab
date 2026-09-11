@@ -81,6 +81,7 @@ nav:
       - SDK: sdk.md
       - Self-hosting: self-hosting.md
       - Air-gapped install: air-gapped.md
+      - OIDC authentication: oidc.md
       - Network egress map: egress.md
       - Workflow authoring: workflow-authoring.md
   - Status:

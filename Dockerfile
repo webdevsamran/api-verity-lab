@@ -22,6 +22,34 @@
 #                         that answers every origin is one whose operator never
 #                         chose to, and `*` is refused outright because every
 #                         route here is authenticated.
+#
+# Identity. Local tokens by default; point it at your issuer instead. Any one
+# of the VERITY_OIDC_* variables commits the server to a complete OIDC
+# configuration -- it refuses to start half-configured rather than falling back
+# to local tokens, because a server meant to use your identity provider and
+# quietly not using it looks exactly like a working one.
+#   VERITY_OIDC_ISSUER     - the identity provider's issuer URL
+#   VERITY_OIDC_AUDIENCE   - the audience this server accepts. Required: without
+#                            it a token minted for another service verifies here
+#   VERITY_OIDC_ROLE_CLAIM - the claim carrying roles or groups (default `roles`)
+#   VERITY_OIDC_ROLE_MAP   - `group=role,group=role`, or JSON. Required: a
+#                            subject whose claim maps to nothing gets no
+#                            identity, rather than a default `viewer` that would
+#                            let anybody the issuer mints a token for read
+#                            every contract in the org
+#   VERITY_OIDC_ORG_ID     - the org every verified subject belongs to
+#   VERITY_OIDC_ORG_CLAIM  - or the claim carrying it, for a multi-org server
+#   VERITY_OIDC_JWKS_URI   - the key set URL, to skip discovery
+#   VERITY_OIDC_LEEWAY     - seconds of clock skew tolerated on exp/nbf
+#                            (default 0: a token that expired is a token that
+#                            expired)
+#   VERITY_LOCAL_TOKENS    - `0` to turn off local token auth once OIDC is in
+#                            place. Kept on by default so configuring an issuer
+#                            does not lock out the bootstrap token in the same
+#                            change.
+#
+# `apiverity.server.launch` reads all of them, and
+# tests/unit/test_container_image.py holds this header against that module.
 
 FROM python:3.12-slim AS base
 

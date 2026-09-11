@@ -31,6 +31,29 @@ server:
   # Browser origins allowed to call the API. Empty means none, which is the
   # right default for a server with no dashboard pointed at it yet.
   corsOrigins: []
+
+  # Your identity provider. Leave `issuer` empty for local tokens only.
+  #
+  # Any one of these being set commits the server to a complete OIDC
+  # configuration: it refuses to start half-configured rather than falling back
+  # to local tokens, because a server meant to use your IdP and quietly not
+  # using it looks exactly like a working one.
+  oidc:
+    issuer: ""
+    audience: ""
+    roleClaim: "roles"
+    # group -> role here. Required: an identity provider does not know what
+    # `admin` means in this application, and defaulting an unmapped subject to
+    # `viewer` lets anybody the issuer mints a token for read every contract.
+    roleMap: {}        # e.g. {platform-admins: admin, developers: member}
+    orgId: ""          # one organisation
+    orgClaim: ""       # or the claim carrying it, for several
+    jwksUri: ""        # set to skip discovery
+    leewaySeconds: 0
+
+  # Kept on by default: turning it off in the same change that configures OIDC
+  # locks out the bootstrap token too.
+  localTokens: true
   # Deliberately no `logLevel`: the server reads no such variable, and a value
   # a chart sets that nothing reads is a setting somebody will change and
   # wonder why nothing happened. `tests/unit/test_helm_chart.py` holds every

@@ -4,6 +4,64 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — a real OIDC identity provider
+
+`IdentityProvider` has been a `Protocol` with one implementation — a lookup in
+the server's own token table — and a docstring saying "OIDC/SAML adapters
+implement this". None did, so a team with an identity provider had an
+abstraction and no way to use it.
+
+- **Four checks, and skipping any one turns this into a base64 decoder.** The
+  signature against the issuer's JWKS by `kid`; `iss`, because a correctly
+  signed token from another issuer is a correctly signed token from somebody
+  else; `aud`, because an access token minted for another service is the
+  confused-deputy problem in its original form; and `exp`, with no grace period
+  unless one is configured.
+
+- `alg: none` is rejected before anything else, along with every algorithm
+  outside the allow-list. The specification permits an unsigned token and a
+  library that honours it will verify one. The defaults are asymmetric only:
+  with HMAC the verification key is the signing key.
+
+- **Roles are mapped, never defaulted.** A subject whose claim matches nothing
+  gets no identity at all — not `viewer`, which would let anybody the issuer
+  mints a token for read every contract in the org.
+
+- **Signature checking is not reimplemented.** It calls PyJWT (`[oidc]` extra,
+  and a dev dependency so the tests do not silently skip). A hand-rolled RSA
+  check in an authentication path is the last place to be clever, and a wrong
+  one fails open. The library is asked for the signature and nothing else,
+  because two places checking `aud` with two notions of what it should be is
+  how one of them ends up not checking.
+
+- A token with no `kid`, or an unknown one, is rejected rather than tried
+  against every key — that is how a rotated-out key stays valid. A `kid` missing
+  from the cache triggers one forced refetch first, so a rotation is not an
+  outage. A discovery document pointing `jwks_uri` outside the issuer is
+  refused.
+
+- **SAML is not implemented, and the reason is written down.** It is XML
+  signature verification, a larger and much sharper problem, and a half-done
+  one would be worse than none.
+
+### Changed — the server is assembled in a module, not a shell string
+
+`docker/entrypoint.sh` built the application from an inline `python -c` block:
+it grew with every setting, was tested by nothing, and failed at container
+start with a traceback about a heredoc. `apiverity.server.launch` is that logic
+as a module, covered by tests, and the supported way to start the server
+without Docker.
+
+It **refuses to start on half an OIDC configuration.** Any `VERITY_OIDC_*`
+variable commits the server to a complete one; an issuer with no audience is a
+startup failure naming what is missing, rather than a fallback to local tokens
+with a warning nobody reads. A server meant to use your identity provider and
+quietly not using it looks exactly like a working one.
+
+Turning local tokens off with no issuer configured is refused too: the server
+would authenticate nobody.
+
+
 ### Added — air-gapped install, a Helm chart, and a checkable egress claim
 
 - **`docs/egress.md` is generated from the source.** `docs/self-hosting.md` has

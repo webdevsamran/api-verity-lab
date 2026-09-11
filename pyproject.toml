@@ -39,12 +39,20 @@ dependencies = [
 
 [project.optional-dependencies]
 graphql = ["graphql-core>=3.2,<4.0"]
+# Signature verification for the OIDC identity provider. Not vendored and
+# not reimplemented: a hand-rolled RSA check in an authentication path is
+# the last place to be clever, and a wrong one fails open.
+oidc = ["pyjwt[crypto]>=2.8,<3.0"]
 grpc = ["grpcio-tools>=1.62,<2.0"]
 dev = [
   # The graphql extra is a dev dependency too: without it every GraphQL test
   # skips, and a suite that silently skips its coverage of a feature is
   # indistinguishable from one that passes it.
   "graphql-core>=3.2,<4.0",
+  # Same reasoning as above, for the OIDC provider: without it every OIDC
+  # test skips, and a skipped authentication test is the one you least
+  # want indistinguishable from a passing one.
+  "pyjwt[crypto]>=2.8,<3.0",
   "pytest>=8.2,<10.0",
   "pytest-cov>=5.0,<8.0",
   "pytest-asyncio>=0.23,<2.0",

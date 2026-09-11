@@ -22,18 +22,12 @@ set -eu
 
 case "${1:-serve}" in
     serve)
-        exec python -c "import os
-from apiverity.server import Store, create_app
-
-# Origins are read from the environment and default to none. A server that
-# answers every origin by default is a server whose operator never chose to --
-# and every route here is authenticated, so '*' is refused outright.
-origins = [o.strip() for o in os.environ.get('VERITY_CORS_ORIGINS', '').split(',') if o.strip()]
-app = create_app(
-    Store(os.environ.get('VERITY_DB', '/data/verity.db')),
-    cors_origins=origins or None,
-)
-app.run(host='0.0.0.0', port=int(os.environ.get('VERITY_PORT', '8090')))"
+        # `apiverity.server.launch` rather than an inline script. The block
+        # that used to live here grew with every setting, was tested by
+        # nothing, and failed at container start with a traceback about a
+        # heredoc. It is a module now, and `tests/unit/test_server_launch.py`
+        # covers the configuration it reads.
+        exec python -m apiverity.server.launch
         ;;
     sh|/bin/sh|bash)
         # An escape hatch for debugging a running image, and named explicitly

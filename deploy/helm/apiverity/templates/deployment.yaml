@@ -47,6 +47,32 @@ spec:
               value: {{ .Values.service.port | quote }}
             - name: VERITY_CORS_ORIGINS
               value: {{ join "," .Values.server.corsOrigins | quote }}
+            - name: VERITY_LOCAL_TOKENS
+              value: {{ ternary "1" "0" .Values.server.localTokens | quote }}
+            {{- if .Values.server.oidc.issuer }}
+            - name: VERITY_OIDC_ISSUER
+              value: {{ .Values.server.oidc.issuer | quote }}
+            - name: VERITY_OIDC_AUDIENCE
+              value: {{ .Values.server.oidc.audience | quote }}
+            - name: VERITY_OIDC_ROLE_CLAIM
+              value: {{ .Values.server.oidc.roleClaim | quote }}
+            - name: VERITY_OIDC_ROLE_MAP
+              value: {{ toJson .Values.server.oidc.roleMap | quote }}
+            {{- with .Values.server.oidc.orgId }}
+            - name: VERITY_OIDC_ORG_ID
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.server.oidc.orgClaim }}
+            - name: VERITY_OIDC_ORG_CLAIM
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.server.oidc.jwksUri }}
+            - name: VERITY_OIDC_JWKS_URI
+              value: {{ . | quote }}
+            {{- end }}
+            - name: VERITY_OIDC_LEEWAY
+              value: {{ .Values.server.oidc.leewaySeconds | quote }}
+            {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}

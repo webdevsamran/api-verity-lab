@@ -30,6 +30,16 @@ def _env_names() -> set[str]:
     return set(re.findall(r"- name: (VERITY_[A-Z_]+)", _template_text()))
 
 
+def test_every_variable_the_launcher_documents_can_be_set_from_the_chart() -> None:
+    """`ENVIRONMENT` in the launcher is the contract; the chart is one way of
+    satisfying it. A variable the launcher reads and the chart cannot set is a
+    setting Kubernetes users do not have."""
+    from apiverity.server.launch import ENVIRONMENT
+
+    unsettable = set(ENVIRONMENT) - _env_names()
+    assert not unsettable, f"the chart cannot set {sorted(unsettable)}"
+
+
 def _code_env_names() -> set[str]:
     found: set[str] = set()
     for path in list((_ROOT / "apiverity").rglob("*.py")) + list((_ROOT / "docker").rglob("*")):
