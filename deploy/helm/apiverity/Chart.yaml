@@ -1,0 +1,17 @@
+apiVersion: v2
+name: apiverity
+description: The api-verity-lab self-hosted server — contract governance, orgs, approvals, audit
+type: application
+# The chart's own version. Independent of appVersion on purpose: a values
+# change is a chart release and not a new application.
+version: 0.1.0
+appVersion: "0.2.0"
+home: https://github.com/webdevsamran/api-verity-lab
+sources:
+  - https://github.com/webdevsamran/api-verity-lab
+keywords:
+  - openapi
+  - api-governance
+  - contract-testing
+maintainers:
+  - name: webdevsamran

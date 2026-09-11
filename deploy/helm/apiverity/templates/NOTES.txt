@@ -1,0 +1,23 @@
+{{ include "apiverity.fullname" . }} is installed.
+
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "apiverity.fullname" . }} {{ .Values.service.port }}
+  curl http://127.0.0.1:{{ .Values.service.port }}/healthz
+
+{{- if not .Values.persistence.enabled }}
+
+WARNING: persistence is off. Every org, approval and audit entry is in an
+emptyDir and is gone when the pod restarts. Fine for an evaluation; nothing
+else.
+{{- end }}
+{{- if and .Values.networkPolicy.enabled .Values.networkPolicy.denyEgress }}
+
+A NetworkPolicy denying all egress is applied. If this cluster's CNI does not
+enforce NetworkPolicy, it is applied and enforces nothing -- check before
+relying on it.
+{{- end }}
+
+The server has no default credentials and creates no org. Bootstrap one:
+
+  apiverity server-db import --db /data/verity.db --input org.json
+
+See docs/self-hosting.md, and docs/air-gapped.md for a disconnected install.

@@ -57,6 +57,13 @@ jobs:
         # rots, and this is the last file to leave to memory.
         run: python scripts/generate_capability_manifest.py --check
 
+      - name: Egress map matches the code
+        # `docs/self-hosting.md` says "no telemetry, no phone-home". This is
+        # what makes that checkable: every call site that can open a socket,
+        # walked out of the package rather than remembered. A tool asking to
+        # run inside a disconnected network has to answer that from the code.
+        run: python scripts/generate_egress_map.py --check
+
       - name: Check-rule doc matches the catalogues
         # Every rule that is not a breaking-change rule. Twenty-two SEC-* ones
         # were reachable, documented nowhere and denied by `apiverity explain`;

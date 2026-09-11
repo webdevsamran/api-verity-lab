@@ -1,0 +1,32 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "apiverity.fullname" . }}
+  labels:
+    {{- include "apiverity.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "apiverity.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    {{- if .Values.networkPolicy.denyEgress }}
+    - Egress
+    {{- end }}
+  ingress:
+    - ports:
+        - port: {{ .Values.service.port }}
+          protocol: TCP
+  {{- if .Values.networkPolicy.denyEgress }}
+  # No egress rules at all, which denies everything. The server does not need
+  # to reach anything: it serves an API and writes a file. `docs/egress.md`
+  # lists every call site in the package and which flag causes it, and none of
+  # them belong to the server process.
+  #
+  # This enforces nothing on a cluster whose CNI does not implement
+  # NetworkPolicy -- it will apply cleanly and do nothing at all, which is why
+  # it is off by default rather than on.
+  egress: []
+  {{- end }}
+{{- end }}

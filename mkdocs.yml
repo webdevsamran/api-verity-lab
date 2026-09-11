@@ -80,6 +80,8 @@ nav:
       - CI contract gate: ci.md
       - SDK: sdk.md
       - Self-hosting: self-hosting.md
+      - Air-gapped install: air-gapped.md
+      - Network egress map: egress.md
       - Workflow authoring: workflow-authoring.md
   - Status:
       - Capability status: capability-status.md

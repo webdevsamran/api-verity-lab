@@ -296,6 +296,19 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   never declared the field, so the annotation its own hint recommends silenced
   nothing — and it read it off the parent object rather than the sensitive
   property, so it would not have worked even if the field had existed
+- Air-gapped install and Helm chart (`SEC-15`) — NEW, completing section E. The
+  honest core is `scripts/generate_egress_map.py`: `docs/self-hosting.md` has
+  said "no telemetry, no phone-home" since it was written, and that was a
+  sentence somebody typed. Every call site that can open a socket is walked out
+  of the package with `ast` into [docs/egress.md](egress.md) — 23 of them across
+  17 modules, each with the flag that causes it — and CI fails when the document
+  and the code disagree. A module that acquires a call with no stated trigger is
+  reported by name, and an HTTP library the scanner cannot follow is reported as
+  unrecognised rather than silently omitted. The chart refuses `replicaCount > 1`
+  rather than rendering it (one SQLite file, two writers, data loss) and uses
+  `Recreate` for the same reason; `tests/unit/test_helm_chart.py` holds every
+  `VERITY_*` it sets against the ones the code reads, which is how
+  `VERITY_LOG_LEVEL` — set by the first draft, read by nothing — was caught
 - Synthetic monitoring (`apiverity monitor`) — NEW. Runs any other command on a
   schedule and reports the transitions rather than the snapshot, because a cron
   entry that posts the same twelve findings every five minutes is muted inside a

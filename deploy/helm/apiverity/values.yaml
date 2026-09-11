@@ -1,0 +1,68 @@
+# Defaults chosen for a disconnected cluster: an image reference with no
+# registry host is a reference to whatever the cluster's own registry serves,
+# and `pullPolicy: IfNotPresent` does not reach out for a digest it already
+# has. See docs/air-gapped.md.
+
+image:
+  repository: apiverity
+  tag: ""            # defaults to .Chart.AppVersion
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 8090
+
+# The server keeps everything in one SQLite file. That is a deliberate
+# constraint of the application, not of this chart: more than one replica
+# writing to one file is data loss, so the chart refuses it rather than
+# letting a `--set replicaCount=3` look like it worked.
+persistence:
+  enabled: true
+  size: 2Gi
+  storageClass: ""
+  # An existing claim, for a cluster where storage is provisioned separately.
+  existingClaim: ""
+
+server:
+  # Browser origins allowed to call the API. Empty means none, which is the
+  # right default for a server with no dashboard pointed at it yet.
+  corsOrigins: []
+  # Deliberately no `logLevel`: the server reads no such variable, and a value
+  # a chart sets that nothing reads is a setting somebody will change and
+  # wonder why nothing happened. `tests/unit/test_helm_chart.py` holds every
+  # `VERITY_*` the templates set against the ones the code reads.
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    memory: 512Mi
+
+# Runs as an unprivileged user with a read-only root filesystem. The only
+# writable path the server needs is its data volume.
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  fsGroup: 10001
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# A NetworkPolicy that denies egress by default. Off by default because it is
+# only correct if the cluster runs a CNI that enforces policy -- one that does
+# not will apply it, report success, and enforce nothing.
+networkPolicy:
+  enabled: false
+  denyEgress: true

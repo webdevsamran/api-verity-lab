@@ -1,0 +1,96 @@
+{{- if gt (int .Values.replicaCount) 1 }}
+{{- /*
+  Refused rather than rendered. The server keeps everything in one SQLite file
+  and two replicas writing to one ReadWriteOnce volume is data loss -- so a
+  `--set replicaCount=3` that rendered successfully would be the chart
+  agreeing to something that cannot work.
+*/ -}}
+{{- fail "replicaCount must be 1: the server stores state in a single SQLite file, and a second replica writing to it is data loss. Run one, or put the data on a database the application does not yet support." }}
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "apiverity.fullname" . }}
+  labels:
+    {{- include "apiverity.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    # Recreate, not RollingUpdate: a rolling update would run two pods holding
+    # the same SQLite file for the length of the rollout, which is the state
+    # the check above exists to prevent.
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "apiverity.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "apiverity.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: server
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          env:
+            - name: VERITY_DB
+              value: /data/verity.db
+            - name: VERITY_PORT
+              value: {{ .Values.service.port | quote }}
+            - name: VERITY_CORS_ORIGINS
+              value: {{ join "," .Values.server.corsOrigins | quote }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 2
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            # `readOnlyRootFilesystem: true` means every path the process
+            # writes needs a volume, and Python writes to /tmp.
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+        {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "apiverity.pvcName" . }}
+        {{- else }}
+          # Deliberately explicit: with persistence off, every org, approval and
+          # audit entry is gone when the pod restarts. That is a legitimate
+          # choice for an evaluation and a surprise for anything else.
+          emptyDir: {}
+        {{- end }}
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

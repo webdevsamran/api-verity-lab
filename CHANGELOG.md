@@ -4,6 +4,45 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — air-gapped install, a Helm chart, and a checkable egress claim
+
+- **`docs/egress.md` is generated from the source.** `docs/self-hosting.md` has
+  said "no telemetry, no phone-home, no auto-update" since it was written, and
+  that was a sentence somebody typed. `scripts/generate_egress_map.py` walks
+  the package with `ast` and lists every call that can open a socket — 23 sites
+  across 17 modules — with the flag that causes each. CI fails when the
+  document and the code disagree.
+
+  A module that acquires a call site with no stated trigger is named. A trigger
+  naming a module that no longer has one is named too — a published explanation
+  of something that does not happen is the same defect as an unexplained thing
+  that does. An HTTP library the scanner cannot follow is reported as
+  unrecognised rather than silently omitted, because the alternative is a table
+  that quietly stops being complete.
+
+- **A Helm chart** for the self-hosted server, with defaults that already suit
+  a disconnected cluster: an image reference with no registry host, and
+  `IfNotPresent` so it does not reach for a digest it already has.
+
+- **It refuses `replicaCount > 1` rather than rendering it.** The server keeps
+  everything in one SQLite file, and two replicas writing to one ReadWriteOnce
+  volume is data loss — so a `--set replicaCount=3` that rendered successfully
+  would be the chart agreeing to something that cannot work. The rollout
+  strategy is `Recreate` for the same reason: a rolling update holds the file
+  in two pods for the length of the rollout.
+
+- **The egress NetworkPolicy is off by default**, and says why. The server
+  needs no egress; the reason it is off is that a cluster whose CNI does not
+  implement NetworkPolicy applies it cleanly, reports success, and enforces
+  nothing. An enforcement you believe you have is worse than one you know you
+  lack.
+
+- `tests/unit/test_helm_chart.py` holds the chart against the application:
+  every `VERITY_*` it sets is one the code reads, the probe path is a real
+  route, and `appVersion` matches the package. That caught `VERITY_LOG_LEVEL`,
+  which the first draft set and no line of the application reads.
+
+
 ### Added — personal data, found by shape and never reported by value
 
 - **`security/pii.py`** recognises what has a shape worth trusting: a card
