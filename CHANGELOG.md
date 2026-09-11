@@ -4,6 +4,55 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — the README's headline animation is generated, not recorded
+
+A project's demo GIF is a picture of whatever the tool printed on the author's
+machine on one afternoon. It ages silently: a rule id gets renamed, output
+gains a column, and the animation goes on showing the old thing to everybody
+who lands on the page. This repository already fixed exactly that for the
+README's text blocks, and then left the picture unguarded — by not having one.
+
+- **`scripts/record_demo.py`** runs the demo's commands through
+  `apiverity.cli.main` in process, captures stdout verbatim, and renders
+  `docs/demo.svg` and `docs/demo.cast` from it. `--check` runs in CI, so the
+  recording cannot keep showing output the code stopped producing.
+
+- **An animated SVG, not a GIF or a hosted player.** It needs no player, no
+  third-party host and no JavaScript; GitHub renders it inline, and an
+  air-gapped clone still has it. `docs/demo.cast` is the same session as an
+  asciinema v2 recording, for anyone who wants to replay or upload it.
+
+- **The demo is `apiverity --version`, then `breaking` over two MCP tool
+  manifests.** An agent's tool surface through the command an OpenAPI document
+  goes through, emitting `BRK-RPC-REMOVED` next to `BRK-MCP-READONLY-HINT-CLEARED`
+  — which is the project's whole claim, and the one thing a recording can show
+  and a paragraph cannot.
+
+- **Nothing in it depends on `animation-fill-mode`, because that did not work.**
+  The first encoding gave each row a one-frame animation with `animation-delay`
+  set to its reveal time and `forwards` to hold it. In a browser, rows past
+  about two seconds reported `playState: "finished"` with a computed opacity
+  still `0`, and the recording stopped three lines in — visible only by putting
+  the file in front of a renderer. Every row now runs the same infinite
+  animation of the full duration and flips opacity at its own keyframe, so
+  there is no state to hold after it ends. It also loops, so a reader arriving
+  mid-play sees it from the top rather than a finished screen.
+
+- **`prefers-reduced-motion` shows the whole transcript at once.** An animated
+  README image is exactly what that preference exists for.
+
+- **Output wraps at the column, the way a terminal wraps it** — not on words.
+  A reader of the recording runs the command themselves and sees the terminal's
+  wrapping, not `textwrap`'s.
+
+- **A transcript that outgrows the frame fails the build.** Truncating would end
+  the recording mid-finding, which reads as a crash; the error names the fix
+  (shorten a scene) rather than raising the cap.
+
+- The `<desc>` carries the transcript, so a reader who cannot see the image gets
+  the session rather than the words "terminal recording".
+
+
 ### Added — one line to install it, and an honest account of every other channel
 
 The README's first instruction was `pip install api-verity-lab`. That does not

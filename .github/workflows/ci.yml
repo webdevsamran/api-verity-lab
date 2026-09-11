@@ -126,6 +126,14 @@ jobs:
         # fails if the committed README stops matching what the code produces.
         run: python scripts/capture_readme_examples.py --check
 
+      - name: README demo recording matches a real run
+        # The headline animation is the one artefact nobody re-checks. A
+        # screen recording ages silently -- a renamed rule id, a new column --
+        # and goes on showing the old thing to everybody who lands on the page.
+        # It is generated from real runs against fixtures/, so this step fails
+        # the moment it stops matching.
+        run: python scripts/record_demo.py --check
+
       - name: Secret scan
         # The only secret check here was a local pre-commit `detect-private-key`
         # hook, which `git commit --no-verify` skips and CI never ran. This is
