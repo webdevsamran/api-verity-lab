@@ -141,6 +141,13 @@ jobs:
         # shape the plugin guide tells people to copy.
         run: pytest examples/plugins/apiverity-house-rules/tests -q
 
+      - name: Landing pages match the measurement and the evidence file
+        # docs/for/* lists the rules observed firing on each protocol and
+        # docs/vs/* is built from the competitor evidence file. Both are the
+        # kind of page written once and never re-read by its author, which is
+        # how a docs site comes to assert coverage the engine lost.
+        run: python scripts/generate_landing_pages.py --check
+
       - name: Playground manifest matches the package
         # The browser playground installs `api_verity_lab-<version>.whl`. A
         # version bump with a hand-written manifest is a 404 on that wheel and

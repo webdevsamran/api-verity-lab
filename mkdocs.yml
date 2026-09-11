@@ -91,6 +91,28 @@ nav:
       - Network egress map: egress.md
       - Workflow authoring: workflow-authoring.md
       - Writing a plugin: plugin-authoring.md
+  - By protocol:
+      - AsyncAPI: for/asyncapi.md
+      - gRPC / protobuf: for/grpc.md
+      - MCP tool manifests: for/mcp.md
+      - JSON Schema 2020-12: for/openapi-2020-12.md
+      - OpenAPI: for/openapi.md
+      - Swagger 2.0: for/swagger2.md
+      - SOAP / WSDL: for/wsdl.md
+  - Compared with:
+      - Buf: vs/buf.md
+      - Dredd: vs/dredd.md
+      - GraphQL Inspector: vs/graphql-inspector.md
+      - k6: vs/k6.md
+      - Karate: vs/karate.md
+      - oasdiff: vs/oasdiff.md
+      - Optic: vs/optic.md
+      - Pact (OSS): vs/pact-oss.md
+      - Postman/Newman: vs/postman-newman.md
+      - Prism: vs/prism.md
+      - Schemathesis: vs/schemathesis.md
+      - Spectral: vs/spectral.md
+      - WireMock: vs/wiremock.md
   - Status:
       - Capability status: capability-status.md
       - Product gaps: product-gaps.md

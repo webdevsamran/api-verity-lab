@@ -18,6 +18,9 @@ and re-checked in CI.</sub>
 
 | If you want to | Read |
 |---|---|
+| Start from the format you have | [OpenAPI](for/openapi.md) · [AsyncAPI](for/asyncapi.md) · [GraphQL](protocol-support.md) · [gRPC](for/grpc.md) · [MCP](for/mcp.md) · [SOAP](for/wsdl.md) |
+| Compare it with what you already use | [oasdiff](vs/oasdiff.md) · [Schemathesis](vs/schemathesis.md) · [Spectral](vs/spectral.md) · [Pact](vs/pact-oss.md) · [Buf](vs/buf.md) · [all of them](competitive-analysis.md) |
+| Try it without installing anything | [Playground](playground.md) |
 | Understand the design | [Architecture](architecture.md) |
 | Know which rule fired, and why | [Rule catalog](rule-catalog.md) |
 | Know what each format supports | [Spec support](spec-support.md) · [Protocol support](protocol-support.md) |

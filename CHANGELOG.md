@@ -4,6 +4,53 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — twenty landing pages, none of them written by hand
+
+A docs site's per-protocol and per-competitor pages are the ones written once
+and never read again by their author. They go on asserting coverage the engine
+lost and comparisons that stopped being true, to readers who arrived from a
+search and have no other source — which is worse than having no pages at all,
+because a page nobody checks still gets quoted.
+
+- **`docs/for/<protocol>.md`**, one per format, listing the rules that
+  **actually fire** there — measured by perturbing that format's own shipped
+  fixture in each of several dozen ways, the same measurement
+  `docs/rule-parity.md` uses. A rule listed was observed firing on that
+  protocol in this build.
+
+- **`docs/vs/<tool>.md`**, one per competitor that shares a lane, from
+  `data/competitive-capabilities.json`: the other tool's **strengths first, in
+  the evidence file's words**, then where it stops, then the capability matrix.
+  The generator refuses to emit a page for a tool with no strengths recorded,
+  and every page says plainly that nothing there argues for replacing it.
+
+- **A tool with nothing in common gets no page.** Hoverfly does none of the
+  shared lanes, so there is no page comparing a contract governance engine with
+  a service virtualiser — and that is read off the matrix, not decided in
+  prose.
+
+- **The api-verity-lab column names a command.** The evidence file's matrix has
+  a column per competitor and none for this project; it was gathered to
+  describe them. Filling that gap with an unsourced `yes` in every row is the
+  thing this repository exists to not do, so each claim names the command that
+  provides it, `broker-publication` is an honest `no`, and a test asserts every
+  command named there exists.
+
+### Found — six rules fire and are in no catalogue
+
+Building the protocol pages surfaced it: `COMPAT-MEDIA-ADDED`,
+`COMPAT-MEDIA-REMOVED`, `COMPAT-STATUS-ADDED`, `COMPAT-STATUS-REMOVED`,
+`PROTO-FIELD-REMOVED` and `PROTO-RPC-REMOVED` are emitted by
+`apiverity/diff/compat.py` and `protocol_compat.py` and appear in neither
+`docs/rule-catalog.md` nor `docs/check-rules.md`. A reader who receives one and
+greps for it finds nothing — the defect this project has fixed in its own
+README twice.
+
+The pages name them rather than dropping them, under a heading saying they are
+not catalogued, because a silent drop would make the page's count disagree with
+the engine's. The catalogue entries themselves are the next change.
+
+
 ### Added — the plugin system, proved by installing a plugin
 
 Six entry-point groups have been published since the registry existed, and
