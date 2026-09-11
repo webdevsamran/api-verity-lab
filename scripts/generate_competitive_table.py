@@ -46,7 +46,9 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DOC = ROOT / "docs" / "competitive-analysis.md"
+README = ROOT / "README.md"
 DATA = ROOT / "data" / "competitor-meta.json"
+CAPABILITIES = ROOT / "data" / "competitive-capabilities.json"
 
 #: Repository -> the heading the table uses for it.
 #:
@@ -87,6 +89,49 @@ class RenderError(RuntimeError):
 
 def load_meta() -> dict[str, Any]:
     return json.loads(DATA.read_text(encoding="utf-8"))
+
+
+def load_capabilities() -> dict[str, Any]:
+    return json.loads(CAPABILITIES.read_text(encoding="utf-8"))
+
+
+#: Keys inside a capability row that are not a competitor.
+_NOT_A_TOOL = frozenset({"evidence_note", "_legend"})
+
+
+def coverage(capabilities: dict[str, Any]) -> list[tuple[str, int]]:
+    """How many capability areas each competitor covers, most first.
+
+    A `yes`, however qualified -- "yes (GraphQL)", "yes (protobuf)" -- counts;
+    a `partial` does not. The point of the number is the *spread*, not a score:
+    it is the same classification the full matrix publishes, counted rather
+    than read one row at a time.
+    """
+    matrix = capabilities.get("capability_matrix")
+    if not isinstance(matrix, dict):
+        raise RenderError("competitive-capabilities.json has no `capability_matrix`")
+    counts: dict[str, int] = {}
+    areas = 0
+    for area, row in matrix.items():
+        if area in _NOT_A_TOOL or not isinstance(row, dict):
+            continue
+        areas += 1
+        for tool, verdict in row.items():
+            if tool in _NOT_A_TOOL:
+                continue
+            counts.setdefault(tool, 0)
+            if isinstance(verdict, str) and verdict.startswith("yes"):
+                counts[tool] += 1
+    if not counts:
+        raise RenderError("the capability matrix names no competitors")
+    return sorted(counts.items(), key=lambda pair: (-pair[1], pair[0]))
+
+
+def capability_area_count(capabilities: dict[str, Any]) -> int:
+    matrix = capabilities.get("capability_matrix") or {}
+    return sum(
+        1 for area, row in matrix.items() if area not in _NOT_A_TOOL and isinstance(row, dict)
+    )
 
 
 def fetch_date(meta: dict[str, Any]) -> str:
@@ -185,36 +230,114 @@ def render_landscape(meta: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-#: Marker name -> renderer. Order is irrelevant; each block is spliced by name.
-BLOCKS: dict[str, Callable[[dict[str, Any]], str]] = {
-    "provenance": render_provenance,
-    "method": render_method,
-    "landscape": render_landscape,
+def render_readme_comparison(meta: dict[str, Any]) -> str:
+    """The above-the-fold comparison, entirely from committed data.
+
+    The README used to state the project count and the fetch date in prose --
+    "14 projects ... fetched from the GitHub API on 2026-09-09" -- in the same
+    paragraph that told the reader "CI fails if the two disagree". That was
+    true of `docs/competitive-analysis.md` and not of the paragraph claiming
+    it: a refresh run moves `fetched_utc` and would have left this sentence
+    naming the old date.
+
+    Nothing editorial goes in here. "oasdiff is the healthy incumbent" is a
+    judgement and it lives in the prose below this block, where a reader can
+    tell it apart from a number.
+    """
+    capabilities = load_capabilities()
+    counted = coverage(capabilities)
+    areas = capability_area_count(capabilities)
+    repos = meta.get("repos") or {}
+    archived = sorted(
+        LABELS.get(repo, repo) for repo, entry in repos.items() if entry.get("archived")
+    )
+
+    top = counted[:6]
+    lines = [
+        f"**{len(repos)} competing projects are tracked**, with license, stars, last push and "
+        f"latest release fetched from the GitHub API on {fetch_date(meta)} and committed to "
+        "[`data/competitor-meta.json`](data/competitor-meta.json).",
+        "",
+        f"Across the {areas} capability areas in "
+        "[`data/competitive-capabilities.json`](data/competitive-capabilities.json), the "
+        "deepest specialists cover a handful each:",
+        "",
+        "| Tool | Capability areas covered |",
+        "|---|---|",
+    ]
+    lines.extend(f"| {tool} | {count} of {areas} |" for tool, count in top)
+    lines.extend(
+        [
+            "",
+            "That is the shape of the market, not a scoreboard: each of those tools is "
+            "excellent inside its lane, and the classification behind the numbers is this "
+            "project's own -- every cell carries its evidence note in the matrix. What none "
+            "of them does is put diffing, schema-driven testing, runtime drift and "
+            "performance budgets behind *one* contract model and *one* result format.",
+        ]
+    )
+    if archived:
+        lines.extend(
+            [
+                "",
+                "Archived, and worth knowing about: "
+                + ", ".join(f"**{name}**" for name in archived)
+                + ".",
+            ]
+        )
+    lines.extend(
+        [
+            "",
+            "Full analysis, with every row's evidence: "
+            "[docs/competitive-analysis.md](docs/competitive-analysis.md).",
+        ]
+    )
+    return "\n".join(lines)
+
+
+#: Marker name -> (file, renderer). Each block is spliced by name into the file
+#: that carries its markers.
+BLOCKS: dict[str, tuple[Path, Callable[[dict[str, Any]], str]]] = {
+    "provenance": (DOC, render_provenance),
+    "method": (DOC, render_method),
+    "landscape": (DOC, render_landscape),
+    "readme-comparison": (README, render_readme_comparison),
 }
 
 
-def splice(text: str, meta: dict[str, Any]) -> str:
-    """Replace each marked block with its rendered body.
+def splice(text: str, meta: dict[str, Any], target: Path) -> str:
+    """Replace every marked block belonging to `target` with its rendered body.
 
     Sliced by index rather than `re.sub`, because the rendered body is data. A
     competitor description containing a backslash -- or anything shaped like a
     replacement template -- would otherwise be reinterpreted by `sub` and
     silently corrupt the output.
     """
-    for name, renderer in BLOCKS.items():
+    for name, (owner, renderer) in BLOCKS.items():
+        if owner != target:
+            continue
         open_mark = MARK_OPEN.format(name=name)
         close_mark = MARK_CLOSE.format(name=name)
         start = text.find(open_mark)
         end = text.find(close_mark)
         if start == -1 or end == -1 or end < start:
             raise SystemExit(
-                f"docs/competitive-analysis.md is missing the {open_mark} / {close_mark} "
-                "markers, or carries them out of order. Add them around the block "
-                "before running this script."
+                f"{target.name} is missing the {open_mark} / {close_mark} markers, or "
+                "carries them out of order. Add them around the block before running "
+                "this script."
             )
         head = text[: start + len(open_mark)]
         text = f"{head}\n{renderer(meta)}\n{text[end:]}"
     return text
+
+
+def targets() -> list[Path]:
+    """Every file this script writes, in a stable order."""
+    seen: list[Path] = []
+    for owner, _renderer in BLOCKS.values():
+        if owner not in seen:
+            seen.append(owner)
+    return seen
 
 
 def main() -> int:
@@ -245,8 +368,12 @@ def main() -> int:
     args = parser.parse_args()
 
     meta = load_meta()
-    current = DOC.read_text(encoding="utf-8")
-    updated = splice(current, meta)
+    rendered = {
+        target: splice(target.read_text(encoding="utf-8"), meta, target) for target in targets()
+    }
+    stale = [
+        target for target, body in rendered.items() if target.read_text(encoding="utf-8") != body
+    ]
     count = len(meta["repos"])
 
     # Age is reported on every run, `--check` or not. A number nobody prints is
@@ -258,34 +385,38 @@ def main() -> int:
     if evidence_age_days(meta) > args.warn_age_days:
         print(f"notice: {freshness_message(meta, args.warn_age_days)}", file=sys.stderr)
 
+    names = ", ".join(target.name for target in targets())
+
     if args.check:
-        if current == updated:
+        if not stale:
             print(
-                f"ok     competitive-analysis.md matches competitor-meta.json "
+                f"ok     {names} match competitor-meta.json "
                 f"({count} projects, gathered {fetch_date(meta)}, "
                 f"{evidence_age_days(meta)}d old)"
             )
             return 0
-        print(
-            "docs/competitive-analysis.md no longer matches data/competitor-meta.json.\n"
-            "Run: python scripts/generate_competitive_table.py",
-            file=sys.stderr,
-        )
         import difflib
 
-        diff = difflib.unified_diff(
-            current.splitlines(),
-            updated.splitlines(),
-            fromfile="competitive-analysis.md (committed)",
-            tofile="competitive-analysis.md (from data)",
-            lineterm="",
-        )
-        for line in list(diff)[:60]:
-            print(line, file=sys.stderr)
+        for target in stale:
+            print(
+                f"{target.name} no longer matches data/competitor-meta.json.\n"
+                "Run: python scripts/generate_competitive_table.py",
+                file=sys.stderr,
+            )
+            diff = difflib.unified_diff(
+                target.read_text(encoding="utf-8").splitlines(),
+                rendered[target].splitlines(),
+                fromfile=f"{target.name} (committed)",
+                tofile=f"{target.name} (from data)",
+                lineterm="",
+            )
+            for line in list(diff)[:60]:
+                print(line, file=sys.stderr)
         return 1
 
-    DOC.write_text(updated, encoding="utf-8", newline="\n")
-    print(f"wrote  competitive-analysis.md ({count} projects from competitor-meta.json)")
+    for target, body in rendered.items():
+        target.write_text(body, encoding="utf-8", newline="\n")
+    print(f"wrote  {names} ({count} projects from competitor-meta.json)")
     return 0
 
 

@@ -75,6 +75,41 @@ api-verity-lab answers thirty-nine questions from one place:
 | Is a provider version safe to deploy? | `apiverity` server `/v1/can-i-deploy` |
 | Who executes jobs inside our private network? | Workers pull via `POST /v1/jobs/claim` |
 
+## How this compares
+
+The API tooling landscape is crowded and largely healthy.
+
+<!-- generated:readme-comparison -->
+**14 competing projects are tracked**, with license, stars, last push and latest release fetched from the GitHub API on 2026-09-09 and committed to [`data/competitor-meta.json`](data/competitor-meta.json).
+
+Across the 25 capability areas in [`data/competitive-capabilities.json`](data/competitive-capabilities.json), the deepest specialists cover a handful each:
+
+| Tool | Capability areas covered |
+|---|---|
+| Pact (OSS) | 9 of 25 |
+| Buf | 5 of 25 |
+| Karate | 5 of 25 |
+| Schemathesis | 5 of 25 |
+| WireMock | 5 of 25 |
+| Hoverfly | 4 of 25 |
+
+That is the shape of the market, not a scoreboard: each of those tools is excellent inside its lane, and the classification behind the numbers is this project's own -- every cell carries its evidence note in the matrix. What none of them does is put diffing, schema-driven testing, runtime drift and performance budgets behind *one* contract model and *one* result format.
+
+Archived, and worth knowing about: **Dredd**, **Optic**.
+
+Full analysis, with every row's evidence: [docs/competitive-analysis.md](docs/competitive-analysis.md).
+<!-- /generated:readme-comparison -->
+
+Everything above this line comes out of the two committed data files, rendered by
+[`scripts/generate_competitive_table.py`](scripts/generate_competitive_table.py); CI
+fails when the document and the data disagree. What it does **not** claim is freshness —
+the date is when the evidence was gathered, and only a refresh run moves it.
+
+The judgement, which is not in any data file: **oasdiff** is the healthy incumbent for
+spec diffing and is worth using if diffing is all you need. **Schemathesis** is the
+reference for property-based API testing. **Spectral** owns rule-catalog linting. Match
+their depth where it matters; do not pretend to have replaced them.
+
 ## 60-second quickstart
 
 ```bash
@@ -409,26 +444,6 @@ Two are worth stating here, because they are what most changes trip over:
   Edit the generator, not the output; CI fails when they disagree.
 
 Security issues go through [SECURITY.md](SECURITY.md), not a public issue.
-
-## How this compares
-
-The API tooling landscape is crowded and largely healthy. 14 projects are tracked in
-[`docs/competitive-analysis.md`](docs/competitive-analysis.md), with license, star count,
-last push and latest release fetched from the GitHub API on 2026-09-09 and committed to
-[`data/competitor-meta.json`](data/competitor-meta.json). The table is rendered from that
-file by [`scripts/generate_competitive_table.py`](scripts/generate_competitive_table.py) and
-CI fails if the two disagree, so it cannot drift from the data it cites. What that does not
-claim is freshness: the date above is when the evidence was gathered, and only a refresh run
-moves it.
-
-The short version: **oasdiff** is the healthy incumbent for spec diffing and is worth using
-if diffing is all you need. **Schemathesis** is the reference for property-based API testing.
-**Spectral** owns rule-catalog linting. What none of them do is put diffing, schema-driven
-testing, runtime drift and performance budgets behind *one* contract model and *one* result
-format — which is the only thing this project claims.
-
-Worth knowing: **Optic**, whose domain overlapped this one most directly, was archived in
-January 2026 with 1,534 stars.
 
 ## Related projects
 

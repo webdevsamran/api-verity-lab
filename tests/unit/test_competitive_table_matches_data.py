@@ -64,11 +64,92 @@ def test_the_document_is_what_the_generator_produces() -> None:
     """The whole-file assertion the three "it is generated" claims promised."""
     gen = _generator()
     current = _DOC.read_text(encoding="utf-8")
-    expected = gen.splice(current, _meta())
+    expected = gen.splice(current, _meta(), gen.DOC)
     assert current == expected, (
         "docs/competitive-analysis.md disagrees with data/competitor-meta.json. "
         "Run: python scripts/generate_competitive_table.py"
     )
+
+
+def test_the_readme_comparison_is_what_the_generator_produces() -> None:
+    """The same assertion for the block that moved above the fold.
+
+    The README used to state the project count and the fetch date in prose --
+    "14 projects ... fetched from the GitHub API on 2026-09-09" -- in the same
+    paragraph telling the reader "CI fails if the two disagree". That was true
+    of the analysis page and not of the paragraph claiming it.
+    """
+    gen = _generator()
+    current = gen.README.read_text(encoding="utf-8")
+    assert current == gen.splice(current, _meta(), gen.README), (
+        "README.md disagrees with data/competitor-meta.json. "
+        "Run: python scripts/generate_competitive_table.py"
+    )
+
+
+def test_the_readme_block_carries_no_date_the_data_does_not() -> None:
+    gen = _generator()
+    text = gen.README.read_text(encoding="utf-8")
+    open_mark = gen.MARK_OPEN.format(name="readme-comparison")
+    close_mark = gen.MARK_CLOSE.format(name="readme-comparison")
+    block = text[text.index(open_mark) : text.index(close_mark)]
+    stale = [d for d in re.findall(r"\d{4}-\d{2}-\d{2}", block) if d != gen.fetch_date(_meta())]
+    assert stale == [], f"the README comparison cites {stale}, which the data does not"
+
+
+def test_the_comparison_sits_above_the_quickstart() -> None:
+    """Above the fold is the point of the move (DIST-02). A comparison a reader
+    reaches after four hundred lines is one they reach after deciding."""
+    text = _generator().README.read_text(encoding="utf-8")
+    assert text.index("## How this compares") < text.index("## 60-second quickstart")
+
+
+def test_the_generated_block_carries_no_editorial_judgement() -> None:
+    """ "oasdiff is the healthy incumbent" is a judgement, and it lives in the
+    prose below the block where a reader can tell it apart from a number."""
+    gen = _generator()
+    text = gen.README.read_text(encoding="utf-8")
+    open_mark = gen.MARK_OPEN.format(name="readme-comparison")
+    close_mark = gen.MARK_CLOSE.format(name="readme-comparison")
+    block = text[text.index(open_mark) : text.index(close_mark)]
+    assert "healthy incumbent" not in block
+    assert "healthy incumbent" in text
+
+
+def test_the_coverage_counts_come_from_the_matrix() -> None:
+    """Counted, not typed. A `yes` however qualified counts; a `partial` does
+    not -- which is the same classification the full matrix publishes."""
+    gen = _generator()
+    counted = dict(gen.coverage(gen.load_capabilities()))
+    matrix = gen.load_capabilities()["capability_matrix"]
+    expected = sum(
+        1
+        for area, row in matrix.items()
+        if area not in gen._NOT_A_TOOL
+        and isinstance(row, dict)
+        and str(row.get("Buf", "")).startswith("yes")
+    )
+    assert counted["Buf"] == expected
+
+
+def test_a_partial_is_not_counted_as_covered() -> None:
+    gen = _generator()
+    matrix = gen.load_capabilities()["capability_matrix"]
+    partials = [
+        area
+        for area, row in matrix.items()
+        if isinstance(row, dict) and str(row.get("Schemathesis", "")).startswith("partial")
+    ]
+    assert partials, "the matrix has no `partial` for Schemathesis; this test proves nothing"
+    counted = dict(gen.coverage(gen.load_capabilities()))
+    yes = sum(
+        1
+        for area, row in matrix.items()
+        if area not in gen._NOT_A_TOOL
+        and isinstance(row, dict)
+        and str(row.get("Schemathesis", "")).startswith("yes")
+    )
+    assert counted["Schemathesis"] == yes
 
 
 def test_every_fetched_competitor_appears_in_the_table() -> None:
