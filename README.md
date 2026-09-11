@@ -31,7 +31,7 @@ fuzzing, drift detection, mocking and performance budgets. Each has its own
 result format, its own CI wiring and its own mental model — so findings never
 compose: you can't ask "which endpoints are both under-tested *and* drifting?"
 
-api-verity-lab answers forty questions from one place:
+api-verity-lab answers forty-one questions from one place:
 
 | Question | Command |
 |---|---|
@@ -41,6 +41,7 @@ api-verity-lab answers forty questions from one place:
 | Is it breaking, risky or safe? | `apiverity breaking` |
 | Whose build does it break? | `apiverity breaking --consumers consumers.yaml` |
 | Which of a monorepo's forty contracts are failing, and whose are they? | `apiverity sweep . --base ../main` |
+| Can each team get only its own contract health, weekly? | `apiverity digest sweep.json --since last-week.json` |
 | Was semantic versioning respected? | `apiverity breaking --check-semver` |
 | What version *should* this be? | `apiverity breaking --suggest-version` |
 | Can I paste this into a PR description? | `apiverity breaking --summary` |

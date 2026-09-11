@@ -132,6 +132,15 @@
       ]
     },
     {
+      "name": "digest",
+      "summary": "one contract-health document per team, from a sweep artifact",
+      "options": [
+        "--json",
+        "--out",
+        "--since"
+      ]
+    },
+    {
       "name": "drift",
       "summary": "the declared contract against a live service, a recorded corpus or an MCP server",
       "options": [

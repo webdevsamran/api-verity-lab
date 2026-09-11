@@ -57,6 +57,7 @@ nav:
       - Synthetic monitoring: monitoring.md
       - Inferred contracts: inferred-contracts.md
       - Monorepo sweep: monorepo-sweep.md
+      - Team digests: digest.md
       - Compliance mapping: compliance-mapping.md
       - Evidence packs: evidence.md
       - Audit export: audit-export.md

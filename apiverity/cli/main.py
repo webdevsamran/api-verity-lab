@@ -35,6 +35,7 @@ from apiverity.cli.commands.governance import (
     cmd_breaking,
     cmd_changelog,
     cmd_diff,
+    cmd_digest,
     cmd_infer,
     cmd_sweep,
     cmd_validate,
@@ -82,6 +83,7 @@ __all__ = [
     "cmd_config",
     "cmd_coverage",
     "cmd_diff",
+    "cmd_digest",
     "cmd_drift",
     "cmd_evidence",
     "cmd_explain",
@@ -230,6 +232,26 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--limit", type=int, default=500, help="stop after this many contracts")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_sweep)
+    p = sub.add_parser(
+        "digest",
+        help="one contract-health document per team, from a sweep artifact",
+    )
+    p.add_argument("artifact", help="a `sweep --json` artifact")
+    p.add_argument(
+        "--since",
+        metavar="FILE",
+        help=(
+            "the previous sweep artifact, to report what moved. Without it the "
+            "digest is a snapshot and says so"
+        ),
+    )
+    p.add_argument(
+        "--out",
+        metavar="DIR",
+        help="write one markdown document per team here, named after the team",
+    )
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_digest)
 
     p = sub.add_parser(
         "infer",

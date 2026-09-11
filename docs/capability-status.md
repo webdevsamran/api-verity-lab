@@ -99,6 +99,15 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   that the deployment still answers, from a previous contract or a recorded
   corpus. Safe methods only; a removed write is reported unprobed rather than
   skipped, and no candidate is ever guessed
+- Scheduled governance reports (`apiverity digest`) — NEW. A sweep, cut per team
+  instead of per tree, so each team receives only what it owns. Teams come from
+  the sweep's own ownership resolution, so the two cannot disagree about who
+  owns what. What it refuses to say: a contract present in last week's sweep and
+  absent from this one is reported as *no longer swept*, never as fixed — a
+  lower `--limit`, a moved service or a changed glob would otherwise render as
+  good news. A first digest labels nothing "still failing", because that is a
+  claim about a week nobody looked at. Unlike the monitor, standing debt is
+  never quiet: nagging about it weekly is the point
 - Synthetic monitoring (`apiverity monitor`) — NEW. Runs any other command on a
   schedule and reports the transitions rather than the snapshot, because a cron
   entry that posts the same twelve findings every five minutes is muted inside a

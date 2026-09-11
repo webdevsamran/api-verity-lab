@@ -83,6 +83,19 @@ def _notify_routes() -> Path:
     return path
 
 
+def _sweep_artifact() -> Path:
+    """Where `main` puts a sweep of the fixture tree, for `digest` to slice.
+
+    Produced from a real run rather than checked in, the way the evidence
+    pack's input is: a committed sweep would go stale against the fixtures it
+    describes, and a digest of a stale sweep would validate cleanly while
+    describing a repository that no longer exists.
+    """
+    directory = _SCRATCH / "digest"
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory / "sweep.json"
+
+
 def _monitor_state() -> Path:
     """A state file path for `monitor`, deliberately not created.
 
@@ -273,6 +286,12 @@ COMMANDS: list[tuple[str, list[str]]] = [
         "audit verify",
         ["audit", "verify", str(_SCRATCH / "audit" / "export.json"), "--json"],
     ),
+    # `digest` reads a sweep rather than a contract, so `run_json` is called
+    # for it at import time the way the evidence pack's seed artifact is.
+    (
+        "digest",
+        ["digest", str(_sweep_artifact()), "--json"],
+    ),
     # `monitor` wraps another command and emits an artifact of its own, so its
     # `command` value and enriched envelope are checked here like any other.
     # The inner command reads a corpus rather than a socket: this script must
@@ -347,6 +366,13 @@ def main() -> int:
         print("error: could not produce an artifact for the evidence pack", file=sys.stderr)
         return 1
     (_SCRATCH / "record.json").write_text(seed_raw, encoding="utf-8")
+
+    # Same reason, for `digest`: it consumes a sweep artifact, not a contract.
+    sweep_code, sweep_raw = run_json(["sweep", str(FIXTURES), "--json"])
+    if sweep_code not in (0, 1) or not sweep_raw.strip():
+        print("error: could not produce a sweep artifact for `digest`", file=sys.stderr)
+        return 1
+    _sweep_artifact().write_text(sweep_raw, encoding="utf-8")
 
     for label, argv in COMMANDS:
         code, raw = run_json(argv)

@@ -11,6 +11,7 @@ from apiverity.cli.commands.common import (
     EXIT_FINDINGS,
     EXIT_OK,
     EXIT_USAGE,
+    NL,
     _emit,
     _load,
     _pair,
@@ -422,6 +423,71 @@ def cmd_infer(args: argparse.Namespace) -> int:
             "not what the API supports -- read it before publishing it."
         )
     return EXIT_OK
+
+
+def cmd_digest(args: argparse.Namespace) -> int:
+    """One contract-health document per team, from a sweep.
+
+    `sweep` answers a platform team's question in one document covering
+    everything. This cuts the same data the other way, so each team receives
+    only what it owns and can be sent it on a schedule.
+    """
+    import json
+    import re
+
+    from apiverity.reports.digest import as_dict, compare, render
+
+    try:
+        current = json.loads(Path(args.artifact).read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError) as exc:
+        print(f"error: could not read sweep artifact '{args.artifact}': {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    previous = None
+    if getattr(args, "since", None):
+        try:
+            previous = json.loads(Path(args.since).read_text(encoding="utf-8-sig"))
+        except (OSError, ValueError) as exc:
+            print(f"error: could not read '{args.since}': {exc}", file=sys.stderr)
+            return EXIT_USAGE
+
+    try:
+        digests = compare(current, previous)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    root = current.get("root")
+    quiet = [d.team for d in digests.values() if d.quiet]
+    speaking = [d for d in digests.values() if not d.quiet]
+
+    written: list[str] = []
+    if getattr(args, "out", None):
+        directory = Path(args.out)
+        directory.mkdir(parents=True, exist_ok=True)
+        for digest in speaking:
+            # A team name is `@org/platform` or an email; neither is a filename.
+            stem = re.sub(r"[^A-Za-z0-9._-]+", "-", digest.team).strip("-") or "team"
+            target = directory / f"{stem}.md"
+            target.write_text(render(digest, root=root), encoding="utf-8", newline=NL)
+            written.append(str(target))
+
+    _emit(
+        {
+            "tool": "apiverity",
+            "command": "digest",
+            "root": root,
+            "compared_to": str(args.since) if getattr(args, "since", None) else None,
+            "teams": len(digests),
+            # Named, not just counted: "four teams had nothing to report" is a
+            # different claim from "four teams were not in the sweep at all".
+            "quiet": sorted(quiet),
+            "written": written,
+            "digests": [as_dict(d) for d in speaking],
+        },
+        args.json,
+    )
+    return EXIT_FINDINGS if any(d.newly_failing for d in speaking) else EXIT_OK
 
 
 def cmd_sweep(args: argparse.Namespace) -> int:

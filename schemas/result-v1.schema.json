@@ -29,6 +29,7 @@
         "config",
         "coverage",
         "diff",
+        "digest",
         "drift",
         "evidence",
         "explain",

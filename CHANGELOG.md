@@ -4,6 +4,55 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — `apiverity digest`, per team, and the contracts nobody swept
+
+- **`apiverity digest`** turns a `sweep` artifact into one contract-health
+  document per team. `sweep` answers the platform team's question as a single
+  document covering everything; this cuts the same data the other way, so each
+  team receives only what it owns and can be sent it on a schedule.
+
+  ```bash
+  apiverity sweep . --json > this-week.json
+  apiverity digest this-week.json --since last-week.json --out digests/
+  ```
+
+  Teams come from the sweep's own ownership resolution, so a digest cannot
+  disagree with the sweep it was built from about who owns what.
+
+- **The comparison that produces a false all-clear.** Two sweeps are two walks
+  of a tree, and the tree moves underneath them. Last week found forty
+  contracts; this week's `--limit` was lower, or a service moved repositories,
+  or the discovery glob changed. Twelve contracts are simply absent.
+
+  Differenced naively, that is *twelve contracts fixed* — the report a platform
+  team most wants to read and least should believe. A contract is fixed only
+  when this sweep looked at it and found it clean; one absent from this sweep
+  goes under **No longer swept**, which says what happened. A team that lost
+  every contract still gets a digest, because the week a whole service vanished
+  should not be the quietest week of the year.
+
+- **A first digest compares nothing, and says so.** Without `--since` there is
+  no previous sweep, so nothing is labelled *newly* or *still* failing — both
+  are claims about a week nobody looked at. The first rendering of this said
+  "Failing in the previous digest too" above a list produced by the first run
+  there had ever been.
+
+- **Standing debt is never quiet.** The inverse of `monitor`'s rule, for the
+  inverse reason: a five-minute check that re-prints the standing state is
+  muted, and a weekly report that surfaces it is doing its job. A contract
+  failing for three weeks belongs in all three digests. What *is* dropped is a
+  team with nothing at all to report — and those teams are named in `quiet`
+  rather than silently omitted, because "four teams had nothing to report" and
+  "four teams were missing from the sweep" are different claims.
+
+- **Unowned contracts are a team.** Gathered under `(unowned)` rather than
+  dropped: a per-team digest that reported only owned contracts would hide
+  exactly the ones nobody will be asked about.
+
+- Standing failures do not fail the run; only a contract that *started* failing
+  does. A weekly report that exits non-zero every week is one nobody runs.
+
+
 ### Added — `apiverity monitor`, and the good news that is a lie
 
 - **`apiverity monitor`** runs any other command on a schedule and reports what
