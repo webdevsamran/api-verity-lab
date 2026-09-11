@@ -78,6 +78,7 @@ nav:
       - MCP exposure: mcp-exposure.md
       - Agent setup: agent-setup.md
   - Guides:
+      - Installing: install.md
       - CI contract gate: ci.md
       - Merge queues: merge-queue.md
       - SDK: sdk.md

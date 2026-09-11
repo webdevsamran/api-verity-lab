@@ -15,6 +15,28 @@ Derived from `docs/competitive-analysis.md` / `data/competitive-capabilities.jso
 9. **Expiring suppressions & deprecation lifecycle policy** — permanent ignore-files are the norm elsewhere; ownership/expiry metadata prevents silent rot.
 10. **Consumer registry + impact mapping over normalized operations** — connects breaking changes to registered consumers without adopting a new contract format.
 
+## Gaps this project has, and what closing them needs
+
+Listed for the same reason the competitive table is generated rather than
+typed: a gap nobody wrote down is a gap that gets described as shipped.
+
+1. **PyPI** — `pip install api-verity-lab` does not work. The release workflow
+   is wired for OIDC trusted publishing and guarded behind `PUBLISH_ENABLED`;
+   registering a Trusted Publisher is a form on the PyPI account that owns the
+   name and cannot be done from a repository. One step by an account owner
+   unlocks `pipx`, `uvx` and `pip` at once. See `docs/install.md`.
+2. **Homebrew, Scoop, winget** — these want a self-contained executable, and
+   `apiverity` is a Python package with real dependencies. Serving them honestly
+   needs either a per-platform frozen binary with its own test matrix, or a
+   Homebrew formula carrying a checksummed `resource` block per dependency,
+   regenerated on every bump. Neither exists, so neither is published: a formula
+   that has never been installed is a claim.
+3. **Framework adapters beyond Python** — `apiverity app module:attribute` reads
+   the document a Python application object produces. Express, NestJS, Laravel,
+   Spring and gin each already have a maintained OpenAPI generator, so the
+   adapter for them is a shell pipeline rather than code here. `docs/framework-adapters.md`
+   gives the table and the reasoning.
+
 ## Features deliberately not pursued
 
 - Hosted SaaS collaboration platform (Postman/Hive/BSR model) — self-hosted server instead.

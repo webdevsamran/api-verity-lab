@@ -4,6 +4,79 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — one line to install it, and an honest account of every other channel
+
+The README's first instruction was `pip install api-verity-lab`. That does not
+work: the package is not on PyPI, publishing is guarded behind a repository
+variable, and the first thing a reader did with this project failed.
+
+- **`install.sh` and `install.ps1`.** `curl -fsSL …/install.sh | sh`, or
+  `irm …/install.ps1 | iex`. Each does exactly one thing — find a Python 3.11
+  or newer — and then runs `scripts/install.py`, fetched from the same
+  repository and ref. One installer, two bootstraps: two hand-maintained
+  installers drift, and the drift is only ever found by whichever platform the
+  author does not use.
+
+- **The wheel is checksummed against the release.** `scripts/install.py`
+  resolves the latest release (or `--version`), downloads the wheel, hashes it,
+  and compares against the digest GitHub reports for that asset. A mismatch
+  installs nothing and says so.
+
+- **And the docs say what that check is not.** It is not a signature: GitHub
+  computes that digest from the bytes it stores, so anyone able to replace the
+  asset changes both. It catches truncation, a mangling proxy, and a mirror
+  serving something else. The integrity story with teeth is the Sigstore
+  attestation the release workflow already produces, and the installer prints
+  the `gh attestation verify` line rather than implying the hash did that job.
+
+- **A release with no declared digest still installs, and says nothing was
+  compared.** The digest field postdates this project's first release. Refusing
+  such a release would treat a gap in GitHub's metadata as evidence of
+  tampering; installing quietly would let the absence read as a pass.
+
+- **`pip install --user` is dropped inside a virtualenv.** Running an installer
+  inside an activated venv is an ordinary thing to do, and `--user` there is a
+  hard error — "User site-packages are not visible in this virtualenv" — which
+  reads as the installer being broken. Found by the end-to-end test that
+  installs into a throwaway venv.
+
+- **A dropped connection is retried.** Release downloads redirect to a CDN, and
+  a reset connection or a timed-out TLS handshake there happened while this was
+  being written. Three attempts, spaced; an HTTP error is *not* retried, because
+  a 404 is an answer.
+
+- **The PowerShell bootstrap passed the interpreter to itself.**
+  `$parts[1..($parts.Length - 1)]` is `1..0` for a one-element array, which
+  PowerShell evaluates descending and which therefore yields element 0 — so
+  `python` was handed its own path as an argument and tried to open a file named
+  after the first letter of it. Found by running the script, not by reading it.
+
+- **Progress output is flushed.** stdout is block-buffered when it is a pipe and
+  stderr never is, so the error explaining a failure arrived *ahead* of the lines
+  saying what was being attempted — backwards, in the one output somebody pastes
+  into an issue.
+
+- **`docs/install.md` lists every channel with whether it works today.** A
+  published install matrix full of channels nobody can use is a worse artefact
+  than a short one. PyPI is marked not-yet with the exact step that unblocks it
+  (a Trusted Publisher registration, which is a form on the account that owns
+  the name and cannot be done from a repository). Homebrew, Scoop and winget are
+  marked absent with the reason: they want a self-contained executable, and
+  serving them honestly needs either a per-platform frozen binary with its own
+  test matrix or a formula carrying a checksummed resource block per dependency.
+  A formula that has never been installed is a claim, and this project does not
+  publish those. Both gaps are recorded in `PRODUCT_GAPS.md`.
+
+- The installers are **run** in `tests/unit/test_install_scripts.py`, against a
+  local server speaking the shape of GitHub's releases API and serving a real
+  wheel: resolution, download, checksum verification, the refusal on mismatch,
+  and an install into a throwaway virtualenv. The shell bootstraps are executed
+  too — `sh` on ubuntu and macos, PowerShell on windows, which the
+  `platform-matrix` job runs on every pull request. An installer is the one
+  piece of a project whose failures the author never sees, because it runs on
+  machines that do not have the project on them.
+
+
 ### Added — the contract read out of the application, so the file cannot go stale
 
 Every check in this project is only as true as the document it reads, and the

@@ -121,10 +121,30 @@ spec diffing and is worth using if diffing is all you need. **Schemathesis** is 
 reference for property-based API testing. **Spectral** owns rule-catalog linting. Match
 their depth where it matters; do not pretend to have replaced them.
 
+## Install
+
+```bash
+# macOS, Linux, WSL
+curl -fsSL https://raw.githubusercontent.com/webdevsamran/api-verity-lab/main/install.sh | sh
+```
+
+```powershell
+# Windows
+irm https://raw.githubusercontent.com/webdevsamran/api-verity-lab/main/install.ps1 | iex
+```
+
+Either one finds a Python 3.11+, downloads the latest release's wheel, checks it
+against the checksum GitHub reports for it, and installs with `uv`, `pipx` or
+`pip` — whichever is there. `--dry-run` resolves and verifies without installing.
+
+Not on PyPI yet, so `pip install api-verity-lab` does **not** work; publishing is
+wired and waits on a Trusted Publisher only the account owner can register.
+[docs/install.md](docs/install.md) has every channel, what each one needs, and
+what to run if you would rather not pipe a URL into a shell.
+
 ## 60-second quickstart
 
 ```bash
-pip install api-verity-lab          # or: pip install -e ".[dev]" from a clone
 
 # 0. Point it at your project. Detects your contracts, writes .apiverity.yaml,
 #    and starts with the gate OFF -- a check that fails on its first run against
