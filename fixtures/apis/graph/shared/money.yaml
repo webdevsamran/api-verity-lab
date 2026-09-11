@@ -1,0 +1,13 @@
+# Read by both services under fixtures/apis/graph/. Two dependents is the
+# smallest number that makes "whose build goes red if I edit this" a question
+# with an answer worth printing.
+Money:
+  type: object
+  required: [amount, currency]
+  properties:
+    amount: {type: integer}
+    currency:
+      type: string
+      enum: [GBP, EUR, USD]
+    payee:
+      $ref: "./party.yaml#/Party"

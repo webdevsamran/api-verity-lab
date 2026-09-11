@@ -31,7 +31,7 @@ fuzzing, drift detection, mocking and performance budgets. Each has its own
 result format, its own CI wiring and its own mental model — so findings never
 compose: you can't ask "which endpoints are both under-tested *and* drifting?"
 
-api-verity-lab answers forty-two questions from one place:
+api-verity-lab answers forty-three questions from one place:
 
 | Question | Command |
 |---|---|
@@ -66,6 +66,7 @@ api-verity-lab answers forty-two questions from one place:
 | Does an update actually persist, and is a delete actually a delete? | `apiverity test --model-based` |
 | Can one tenant read another tenant's data? | `apiverity test --authz --auth-profile alice --as bob` |
 | Whose servers does our contract pull schemas from? | `apiverity validate openapi.yaml` (`SEC-DEP-*`) |
+| If I edit this shared schema, whose build goes red? | `apiverity graph . --dependents-of shared/money.yaml` |
 | Do multi-step workflows fail? | `apiverity workflow run` |
 | Can I run the whole stack of mocks reproducibly? | `apiverity mock --workspace stack.yaml` |
 | Is our workflow file portable, or locked to this tool? | `apiverity workflow wf.yaml --to-arazzo --spec openapi.yaml` |

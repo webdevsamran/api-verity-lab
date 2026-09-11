@@ -54,6 +54,7 @@ nav:
       - Auth profiles: auth-profiles.md
       - Authorization probes: authorization.md
       - Blast radius: blast-radius.md
+      - Dependency graph: dependency-graph.md
       - Ghost routes: ghost-routes.md
       - Synthetic monitoring: monitoring.md
       - Inferred contracts: inferred-contracts.md

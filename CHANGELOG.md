@@ -4,6 +4,47 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — `apiverity graph`: whose build goes red if I edit this
+
+- **`apiverity graph .`** answers the question forty independent contract gates
+  cannot: which contract in a tree reads whose schemas.
+  `--dependents-of shared/money.yaml` is the blast radius of editing one shared
+  file, transitively — so a schema no contract references *directly* still
+  reports every contract that reaches it.
+
+- **The flat dependency list could not produce it.** `Service.dependencies`
+  records every location an entry document pulled and not one parent. For the
+  multi-file fixture it yields `./order.yaml` — a reference made *by*
+  `schemas/order.yaml`, which names nothing at all read as a child of the entry
+  document — and `../shared/customer.yaml`, which resolves a directory too
+  high. Every transitive dependency drawn as a direct one, at a path that does
+  not resolve. The bundler records the file that carried each reference now,
+  and `Service.dependency_edges` carries it to the graph.
+
+- **Three absences that are not absences.** A reference this run did not follow
+  (a remote `$ref` without `--allow-remote-refs`, an absolute path, a file that
+  would not read) is drawn and marked with the reason, because dropping it
+  makes a contract look like it depends on less than it does. A reference whose
+  parent was never introduced goes in `unplaced` rather than being attached to
+  the contract root, which is where a guess would put it. A contract that will
+  not load is named, because omitting it shows every shared schema with fewer
+  dependents than it has — and fails the run.
+
+- **Cycles are named, not merely survived.** Including the self-reference in
+  this repository's own multi-file fixture. Each is reported once however many
+  ways there are into it, and the walk is iterative: a self-referential tree is
+  exactly the input that would blow a recursive one's stack.
+
+- `known` on a `--dependents-of` result separates "nothing depends on this" from
+  "this is not in the tree", which otherwise both come back as an empty list.
+  Remote nodes are a kind of their own: a URL is not a file anybody in the
+  repository can edit, and a blast radius that counted the two together would
+  answer the wrong question.
+
+- `--mermaid` renders the graph, dotted for edges that were not followed, and
+  says in the diagram how many it did not draw.
+
+
 ### Added — `breaking --sdk`: safe on the wire, broken in every client
 
 - **Seven `SDK-*` rules.** Rename an `operationId` from `getUser` to

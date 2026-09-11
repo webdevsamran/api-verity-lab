@@ -1,0 +1,29 @@
+openapi: 3.1.0
+info:
+  title: Billing (graph fixture)
+  version: 1.0.0
+  description: >-
+    The second reader of shared/money.yaml. It also reaches party.yaml, which
+    no contract references directly -- only through money.yaml.
+paths:
+  /invoices/{id}:
+    get:
+      operationId: getInvoice
+      tags: [billing]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: one invoice
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, due]
+                properties:
+                  id: {type: string}
+                  due:
+                    $ref: "../../shared/money.yaml#/Money"

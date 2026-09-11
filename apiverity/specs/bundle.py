@@ -64,6 +64,33 @@ _SAFE_NAME = re.compile(r"[^A-Za-z0-9_.-]+")
 
 
 @dataclass
+class Edge:
+    """One `$ref` from one file to another.
+
+    `declared` is the flat set of locations an entry document pulled, which
+    answers "what does this contract depend on" and nothing else. A shared
+    schema that references a second shared schema is in that list with no
+    indication of which file asked for it, so a graph built from it draws
+    every dependency as a direct child of the contract.
+
+    `source` is the file that actually carried the reference.
+    """
+
+    #: The file containing the `$ref`, as a label.
+    source: str
+    #: The location as the document writes it -- `./schemas/order.yaml`,
+    #: `https://example.test/money.yaml`. Not normalized: it is what a reader
+    #: will search the repository for.
+    target: str
+    #: The resolved source string for `target`, when this run followed it.
+    resolved: str | None = None
+    #: Why it was not followed. A `$ref` this run declined is not an absent
+    #: dependency, and a graph that drew it as one would say the contract
+    #: depends on less than it does.
+    refused: str | None = None
+
+
+@dataclass
 class BundleResult:
     """The bundled document, and everything the run established about it."""
 
@@ -89,6 +116,8 @@ class BundleResult:
     #: fetch it is the run where the schema behind it is missing from the
     #: model.
     declared: list[str] = field(default_factory=list)
+    #: Every reference, with the file that carried it. See :class:`Edge`.
+    edges: list[Edge] = field(default_factory=list)
 
     @property
     def external_count(self) -> int:
@@ -374,6 +403,8 @@ class _Bundler:
         # asked for, and whether this run fetched it does not change that.
         if location not in self.result.declared:
             self.result.declared.append(location)
+        edge = Edge(source=self._label(origin), target=location)
+        self.result.edges.append(edge)
 
         if _is_remote(location) and not self.allow_remote:
             self._finding(
@@ -384,6 +415,7 @@ class _Bundler:
                 "--allow-remote-refs to permit it",
                 pointer,
             )
+            edge.refused = "remote, and --allow-remote-refs was not given"
             return None
 
         if _is_absolute(location):
@@ -395,6 +427,7 @@ class _Bundler:
                 "caller is not something this tool does",
                 pointer,
             )
+            edge.refused = "an absolute filesystem path"
             return None
 
         target = self._join(origin, location)
@@ -407,8 +440,10 @@ class _Bundler:
                 "--allow-remote-refs to permit it",
                 pointer,
             )
+            edge.refused = "resolves to a network fetch, and --allow-remote-refs was not given"
             return None
 
+        edge.resolved = self._label(target)
         key = f"{self._label(target)}#{fragment}"
         existing = self._hoisted.get(key)
         if existing is not None:
@@ -416,6 +451,8 @@ class _Bundler:
 
         document = self._load(target, pointer)
         if document is None:
+            edge.refused = "the referenced document could not be read"
+            edge.resolved = None
             return None
 
         node, error = _resolve_pointer(document, fragment)
@@ -426,10 +463,15 @@ class _Bundler:
                 f"reference '{ref}' does not resolve inside '{self._label(target)}': {error}",
                 pointer,
             )
+            # The *file* was read; the pointer into it was not found. The edge
+            # stands -- the dependency is real and the fragment is wrong, and
+            # dropping the edge would hide a file this contract genuinely reads.
+            edge.refused = f"the file was read; the fragment did not resolve: {error}"
             return None
 
         schemas = self._schema_table(pointer)
         if schemas is None:
+            edge.refused = "the entry document has nowhere to hoist components into"
             return None
 
         name = _component_name(self._label(target), fragment)
@@ -514,5 +556,6 @@ __all__ = [
     "DEFAULT_MAX_FILES",
     "DEFAULT_MAX_REMOTE",
     "BundleResult",
+    "Edge",
     "bundle",
 ]

@@ -1,0 +1,30 @@
+openapi: 3.1.0
+info:
+  title: Orders (graph fixture)
+  version: 1.0.0
+  description: >-
+    One of two services under fixtures/apis/graph/ that read the same shared
+    schema. The pair exists so "if I edit shared/money.yaml, whose build goes
+    red?" has an answer with more than one name in it.
+paths:
+  /orders/{id}:
+    get:
+      operationId: getOrder
+      tags: [orders]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: one order
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, total]
+                properties:
+                  id: {type: string}
+                  total:
+                    $ref: "../../shared/money.yaml#/Money"

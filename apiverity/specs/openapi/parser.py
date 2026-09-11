@@ -115,6 +115,7 @@ class OpenApiParser:
         #: can say what it actually opened.
         self.sources: list[str] = []
         self.dependencies: list[str] = []
+        self.dependency_edges: list[dict[str, Any]] = []
 
     # -- location helpers ---------------------------------------------------
 
@@ -593,6 +594,19 @@ class OpenApiParser:
         # to fetch is still reported as a dependency: that is the run where the
         # schema behind it is missing from the model.
         self.dependencies = sorted(set(result.declared))
+        # The same refs with their parents, so a dependency graph can draw
+        # `contract -> schemas/order.yaml -> ../shared/customer.yaml` rather
+        # than three children of the contract, one of which does not exist
+        # relative to it.
+        self.dependency_edges = [
+            {
+                "source": edge.source,
+                "target": edge.target,
+                "resolved": edge.resolved,
+                "refused": edge.refused,
+            }
+            for edge in result.edges
+        ]
         return result.document
 
     def parse(self, source: str) -> tuple[Service, list[Finding]]:
@@ -643,6 +657,7 @@ class OpenApiParser:
             # What the bundler read, which it has always recorded and nothing
             # consumed. `security/dependencies.py` is what reads it now.
             dependencies=list(self.dependencies),
+            dependency_edges=list(self.dependency_edges),
         )
 
         # OpenAPI 3.2 tag objects. Before 3.2 structured navigation could only

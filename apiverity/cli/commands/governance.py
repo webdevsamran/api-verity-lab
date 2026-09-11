@@ -445,6 +445,72 @@ def cmd_infer(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def cmd_graph(args: argparse.Namespace) -> int:
+    """Which contract in a tree reads whose schemas.
+
+    The question a monorepo has and forty independent contract gates cannot
+    answer: if I edit `shared/money.yaml`, whose build goes red?
+    """
+    from apiverity.cli.commands.project import discover_contracts_deep
+    from apiverity.specs.graph import as_dict, build, mermaid
+    from apiverity.specs.loader import detect_and_load
+
+    root = Path(getattr(args, "root", ".")).resolve()
+    if not root.is_dir():
+        print(f"error: not a directory: {root}", file=sys.stderr)
+        return EXIT_USAGE
+
+    relative_paths = discover_contracts_deep(root, limit=int(getattr(args, "limit", 500)))
+    if not relative_paths:
+        # The same refusal `sweep` makes, for the same reason: an empty graph
+        # and a graph of a tree with no contracts in it look identical.
+        print(
+            f"error: no contracts found under {root}; nothing was graphed, which is not "
+            "the same as nothing depending on anything",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+
+    contracts: dict[str, list[Any]] = {}
+    unreadable: list[dict[str, str]] = []
+    for relative in relative_paths:
+        try:
+            service, _, _ = detect_and_load(str(root / relative))
+        except Exception as exc:
+            # Named, never skipped. A contract that will not load has unknown
+            # dependencies, and a graph that quietly omitted it would show a
+            # shared schema with fewer dependents than it has.
+            unreadable.append({"path": relative, "error": str(exc)[:200]})
+            continue
+        contracts[relative] = list(service.dependency_edges)
+
+    graph = build(contracts)
+    focus = getattr(args, "dependents_of", None)
+    payload: dict[str, Any] = {
+        "tool": "apiverity",
+        "command": "graph",
+        "root": str(root),
+        "contracts": len(contracts),
+        "unreadable": unreadable,
+        **as_dict(graph),
+    }
+    if focus:
+        payload["dependents_of"] = {
+            "node": focus,
+            "contracts": graph.dependents_of(focus),
+            # A node nothing in the tree references and a node that is not in
+            # the tree at all both produce an empty list.
+            "known": focus in graph.nodes,
+        }
+    if getattr(args, "mermaid", False):
+        payload["mermaid"] = mermaid(graph)
+
+    _emit(payload, args.json)
+    # Cycles and unreadable contracts are the two states a graph reports that
+    # somebody has to act on.
+    return EXIT_FINDINGS if (graph.cycles or unreadable) else EXIT_OK
+
+
 def cmd_digest(args: argparse.Namespace) -> int:
     """One contract-health document per team, from a sweep.
 

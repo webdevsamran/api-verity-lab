@@ -36,6 +36,7 @@
         "export",
         "freeze",
         "ghosts",
+        "graph",
         "infer",
         "init",
         "mcp-inventory",

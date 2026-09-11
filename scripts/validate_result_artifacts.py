@@ -299,6 +299,12 @@ COMMANDS: list[tuple[str, list[str]]] = [
             "--json",
         ],
     ),
+    # `graph` walks a tree rather than loading one contract, and emits a shape
+    # no other command does.
+    (
+        "graph",
+        ["graph", str(FIXTURES / "apis/graph"), "--mermaid", "--json"],
+    ),
     # `digest` reads a sweep rather than a contract, so `run_json` is called
     # for it at import time the way the evidence pack's seed artifact is.
     (

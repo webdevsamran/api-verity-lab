@@ -36,6 +36,7 @@ from apiverity.cli.commands.governance import (
     cmd_changelog,
     cmd_diff,
     cmd_digest,
+    cmd_graph,
     cmd_infer,
     cmd_sweep,
     cmd_validate,
@@ -90,6 +91,7 @@ __all__ = [
     "cmd_export",
     "cmd_freeze",
     "cmd_ghosts",
+    "cmd_graph",
     "cmd_infer",
     "cmd_init",
     "cmd_mcp_inventory",
@@ -252,6 +254,32 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_digest)
+    p = sub.add_parser(
+        "graph",
+        help="which contract in a tree reads whose schemas",
+    )
+    p.add_argument("root", nargs="?", default=".", help="directory to walk (default: .)")
+    p.add_argument(
+        "--limit",
+        type=int,
+        default=500,
+        help="stop after this many contracts (default 500)",
+    )
+    p.add_argument(
+        "--dependents-of",
+        metavar="NODE",
+        help=(
+            "list the contracts that reach this node, directly or through others -- "
+            "the blast radius of editing one shared schema"
+        ),
+    )
+    p.add_argument(
+        "--mermaid",
+        action="store_true",
+        help="include a mermaid diagram of the graph in the output",
+    )
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_graph)
 
     p = sub.add_parser(
         "infer",

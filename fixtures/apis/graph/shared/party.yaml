@@ -1,0 +1,9 @@
+# Reached only through money.yaml, never referenced by a contract directly.
+# A transitive dependency: the flat `dependencies` list cannot say that, and
+# the graph can.
+Party:
+  type: object
+  required: [id]
+  properties:
+    id: {type: string}
+    display_name: {type: string}

@@ -126,6 +126,19 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   `nullable: true`, was compared by nothing, so a response field that started
   returning null produced no change, no finding and a green gate. Four rules now
   classify it by direction, the way every other widening is classified
+- Cross-repo spec dependency graph (`apiverity graph`) — NEW. Which contract in a
+  tree reads whose schemas, and the transitive blast radius of editing one of
+  them. This needed a fix first: `Service.dependencies` is the flat set of
+  locations an entry document pulled with no record of which file asked, so a
+  graph built from it draws `schemas/order.yaml`'s own references as children of
+  the contract, at paths that do not resolve from the contract's directory. The
+  bundler records the parent now. What the graph refuses to treat as an absence:
+  a reference it did not follow (drawn, with the reason), one whose parent was
+  never introduced (listed as unplaced rather than guessed onto the root), and a
+  contract that would not load (named, because omitting it would show every
+  shared schema with fewer dependents than it has). Cycles -- including the
+  self-reference in this repository's own multi-file fixture -- are named once
+  and the walk is iterative
 - Synthetic monitoring (`apiverity monitor`) — NEW. Runs any other command on a
   schedule and reports the transitions rather than the snapshot, because a cron
   entry that posts the same twelve findings every five minutes is muted inside a

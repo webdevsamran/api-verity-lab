@@ -422,6 +422,18 @@ class Service(BaseModel):
     #: assembled from is provenance, not contract. Splitting one document into
     #: three is not a change to the API.
     dependencies: list[str] = Field(default_factory=list)
+    #: The same references, with the file that carried each one:
+    #: `{"source": ..., "target": ..., "resolved": ..., "refused": ...}`.
+    #:
+    #: `dependencies` is flat, so a shared schema that references a second
+    #: shared schema appears in it with no indication of who asked for it --
+    #: and a graph built from the flat list draws every transitive dependency
+    #: as a direct child of the contract, at a relative path that does not
+    #: resolve from the contract's own directory.
+    #:
+    #: Also out of the diffable surface: how a document is assembled is
+    #: provenance, not contract.
+    dependency_edges: list[dict[str, Any]] = Field(default_factory=list)
     #: Protocol-specific facts about the contract as a whole, mirroring
     #: :attr:`Operation.bindings`. Kept out of the diffable surface on purpose:
     #: an MCP manifest records here whether it was a truncated page and which

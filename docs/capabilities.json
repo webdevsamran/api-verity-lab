@@ -223,6 +223,16 @@
       ]
     },
     {
+      "name": "graph",
+      "summary": "which contract in a tree reads whose schemas",
+      "options": [
+        "--dependents-of",
+        "--json",
+        "--limit",
+        "--mermaid"
+      ]
+    },
+    {
       "name": "infer",
       "summary": "draft a contract from recorded traffic, labelled as a draft",
       "options": [
