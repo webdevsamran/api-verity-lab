@@ -8,7 +8,7 @@ Swagger 2.0 compiles into the same contract model as OpenAPI 3, so the same rule
 apiverity breaking swagger.json openapi.yaml
 ```
 
-## The 26 catalogued rules observed firing on swagger2
+## The 30 catalogued rules observed firing on swagger2
 
 Measured, not asserted: this format's own shipped fixture is perturbed in each of
 several dozen ways and the result is whatever the rules said. A rule listed here
@@ -43,17 +43,10 @@ may mean the rule does not apply or that no mutation reached it.
 | `BRK-RESP-STATUS-ADDED` | INFO | A new response status was declared. |
 | `BRK-RESP-STATUS-REMOVED` | ERROR | A declared response status was removed. |
 | `BRK-SECURITY-CHANGED` | ERROR | Security requirements changed; unprepared clients fail auth. |
-
-### 4 more fired here and are not in the catalogue
-
-Recorded rather than dropped. A rule id a reader receives and cannot look up is
-the defect this project has fixed in its own README twice, and hiding it here
-would make this page's count disagree with the engine's.
-
-- `COMPAT-MEDIA-ADDED`
-- `COMPAT-MEDIA-REMOVED`
-- `COMPAT-STATUS-ADDED`
-- `COMPAT-STATUS-REMOVED`
+| `COMPAT-MEDIA-ADDED` | INFO | An operation gained a media type. |
+| `COMPAT-MEDIA-REMOVED` | WARN | An operation dropped a media type it used to accept or return. |
+| `COMPAT-STATUS-ADDED` | INFO | An operation documents a status code it did not before. |
+| `COMPAT-STATUS-REMOVED` | WARN | An operation no longer documents a status code it used to. |
 
 [The full catalogue](../rule-catalog.md) has the rationale and the remediation for
 each. [Rule parity](../rule-parity.md) is the same measurement across every format

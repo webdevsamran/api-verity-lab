@@ -4,6 +4,56 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Fixed — thirty-seven rules the tool emits and `explain` said did not exist
+
+`apiverity explain BRK-RESP-FIELD-REMOVED` has worked since the beginning,
+because the breaking rules have had a catalogue since the beginning. The rules
+in `diff/compat.py`, `diff/protocol_compat.py`, the protobuf parser and the
+GraphQL introspection check had none — so a reader who received
+`COMPAT-MEDIA-REMOVED` or `PROTO-WIRE-TYPE-CHANGED`, went to look it up, and was
+told *"no rule with id ..."*, reasonably concluded the catalogue was incomplete
+rather than that the rule was.
+
+Found by the landing pages: `scripts/generate_landing_pages.py` lists the rules
+observed firing for each protocol, and six of them had nothing to say.
+
+- **`apiverity/diff/compat_catalog.py`** gives all thirty-seven a description
+  and a remediation: twelve `COMPAT-*`, fourteen `GQL-*`, eleven `PROTO-*`.
+  `docs/check-rules.md` grew from 90 rules to 127.
+
+- **They are in the check catalogue rather than the breaking one, deliberately.**
+  `rules/breaking.py`'s `CATALOG` doubles as the allow-list that
+  `core/config.py` validates `severity_overrides` against, and `analyze_compat`
+  did not apply overrides. Putting them there would have let a project write an
+  override that passed validation and changed nothing.
+
+- **So the override was made to work instead.** `--severity-override
+  COMPAT-SERVER-REMOVED=ERROR` was accepted and applied to nothing, because the
+  compat analysers decide severity per finding and never saw the map. They are
+  now applied over the combined result, which is where the two analysers' own
+  reasons for a severity can be overridden without threading the map into them.
+
+- **And the config validation stopped calling them unknown.** It checked the
+  breaking catalogue alone, so an override naming any `SEC-*`, `COMPAT-*` or
+  `PROTO-*` rule was reported as naming a rule that does not exist. Those rules
+  do exist; the override did nothing. That is a different sentence, and the one
+  that was true is now fixed rather than reported.
+
+- **`explain` groups them.** Every one answered `group: Other` with
+  `documentation: docs/rule-catalog.md` — a page that does not have them.
+
+- **The completeness test now covers the prefixes.**
+  `tests/unit/test_check_catalog.py` matched `SEC|LIFECYCLE|SEMANTIC|SLO|GOV|LINT|SUPPRESSION|CONFIG|AUTHZ|SDK|GUARD|FED`,
+  which is precisely why the gap was invisible for so long. `COMPAT`, `PROTO`
+  and `GQL` are in it now, in both directions: a rule emitted without an entry
+  fails, and an entry nothing emits fails too.
+
+Several severities in this family are decided per finding —
+`COMPAT-STATUS-REMOVED` is a WARN for a 2xx and INFO otherwise. The catalogue
+records the **worst** each rule can produce, because a reader deciding whether
+to gate on a rule needs to know what it can do rather than what it usually does.
+
+
 ### Added — twenty landing pages, none of them written by hand
 
 A docs site's per-protocol and per-competitor pages are the ones written once

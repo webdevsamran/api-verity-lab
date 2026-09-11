@@ -8,7 +8,7 @@ A saved `tools/list` response, diffed under the same rules as any other contract
 apiverity breaking tools-v1.json tools-v2.json
 ```
 
-## The 29 catalogued rules observed firing on mcp
+## The 31 catalogued rules observed firing on mcp
 
 Measured, not asserted: this format's own shipped fixture is perturbed in each of
 several dozen ways and the result is whatever the rules said. A rule listed here
@@ -46,15 +46,8 @@ may mean the rule does not apply or that no mutation reached it.
 | `BRK-RPC-ADDED` | INFO | A new gRPC RPC was added (additive, non-breaking). |
 | `BRK-RPC-REMOVED` | ERROR | A gRPC RPC was removed; existing callers will fail. |
 | `BRK-SECURITY-CHANGED` | ERROR | Security requirements changed; unprepared clients fail auth. |
-
-### 2 more fired here and are not in the catalogue
-
-Recorded rather than dropped. A rule id a reader receives and cannot look up is
-the defect this project has fixed in its own README twice, and hiding it here
-would make this page's count disagree with the engine's.
-
-- `COMPAT-MEDIA-ADDED`
-- `COMPAT-STATUS-ADDED`
+| `COMPAT-MEDIA-ADDED` | INFO | An operation gained a media type. |
+| `COMPAT-STATUS-ADDED` | INFO | An operation documents a status code it did not before. |
 
 [The full catalogue](../rule-catalog.md) has the rationale and the remediation for
 each. [Rule parity](../rule-parity.md) is the same measurement across every format

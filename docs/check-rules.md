@@ -115,6 +115,23 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 | `AUTHZ-BOLA-WRITE` | ERROR | `test --authz` | One identity updated an object another identity created. | The same fix as the read, and worse if only this one fires: a service that hides another tenant's object from a GET and accepts a PATCH on it is checking visibility somewhere that is not the write path. |
 | `AUTHZ-SCOPES-UNDECLARED` | INFO | `test --authz` | An identity states no scopes, so nothing checked what it may call. | Add `scopes: []` to the profile if it genuinely holds none. An unstated list is not a basis for a finding -- assuming an identity holds nothing would report every operation it can reach as a defect. |
 
+## Cross-version compatibility
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `COMPAT-HEADER-REMOVED` | WARN | `breaking` | An operation removed a request header it used to declare. | If the service still reads it, declare it; if it does not, say so in a migration note. A header that silently stops mattering is one clients keep sending forever. |
+| `COMPAT-HEADER-REQUIRED` | ERROR | `breaking` | An operation now requires a request header it did not require before. | Accept the request without it for a deprecation window, defaulting the value, and require it in the next major version. |
+| `COMPAT-IDEMPOTENCY-REVOKED` | WARN | `breaking` | An operation declared itself idempotent before and no longer does. | Say whether the behaviour changed or only the documentation. Clients build retry policies on this, and a retry against a no-longer-idempotent operation is a duplicate write. |
+| `COMPAT-MEDIA-ADDED` | INFO | `breaking` | An operation gained a media type. | Nothing, this is a note. |
+| `COMPAT-MEDIA-REMOVED` | WARN | `breaking` | An operation dropped a media type it used to accept or return. | Keep accepting it, or version the operation. A client sending the old `Content-Type` gets a 415 and a client expecting the old `Accept` gets something it cannot parse. |
+| `COMPAT-PAGINATION-CHANGED` | WARN | `breaking` | An operation's pagination parameters changed shape. | Keep the old parameters working alongside the new ones for a deprecation window. A client paging with a cursor against an offset API silently reads the first page forever. |
+| `COMPAT-SECURITY-SCHEME-REMOVED` | ERROR | `breaking` | A security scheme was removed; clients authenticating with it cannot. | Keep the scheme until every consumer has migrated. Removing the way somebody authenticates is removing their access. |
+| `COMPAT-SECURITY-TYPE-CHANGED` | ERROR | `breaking` | A security scheme changed type, so credentials of the old kind no longer fit. | Add the new scheme alongside the old one and retire the old one on a stated date, rather than changing what an existing scheme name means. |
+| `COMPAT-SERVER-ADDED` | INFO | `breaking` | A server URL was added to the contract. | Nothing, this is a note. |
+| `COMPAT-SERVER-REMOVED` | WARN | `breaking` | A server URL was removed from the contract. | Check who was pointed at it. A removed localhost entry is usually housekeeping; a removed environment is somebody's base URL. |
+| `COMPAT-STATUS-ADDED` | INFO | `breaking` | An operation documents a status code it did not before. | Nothing, this is a note. A client with an exhaustive match on status codes may still want to know. |
+| `COMPAT-STATUS-REMOVED` | WARN | `breaking` | An operation no longer documents a status code it used to. | Keep documenting it while any client still handles it, or state the removal in a migration note; a client branching on that status now has a branch nothing describes. |
+
 ## Generated SDKs
 
 | Rule | Severity | Produced by | Fires when | Instead |
@@ -133,6 +150,25 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 |---|---|---|---|---|
 | `GOV-MISSING-OPERATION-ID` | INFO | `validate` | An operation has no `operationId`. | Give it one, unique across the document. Generated SDKs name methods from it, and without one the name is derived from the path -- so it changes whenever the path does. |
 | `GOV-UNUSED-SECURITY-SCHEME` | INFO | `validate` | A security scheme is declared and required by no operation. | Remove it, or require it where it applies. A scheme in the document that nothing uses tells a reader the API supports an authentication method it does not, and that reader is often the one writing a client. |
+
+## GraphQL compatibility
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `GQL-ARGUMENT-NULLABILITY-TIGHTENED` | ERROR | `breaking` | An argument became non-null; callers omitting it or passing null fail. | Keep it nullable and reject null in the resolver with a clear error, until callers have stopped sending it. |
+| `GQL-ARGUMENT-REMOVED` | ERROR | `breaking` | A field no longer accepts an argument; callers passing it fail validation. | Keep accepting and ignoring it for a deprecation window, then remove it. |
+| `GQL-DANGEROUS-ARGUMENT-RELAXED` | WARN | `breaking` | An argument changed from required to nullable, so the server now has to handle its absence. | Confirm the resolver has a defined behaviour for null. Relaxing the schema without relaxing the resolver moves the failure from validation to runtime. |
+| `GQL-DANGEROUS-FIELD-ADDED` | WARN | `breaking` | A field was added; clients that build selections from introspection change behaviour without changing code. | Nothing, if your clients use explicit selection sets. This is a note for the ones that do not. |
+| `GQL-DANGEROUS-OPTIONAL-ARGUMENT-ADDED` | WARN | `breaking` | A field gained an optional argument. | Nothing, this is a note -- but check the default, because the behaviour clients get without passing it is now a decision somebody made. |
+| `GQL-DANGEROUS-RETURN-RELAXED` | WARN | `breaking` | A field's return became nullable, so clients that assumed a value must now handle its absence. | Announce it. A generated client typed against the old schema will have non-optional types where the server can now send null. |
+| `GQL-DRIFT-MISSING-FIELD` | ERROR | `drift` | The schema declares a field the endpoint does not serve. | This is the published contract being wrong about the running service. Deploy the field or take it out of the schema. |
+| `GQL-DRIFT-MISSING-TYPE` | ERROR | `drift` | The schema declares a type the endpoint does not serve. | A client querying it gets a validation error against a schema you published. Deploy the type or remove it from the schema. |
+| `GQL-DRIFT-UNDECLARED-FIELD` | WARN | `drift` | The endpoint serves a field the schema does not declare. | Add it to the committed schema, or remove it from the server. An undeclared field is one nobody reviewed and everybody can query. |
+| `GQL-DRIFT-UNDECLARED-TYPE` | WARN | `drift` | The endpoint serves a type the schema does not declare. | Add it to the committed schema, or find out why the running server has it. Either way the schema and the service disagree about what exists. |
+| `GQL-FIELD-REMOVED` | ERROR | `breaking` | A field was removed; queries selecting it fail validation. | Deprecate it with `@deprecated(reason:)` and remove it after clients have stopped selecting it -- which persisted operations or query logs can tell you. |
+| `GQL-REQUIRED-ARGUMENT-ADDED` | ERROR | `breaking` | A field gained a required argument; every existing query omitting it fails. | Add it as nullable with a server-side default, and make it required in a later version. |
+| `GQL-RETURN-NONNULL-TIGHTENED` | ERROR | `breaking` | A field's return became non-null, so a resolver returning null now errors the whole selection. | Keep it nullable unless every resolver path provably returns a value; in GraphQL a null in a non-null position nulls out the parent as well. |
+| `GQL-RETURN-TYPE-CHANGED` | ERROR | `breaking` | A field's return type changed; selections written against the old type fail. | Add a new field with the new type and deprecate the old one. A type change in place has no migration window. |
 
 ## GraphQL federation
 
@@ -192,6 +228,22 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 | `CONFIG-VERSION-MISSING` | ERROR | `config validate` | `.apiverity.yaml` declares no `version`. | Add `version: 1`. The version is what lets a later build tell a file written for an older format from one with a mistake in it. |
 | `CONFIG-VERSION-UNSUPPORTED` | ERROR | `config validate` | The config's `version` is not one this build understands. | Upgrade apiverity, or write the version this build supports. Reading a future config on a guess would apply settings whose meaning has changed. |
 
+## Protobuf compatibility
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `PROTO-ENUM-VALUE-REMOVED` | ERROR | `breaking` | An enum value was removed; a peer still sending it produces an unknown value. | Reserve the number and the name instead of deleting them, and keep handling the value until senders have stopped. |
+| `PROTO-FIELD-NUMBER-REUSE` | ERROR | `validate` | Two fields in one message claim the same number. | Give each field its own number. This does not compile with `protoc` either; it is reported here because a descriptor set can carry it. |
+| `PROTO-FIELD-REMOVED` | WARN | `breaking` | A message field was removed. | Reserve the number and the name. Removing without reserving lets a future field take the number, and stored data then decodes into the wrong field. |
+| `PROTO-MESSAGE-TYPE-CHANGED` | ERROR | `breaking` | An RPC's request or response message type changed, so the wire format changed under a name that did not. | Add a new RPC taking the new message and deprecate the old one. |
+| `PROTO-PARSE-EMPTY` | ERROR | `validate` | The file parsed and declared no services and no messages. | Check the path and the syntax. An empty parse compared against anything reports every operation as removed, which is a very loud way to find a typo. |
+| `PROTO-RESERVED-NAME-USED` | ERROR | `validate` | A field uses a name the message reserved. | Pick another name. Reserved names keep JSON and text-format encodings from resurrecting a removed field. |
+| `PROTO-RESERVED-NUMBER-USED` | ERROR | `validate` | A field uses a number the message reserved. | Pick an unreserved number. The reservation exists because that number meant something else to data already written. |
+| `PROTO-RPC-DUPLICATE` | ERROR | `validate` | A service declares the same RPC name twice. | Rename or remove one. Which of the two a generated stub binds to is the generator's choice, not yours. |
+| `PROTO-RPC-REMOVED` | ERROR | `breaking` | An RPC was removed; existing stubs fail at runtime rather than at compile time. | Keep the method and return `UNIMPLEMENTED`, or reserve it, until callers have been rebuilt. |
+| `PROTO-WIRE-TYPE-CHANGED` | ERROR | `breaking` | A field changed wire type; old and new peers misdecode each other's bytes. | Use a new field number for the new type and reserve the old one. A wire type change is not a schema change, it is a different message. |
+| `PROTO-WIRE-WIDTH-CHANGED` | WARN | `breaking` | An integer field changed width, which is wire-compatible and truncates. | Check the range actually in use. A 64-bit value read into a 32-bit field is silently wrong rather than an error. |
+
 ## Supply chain
 
 | Rule | Severity | Produced by | Fires when | Instead |
@@ -210,4 +262,4 @@ The suppressions file, talking about itself. An entry that is not justified and 
 | `SUPPRESSION-INCOMPLETE` | WARN | `breaking` | A suppression is missing a field it needs, so it suppressed nothing. | Add the fields the message names: `owner`, `reason`, and an `expires` date within the project's maximum. The entry fails closed, so the finding it named is still in the run -- this is not a second failure, it is the reason the first one is still there. |
 | `SUPPRESSION-UNSCOPED` | INFO | `breaking` | A suppression silences its rule across every operation. | Nothing, if that is what you meant -- an API with no pagination does not need the pagination rule on forty operations. Add an `operation_key` if it is not: a rule silenced contract-wide will not fire on the operation added next month either. |
 
-_90 check rules._
+_127 check rules._

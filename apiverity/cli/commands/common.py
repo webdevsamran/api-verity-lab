@@ -161,6 +161,33 @@ def merged_severity_overrides(cli_overrides: dict[str, str] | None) -> dict[str,
     return merged or None
 
 
+def apply_severity_overrides(findings: list[Any], overrides: dict[str, str] | None) -> list[Any]:
+    """Re-severity findings an engine produced without consulting the overrides.
+
+    `evaluate_breaking` takes the override map and applies it. `analyze_compat`
+    and `analyze_protocol_compat` do not -- they decide severity per finding,
+    sometimes from the finding itself -- so a project writing
+    `COMPAT-MEDIA-ADDED: INFO` got a setting that validated, looked applied and
+    did nothing.
+
+    Applied here, over the combined list, because the alternative is threading
+    the map into two more analysers that have their own reasons for the
+    severity they chose.
+    """
+    if not overrides:
+        return findings
+    from apiverity.core.model import Severity
+
+    out = []
+    for finding in findings:
+        wanted = overrides.get(getattr(finding, "rule_id", ""))
+        if wanted and str(wanted).upper() != getattr(finding.severity, "value", ""):
+            out.append(finding.model_copy(update={"severity": Severity(str(wanted).upper())}))
+        else:
+            out.append(finding)
+    return out
+
+
 def fail_on_threshold() -> str:
     """`error` / `warn` / `never`, from the config or the profile.
 

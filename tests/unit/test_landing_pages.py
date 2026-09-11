@@ -97,37 +97,43 @@ def test_every_rule_a_protocol_page_lists_was_observed_firing() -> None:
         assert spec["title"] in path.read_text(encoding="utf-8")
 
 
+def _catalogued() -> set[str]:
+    from apiverity.rules.breaking import CATALOG
+    from apiverity.rules.check_catalog import catalog as check_catalog
+
+    return set(CATALOG) | set(check_catalog())
+
+
 def test_every_rule_in_a_table_has_a_catalogue_entry() -> None:
     """A rule id in a table with a blank description sends the reader to a
     catalogue that does not have it, and they conclude the catalogue is
     incomplete rather than that the rule is."""
-    from apiverity.rules.breaking import CATALOG
-
+    known = _catalogued()
     for path in _FOR.glob("*.md"):
         listed = set(re.findall(r"^\| `([A-Z0-9-]+)` \|", path.read_text(encoding="utf-8"), re.M))
-        unknown = sorted(listed - set(CATALOG))
+        unknown = sorted(listed - known)
         assert not unknown, f"{path.name} tabulates rules the catalogue does not have: {unknown}"
 
 
-def test_a_rule_with_no_catalogue_entry_is_named_rather_than_dropped() -> None:
-    """Six rule ids fire and are in no catalogue -- `COMPAT-*` and `PROTO-*`.
-    Dropping them would make these pages' counts disagree with the engine's,
-    and a reader who receives one and cannot look it up is the defect this
-    project has fixed in its own README twice."""
-    from apiverity.rules.breaking import CATALOG
+def test_every_rule_observed_on_a_protocol_appears_on_its_page() -> None:
+    """Either in the table or under the heading that says it is not catalogued.
+    Dropping one would make the page's count disagree with the engine's, and a
+    reader who receives a rule id and cannot look it up is the defect this
+    project has fixed in its own README twice.
 
+    These pages found six such rules when they were written -- `COMPAT-*` and
+    `PROTO-*` -- and the catalogue entries that followed are why this now
+    passes with the table alone."""
     module = _generator()
     observed = module.measured().by_protocol
 
     for label in module.PROTOCOLS:
         path = _FOR / f"{module._slug(label)}.md"
-        missing = sorted(set(observed.get(label, ())) - set(CATALOG))
-        if not (missing and path.exists()):
+        if not path.exists():
             continue
         text = path.read_text(encoding="utf-8")
-        assert "not in the catalogue" in text, f"{path.name} drops {missing} silently"
-        for rule_id in missing:
-            assert f"`{rule_id}`" in text
+        for rule_id in sorted(observed.get(label, ())):
+            assert f"`{rule_id}`" in text, f"{path.name} does not mention {rule_id}"
 
 
 def test_each_protocol_page_names_a_command_that_exists() -> None:

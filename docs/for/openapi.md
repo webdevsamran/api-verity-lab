@@ -8,7 +8,7 @@ OpenAPI 3.0, 3.1 and 3.2, plus Swagger 2.0. Paths, parameters, request and respo
 apiverity breaking openapi-v1.yaml openapi-v2.yaml --check-semver
 ```
 
-## The 26 catalogued rules observed firing on openapi
+## The 29 catalogued rules observed firing on openapi
 
 Measured, not asserted: this format's own shipped fixture is perturbed in each of
 several dozen ways and the result is whatever the rules said. A rule listed here
@@ -43,16 +43,9 @@ may mean the rule does not apply or that no mutation reached it.
 | `BRK-RESP-FIELD-ADDED` | INFO | A response body field was added (consumers ignore unknown fields). |
 | `BRK-RESP-STATUS-ADDED` | INFO | A new response status was declared. |
 | `BRK-SECURITY-CHANGED` | ERROR | Security requirements changed; unprepared clients fail auth. |
-
-### 3 more fired here and are not in the catalogue
-
-Recorded rather than dropped. A rule id a reader receives and cannot look up is
-the defect this project has fixed in its own README twice, and hiding it here
-would make this page's count disagree with the engine's.
-
-- `COMPAT-MEDIA-ADDED`
-- `COMPAT-MEDIA-REMOVED`
-- `COMPAT-STATUS-ADDED`
+| `COMPAT-MEDIA-ADDED` | INFO | An operation gained a media type. |
+| `COMPAT-MEDIA-REMOVED` | WARN | An operation dropped a media type it used to accept or return. |
+| `COMPAT-STATUS-ADDED` | INFO | An operation documents a status code it did not before. |
 
 [The full catalogue](../rule-catalog.md) has the rationale and the remediation for
 each. [Rule parity](../rule-parity.md) is the same measurement across every format

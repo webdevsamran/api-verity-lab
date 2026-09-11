@@ -238,6 +238,13 @@ def _validate(raw: dict[str, Any], path: str) -> list[Finding]:
             )
         else:
             from apiverity.rules.breaking import CATALOG
+            from apiverity.rules.check_catalog import catalog as check_catalog
+
+            # Both catalogues. Checking only the breaking one reported every
+            # `COMPAT-*`, `SEC-*` and `PROTO-*` override as a rule that does
+            # not exist -- which was a warning about the wrong thing, because
+            # those rules do exist and the override genuinely did nothing.
+            known = set(CATALOG) | set(check_catalog())
 
             for rule_id, severity in overrides.items():
                 if str(severity).upper() not in _SEVERITIES:
@@ -251,7 +258,7 @@ def _validate(raw: dict[str, Any], path: str) -> list[Finding]:
                             ),
                         )
                     )
-                if rule_id not in CATALOG:
+                if rule_id not in known:
                     # An override for a rule that does not exist does nothing,
                     # and looks like it does something.
                     findings.append(

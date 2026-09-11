@@ -8,7 +8,7 @@
 apiverity breaking users_v1.proto users_v2.proto
 ```
 
-## The 25 catalogued rules observed firing on grpc
+## The 29 catalogued rules observed firing on grpc
 
 Measured, not asserted: this format's own shipped fixture is perturbed in each of
 several dozen ways and the result is whatever the rules said. A rule listed here
@@ -42,17 +42,10 @@ may mean the rule does not apply or that no mutation reached it.
 | `BRK-RPC-REMOVED` | ERROR | A gRPC RPC was removed; existing callers will fail. |
 | `BRK-RPC-STREAMING-CHANGED` | ERROR | An RPC changed streaming cardinality; generated clients call it wrongly. |
 | `BRK-SECURITY-CHANGED` | ERROR | Security requirements changed; unprepared clients fail auth. |
-
-### 4 more fired here and are not in the catalogue
-
-Recorded rather than dropped. A rule id a reader receives and cannot look up is
-the defect this project has fixed in its own README twice, and hiding it here
-would make this page's count disagree with the engine's.
-
-- `COMPAT-MEDIA-ADDED`
-- `COMPAT-STATUS-ADDED`
-- `PROTO-FIELD-REMOVED`
-- `PROTO-RPC-REMOVED`
+| `COMPAT-MEDIA-ADDED` | INFO | An operation gained a media type. |
+| `COMPAT-STATUS-ADDED` | INFO | An operation documents a status code it did not before. |
+| `PROTO-FIELD-REMOVED` | WARN | A message field was removed. |
+| `PROTO-RPC-REMOVED` | ERROR | An RPC was removed; existing stubs fail at runtime rather than at compile time. |
 
 [The full catalogue](../rule-catalog.md) has the rationale and the remediation for
 each. [Rule parity](../rule-parity.md) is the same measurement across every format

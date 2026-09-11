@@ -8,7 +8,7 @@ AsyncAPI 2.x and 3.x: channels, messages and payload schemas, with diffing that 
 apiverity breaking events-v1.yaml events-v2.yaml
 ```
 
-## The 16 catalogued rules observed firing on asyncapi
+## The 18 catalogued rules observed firing on asyncapi
 
 Measured, not asserted: this format's own shipped fixture is perturbed in each of
 several dozen ways and the result is whatever the rules said. A rule listed here
@@ -33,15 +33,8 @@ may mean the rule does not apply or that no mutation reached it.
 | `BRK-REQ-FIELD-REMOVED` | ERROR | A request body field was removed. |
 | `BRK-RPC-REMOVED` | ERROR | A gRPC RPC was removed; existing callers will fail. |
 | `BRK-SECURITY-CHANGED` | ERROR | Security requirements changed; unprepared clients fail auth. |
-
-### 2 more fired here and are not in the catalogue
-
-Recorded rather than dropped. A rule id a reader receives and cannot look up is
-the defect this project has fixed in its own README twice, and hiding it here
-would make this page's count disagree with the engine's.
-
-- `COMPAT-MEDIA-ADDED`
-- `COMPAT-MEDIA-REMOVED`
+| `COMPAT-MEDIA-ADDED` | INFO | An operation gained a media type. |
+| `COMPAT-MEDIA-REMOVED` | WARN | An operation dropped a media type it used to accept or return. |
 
 [The full catalogue](../rule-catalog.md) has the rationale and the remediation for
 each. [Rule parity](../rule-parity.md) is the same measurement across every format

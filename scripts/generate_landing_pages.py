@@ -394,6 +394,12 @@ def competitor_page(entry: dict[str, Any], matrix: dict[str, Any], fetched: str)
 def render() -> dict[Path, str]:
     """Every page this generator owns, as `{path: content}`."""
     from apiverity.rules.breaking import CATALOG
+    from apiverity.rules.check_catalog import catalog as check_catalog
+
+    # Both catalogues. The breaking one alone left `COMPAT-*` and `PROTO-*`
+    # listed as uncatalogued, which was true when these pages were written and
+    # is what prompted the entries.
+    merged: dict[str, Any] = {**check_catalog(), **CATALOG}
 
     pages: dict[Path, str] = {}
 
@@ -401,7 +407,7 @@ def render() -> dict[Path, str]:
     for label, rules in result.by_protocol.items():
         if label not in PROTOCOLS:
             continue
-        pages[FOR / f"{_slug(label)}.md"] = protocol_page(label, set(rules), CATALOG)
+        pages[FOR / f"{_slug(label)}.md"] = protocol_page(label, set(rules), merged)
 
     capabilities = json.loads(CAPABILITIES.read_text(encoding="utf-8"))
     fetched = str(json.loads(META.read_text(encoding="utf-8")).get("fetched_utc", "")).split("T")[0]

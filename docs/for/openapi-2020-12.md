@@ -8,7 +8,7 @@ OpenAPI 3.1 aligned with JSON Schema 2020-12, which brought keywords the older r
 apiverity breaking v1.yaml v2.yaml
 ```
 
-## The 27 catalogued rules observed firing on openapi (2020-12)
+## The 29 catalogued rules observed firing on openapi (2020-12)
 
 Measured, not asserted: this format's own shipped fixture is perturbed in each of
 several dozen ways and the result is whatever the rules said. A rule listed here
@@ -44,15 +44,8 @@ may mean the rule does not apply or that no mutation reached it.
 | `BRK-RESP-TYPE-CHANGED` | WARN | A response field's type changed; consumers may misparse values. |
 | `BRK-SECURITY-CHANGED` | ERROR | Security requirements changed; unprepared clients fail auth. |
 | `BRK-TUPLE-SHAPE-CHANGED` | ERROR | Positional array items changed length or type. Tuple members are read by index, so a change at one position shifts or misparses every reader. |
-
-### 2 more fired here and are not in the catalogue
-
-Recorded rather than dropped. A rule id a reader receives and cannot look up is
-the defect this project has fixed in its own README twice, and hiding it here
-would make this page's count disagree with the engine's.
-
-- `COMPAT-MEDIA-ADDED`
-- `COMPAT-STATUS-ADDED`
+| `COMPAT-MEDIA-ADDED` | INFO | An operation gained a media type. |
+| `COMPAT-STATUS-ADDED` | INFO | An operation documents a status code it did not before. |
 
 [The full catalogue](../rule-catalog.md) has the rationale and the remediation for
 each. [Rule parity](../rule-parity.md) is the same measurement across every format

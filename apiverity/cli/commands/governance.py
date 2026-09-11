@@ -16,6 +16,7 @@ from apiverity.cli.commands.common import (
     _load,
     _pair,
     apply_project_suppressions,
+    apply_severity_overrides,
     config_setting,
     fail_on_threshold,
     merged_severity_overrides,
@@ -149,7 +150,13 @@ def cmd_breaking(args: argparse.Namespace) -> int:
     from apiverity.diff.compat import analyze_compat
     from apiverity.diff.protocol_compat import analyze_protocol_compat
 
-    findings = findings + analyze_compat(old, new) + analyze_protocol_compat(old, new)
+    # The compat analysers decide severity per finding and never see the
+    # override map, so a project that wrote `COMPAT-MEDIA-ADDED: INFO` had a
+    # setting that validated, read as applied, and did nothing.
+    findings = findings + apply_severity_overrides(
+        analyze_compat(old, new) + analyze_protocol_compat(old, new),
+        merged_severity_overrides(overrides),
+    )
 
     # The guide the API owner already wrote, attached to the finding that
     # objects. Read from the *old* contract: the operation being broken is the

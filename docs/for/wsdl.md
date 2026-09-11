@@ -8,7 +8,7 @@ WSDL 1.1: portTypes, bindings and the XSD subset a WSDL actually uses, plus a `B
 apiverity breaking orders-v1.wsdl orders-v2.wsdl
 ```
 
-## The 24 catalogued rules observed firing on wsdl
+## The 27 catalogued rules observed firing on wsdl
 
 Measured, not asserted: this format's own shipped fixture is perturbed in each of
 several dozen ways and the result is whatever the rules said. A rule listed here
@@ -41,16 +41,9 @@ may mean the rule does not apply or that no mutation reached it.
 | `BRK-SOAP-ACTION-CHANGED` | ERROR | The SOAPAction header changed. Gateways and ESBs route on it and generated stubs send the old one, with an unchanged body that now reaches nothing. |
 | `BRK-SOAP-STYLE-CHANGED` | ERROR | A binding moved between document and rpc style, which changes how the body is wrapped; every existing client serializes it the old way. |
 | `BRK-SOAP-VERSION-CHANGED` | ERROR | A port moved between SOAP 1.1 and 1.2. The envelope namespace and the Content-Type both change, so a 1.1 client gets a 415 rather than a fault. |
-
-### 3 more fired here and are not in the catalogue
-
-Recorded rather than dropped. A rule id a reader receives and cannot look up is
-the defect this project has fixed in its own README twice, and hiding it here
-would make this page's count disagree with the engine's.
-
-- `COMPAT-MEDIA-ADDED`
-- `COMPAT-STATUS-ADDED`
-- `COMPAT-STATUS-REMOVED`
+| `COMPAT-MEDIA-ADDED` | INFO | An operation gained a media type. |
+| `COMPAT-STATUS-ADDED` | INFO | An operation documents a status code it did not before. |
+| `COMPAT-STATUS-REMOVED` | WARN | An operation no longer documents a status code it used to. |
 
 [The full catalogue](../rule-catalog.md) has the rationale and the remediation for
 each. [Rule parity](../rule-parity.md) is the same measurement across every format
