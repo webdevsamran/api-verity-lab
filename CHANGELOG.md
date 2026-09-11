@@ -4,6 +4,33 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — rule packs are discovered, not hard-coded
+
+- `apiverity rules --packs` lists every pack this installation can run, with
+  the distribution and version each came from.
+
+- **A third-party pack now reaches the engine.** The `apiverity.rules`
+  entry-point group has existed since the plugin registry did, `apiverity
+  plugins` listed it, and `PolicyEngine` was handed a hard-coded pair of
+  built-in packs by its only caller — so a team's own pack was discoverable and
+  ran nothing.
+
+- **There is no registry to operate, deliberately.** A rule pack is Python and
+  Python already has a distribution channel; a pack on PyPI declaring the entry
+  point is discoverable by every installation that installs it. `source` is the
+  distribution name and version, which is what a reader needs to answer "where
+  did this rule come from" and exactly the field a second index would have had
+  to invent.
+
+- **Two states it will not hide.** A pack that raises on import is listed under
+  `failed` with the error, because skipping it silently leaves a team believing
+  their pack is running. A rule id two packs both claim is reported as data
+  naming both — `PolicyEngine` raising on that is right for the engine and
+  wrong for the listing whose job is to say which pack is the problem, and
+  neither side is dropped, since silently keeping one would run a gate nobody
+  configured. Either state exits 1.
+
+
 ### Decided — eBPF capture is evaluated and declined
 
 The roadmap asked for Keploy's approach to be studied as prior art *before*

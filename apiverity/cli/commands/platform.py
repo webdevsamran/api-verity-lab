@@ -570,6 +570,20 @@ def cmd_rules(args: argparse.Namespace) -> int:
     from apiverity.rules.breaking import CATALOG
     from apiverity.rules.profiles import active_severity, summary
 
+    if getattr(args, "packs", False):
+        # Where a rule came from, which is the question a listing of seventy
+        # rule ids cannot answer.
+        from apiverity.rules.packs_registry import discover
+
+        registry = discover()
+        _emit(
+            {"tool": "apiverity", "command": "rules", **registry.as_dict()},
+            args.json,
+        )
+        # A conflict means the engine will refuse to run, and a pack that would
+        # not load is not running. Both are states somebody has to act on.
+        return EXIT_FINDINGS if (registry.conflicts or registry.failed) else EXIT_OK
+
     if getattr(args, "profiles", False):
         # Listed on request rather than appended to every `rules` run: the
         # catalogue is seventy rows and three more at the bottom is where a

@@ -180,11 +180,10 @@ def run_security_checks(
 ) -> list[Finding]:
     from apiverity.rules.lifecycle import run_lifecycle_checks
     from apiverity.rules.lint import LintEngine
-    from apiverity.rules.policy import DEFAULT_PACK, PolicyEngine
+    from apiverity.rules.policy import PolicyEngine
     from apiverity.security.abuse import run_abuse_checks
     from apiverity.security.dependencies import check_dependencies
     from apiverity.security.hardening import run_hardening_checks
-    from apiverity.security.packs import SECURITY_PACK
 
     # What the document *declares* that is a problem on its own -- a credential
     # in a query string, an unbounded request array, an OAuth requirement with
@@ -214,7 +213,17 @@ def run_security_checks(
     # it is a static scan of the package for `rule_id="SEC-..."` and the dead
     # module is in the package. `tests/unit/test_check_catalog.py` now also
     # asserts the emitting module is reachable by import from the CLI.
-    findings.extend(PolicyEngine(packs=[SECURITY_PACK, DEFAULT_PACK]).evaluate(service))
+    # Discovered, not hard-coded. The `apiverity.rules` entry-point group has
+    # existed since the plugin registry did, was listed by `apiverity plugins`,
+    # and loaded nothing into the engine -- so a team's own pack had no way in
+    # short of editing this package.
+    #
+    # A pack whose rule id collides is still refused by `PolicyEngine`, which
+    # is the right place for that; `apiverity rules --packs` is where the
+    # collision is explained.
+    from apiverity.rules.packs_registry import discover as _discover_packs
+
+    findings.extend(PolicyEngine(packs=_discover_packs().runnable).evaluate(service))
     # Structural quality within one revision: a duplicate operationId, an
     # example that does not satisfy its own schema, a schema requiring a
     # property it never declares.

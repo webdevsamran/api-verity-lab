@@ -407,6 +407,7 @@
       "summary": "the whole rule catalogue, with the severities this run would apply",
       "options": [
         "--json",
+        "--packs",
         "--profiles"
       ]
     },

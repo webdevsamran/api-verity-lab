@@ -1357,6 +1357,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="list the severity profiles instead of the rules",
     )
     p.add_argument("--json", action="store_true")
+    p.add_argument(
+        "--packs",
+        action="store_true",
+        help=(
+            "list the rule packs this installation can run, with where each came "
+            "from. A pack is a Python distribution declaring an `apiverity.rules` "
+            "entry point"
+        ),
+    )
     p.set_defaults(func=cmd_rules)
     p = sub.add_parser(
         "self-test",

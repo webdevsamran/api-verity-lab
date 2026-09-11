@@ -248,6 +248,17 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   exiting zero. That last is the class `SAFETY_MODEL.md` names as worst. The
   three things that would change the decision are written down in
   [the evaluation](ebpf-evaluation.md)
+- Rule-pack registry (`apiverity rules --packs`) — FIX. The `apiverity.rules`
+  entry-point group has existed since the plugin registry did and was listed by
+  `apiverity plugins`; `PolicyEngine` ran a hard-coded pair of built-in packs, so
+  a team's own pack had no way in short of editing this package. Discovery is
+  `importlib.metadata` and there is deliberately no index to operate: a pack is
+  Python, Python has a distribution channel, and `source` is the distribution and
+  version — the field a hand-rolled registry would have had to invent. A pack
+  that raises on import is named rather than skipped, and a rule id two packs
+  both claim is reported as data naming both, because `PolicyEngine` raising is
+  right for the engine and wrong for the listing that has to say which pack is
+  the problem
 - Synthetic monitoring (`apiverity monitor`) — NEW. Runs any other command on a
   schedule and reports the transitions rather than the snapshot, because a cron
   entry that posts the same twelve findings every five minutes is muted inside a
