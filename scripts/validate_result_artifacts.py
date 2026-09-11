@@ -83,6 +83,18 @@ def _notify_routes() -> Path:
     return path
 
 
+def _monitor_state() -> Path:
+    """A state file path for `monitor`, deliberately not created.
+
+    The first run against a missing state file is the baseline run, which is
+    the shape every other command's artifact check has: one invocation, from
+    nothing, with no prior run to depend on.
+    """
+    directory = _SCRATCH / "monitor"
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory / "state.json"
+
+
 def _audit_db() -> Path:
     """A server database with a few audit entries in it.
 
@@ -260,6 +272,24 @@ COMMANDS: list[tuple[str, list[str]]] = [
     (
         "audit verify",
         ["audit", "verify", str(_SCRATCH / "audit" / "export.json"), "--json"],
+    ),
+    # `monitor` wraps another command and emits an artifact of its own, so its
+    # `command` value and enriched envelope are checked here like any other.
+    # The inner command reads a corpus rather than a socket: this script must
+    # not need a network.
+    (
+        "monitor",
+        [
+            "monitor",
+            "--state",
+            str(_monitor_state()),
+            "--json",
+            "--",
+            "drift",
+            str(FIXTURES / "apis/drift/openapi.yaml"),
+            "--corpus",
+            str(FIXTURES / "traffic/users-march.har"),
+        ],
     ),
     (
         "notify",

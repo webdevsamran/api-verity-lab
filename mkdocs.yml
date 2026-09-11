@@ -54,6 +54,7 @@ nav:
       - Authorization probes: authorization.md
       - Blast radius: blast-radius.md
       - Ghost routes: ghost-routes.md
+      - Synthetic monitoring: monitoring.md
       - Inferred contracts: inferred-contracts.md
       - Monorepo sweep: monorepo-sweep.md
       - Compliance mapping: compliance-mapping.md

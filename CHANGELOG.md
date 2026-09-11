@@ -4,6 +4,62 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — `apiverity monitor`, and the good news that is a lie
+
+- **`apiverity monitor`** runs any other command on a schedule and reports what
+  *changed*, not what is. Shaped like `watch` — everything after `--` is the
+  command — with the clock as the trigger instead of a file:
+
+  ```bash
+  apiverity monitor --state staging.json -- drift openapi.yaml --base-url https://staging
+  ```
+
+  A cron entry that runs `drift` every five minutes and posts the result
+  produces 288 identical reports a day. The channel is muted inside a week, and
+  the run that finally differs arrives in a muted channel. So the output is
+  `appeared` / `resolved` / unchanged, and the first run against a state file
+  records a baseline and reports none of it as new — otherwise the monitor pages
+  somebody about the existing state of the world.
+
+- **The failure that makes a naive differ dangerous.** `drift` against a service
+  that has stopped answering does not raise and does not exit 3. It exits
+  cleanly with a `DRIFT-UNREACHABLE` finding per operation and none of the real
+  findings, because there was nothing to find. Differenced against the previous
+  run, that reads as *every finding resolved* — the shape of good news,
+  arriving at the exact moment the service went down.
+
+  `ghosts` already says this in the finding itself: "this run establishes
+  nothing about whether it is still served". `UNOBSERVABLE_RULES` is that
+  sentence made machine-readable. A finding whose operation was not measured is
+  **carried forward**, not resolved; every other operation is differenced
+  normally, so one dead endpoint does not silence the other thirty-nine; and a
+  run that measured nothing is reported inconclusive with exit 3.
+
+  That last one is read from the count the command reports for itself
+  (`operations_checked`, `probed`) and never inferred from the findings.
+  "Every finding is an unreachable one" is equally the shape of a healthy API
+  with one dead endpoint and of a total outage.
+
+- **Identity is `(rule_id, operation_key)`.** Messages carry a p95, a sample
+  count, an observed status — values that move between runs — so keying on them
+  would report the whole set as resolved-and-reappeared every five minutes. The
+  consequence is stated rather than hidden: a finding whose message changed but
+  whose identity did not is not a transition, and `message_changed` counts them.
+
+- **Flaps are counted, not suppressed.** Each crossing increments a counter in
+  the state file and `flapping` names the keys that have crossed more than once.
+  Whether to page on an unstable finding is a policy decision; the count is what
+  makes it possible to take one.
+
+- **One state file, one command.** Pointing two commands at one file makes each
+  one's findings read as the other's full turnover, on every alternate run. The
+  second command is refused by name rather than silently reset.
+
+- `--out` writes the transition report with the *new* findings under `findings`,
+  which is the key `apiverity notify` reads — so a routed monitor run sends a
+  team the new thing rather than the standing state.
+
+
 ### Added — pairwise cases, model-based CRUD, and an empty library-only list
 
 - **`apiverity test --generator pairwise`** covers every *combination* of two

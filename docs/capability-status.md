@@ -99,6 +99,17 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   that the deployment still answers, from a previous contract or a recorded
   corpus. Safe methods only; a removed write is reported unprobed rather than
   skipped, and no candidate is ever guessed
+- Synthetic monitoring (`apiverity monitor`) — NEW. Runs any other command on a
+  schedule and reports the transitions rather than the snapshot, because a cron
+  entry that posts the same twelve findings every five minutes is muted inside a
+  week. The first run against a state file records a baseline and alerts on
+  nothing. What makes it honest rather than merely quieter: `drift` against a
+  dead service exits cleanly with `DRIFT-UNREACHABLE` findings, so a naive
+  differ would report every real finding as **resolved** at the moment the
+  service went down. Findings for an unmeasured operation are carried forward
+  instead, one dead endpoint does not silence the other thirty-nine, and a run
+  that measured nothing is reported inconclusive — read from the count the
+  command states for itself, never guessed from the findings
 - Call budgets (`apiverity budget`) — NEW. Sliding windows, because a burst
   straddling a clock minute passes a tumbling bucket. The finding worth most is
   about the budget itself: a limit naming an operation nothing declares can

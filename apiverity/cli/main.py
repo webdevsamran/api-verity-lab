@@ -43,6 +43,7 @@ from apiverity.cli.commands.platform import (
     cmd_audit,
     cmd_explain,
     cmd_freeze,
+    cmd_monitor,
     cmd_notify,
     cmd_plugins,
     cmd_rules,
@@ -92,6 +93,7 @@ __all__ = [
     "cmd_mcp_inventory",
     "cmd_mcp_lock",
     "cmd_mock",
+    "cmd_monitor",
     "cmd_notify",
     "cmd_plugins",
     "cmd_regression",
@@ -1074,6 +1076,48 @@ def build_parser() -> argparse.ArgumentParser:
         help="-- followed by the command to run, e.g. `-- breaking old.yaml new.yaml`",
     )
     p.set_defaults(func=cmd_watch)
+    p = sub.add_parser(
+        "monitor",
+        help="run a command on a schedule and report what changed since last time",
+    )
+    p.add_argument(
+        "--state",
+        required=True,
+        metavar="FILE",
+        help=(
+            "where the previous run's findings are kept. Required: without it every "
+            "run would report the whole world as new"
+        ),
+    )
+    p.add_argument(
+        "--interval",
+        type=float,
+        help="seconds between runs when --runs is above 1 (default 0)",
+    )
+    p.add_argument(
+        "--runs",
+        type=int,
+        help=(
+            "how many times to run (default 1). One run per invocation is the cron "
+            "shape; more than one keeps the process alive between them"
+        ),
+    )
+    p.add_argument(
+        "--out",
+        metavar="FILE",
+        help=(
+            "write the transition report here. Its `findings` array holds what "
+            "appeared, so `apiverity notify` routes the new thing rather than the "
+            "standing state"
+        ),
+    )
+    p.add_argument("--json", action="store_true")
+    p.add_argument(
+        "argv",
+        nargs=argparse.REMAINDER,
+        help="-- followed by the command to run, e.g. `-- drift api.yaml --base-url URL`",
+    )
+    p.set_defaults(func=cmd_monitor)
     p = sub.add_parser(
         "notify",
         help="route a result artifact's findings to the teams they concern",

@@ -341,6 +341,155 @@ def cmd_watch(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _monitor_once(
+    argv: list[str],
+) -> tuple[list[dict[str, Any]] | None, str | None, int | None]:
+    """Run one inner command; return its findings, why there are none, and how
+    many things it measured.
+
+    The inner command is this CLI, run in-process with `--json` so the result
+    artifact comes back rather than being printed. Its exit code decides
+    whether the run established anything:
+
+    * 0 / 1  -- it ran; zero findings means zero findings.
+    * 3      -- the target was unreachable. Zero findings means *unknown*.
+    * 2 / 4  -- usage or internal error. Also unknown.
+
+    That distinction is the whole reason this returns a reason rather than
+    just a list. A monitor that mapped an unreachable target to an empty
+    finding list would report every known finding as resolved at the exact
+    moment the service went down.
+    """
+    import contextlib
+    import io
+
+    from apiverity.cli.commands.common import reset_provenance
+    from apiverity.cli.main import main as run_cli
+    from apiverity.runtime.monitor import measured_count
+
+    inner = list(argv)
+    if "--json" not in inner:
+        inner.append("--json")
+
+    reset_provenance()
+    buffer = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buffer):
+            code = run_cli(inner)
+    except SystemExit as exc:  # argparse exits on a bad inner command line
+        code = int(exc.code or 0)
+    except Exception as exc:
+        return None, f"the command raised {type(exc).__name__}: {exc}", None
+
+    if code in (EXIT_UNREACHABLE, EXIT_USAGE, EXIT_INTERNAL):
+        return None, f"`{' '.join(argv)}` exited {code}", None
+
+    try:
+        artifact = json.loads(buffer.getvalue())
+    except ValueError:
+        return None, "the command did not print a JSON result artifact", None
+    findings = artifact.get("findings")
+    if not isinstance(findings, list):
+        return None, "the result artifact has no top-level `findings` array", None
+    return (
+        [f for f in findings if isinstance(f, dict)],
+        None,
+        measured_count(artifact),
+    )
+
+
+def cmd_monitor(args: argparse.Namespace) -> int:
+    """Run a check on a schedule and report what changed since last time.
+
+    Shaped like `watch`: everything after `--` is the command to run. Unlike
+    `watch`, the trigger is a clock rather than a file, and the output is a
+    diff against the previous run rather than the run's own report.
+    """
+    import time
+
+    from apiverity.runtime.monitor import MonitorState, apply_run, report
+
+    argv = list(args.argv or [])
+    if argv and argv[0] == "--":
+        argv = argv[1:]
+    if not argv:
+        print(
+            "error: nothing to run. Usage: apiverity monitor --state s.json -- "
+            "drift openapi.yaml --base-url https://staging",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+    if argv[0] == "monitor":
+        # Otherwise it recurses: each run spawns a monitor that spawns a
+        # monitor, and the first symptom is a stack overflow at 3am.
+        print("error: monitor cannot monitor itself", file=sys.stderr)
+        return EXIT_USAGE
+
+    try:
+        state = MonitorState.load(args.state)
+    except (OSError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    target = " ".join(argv)
+    if state.target and state.target != target:
+        # Two commands sharing one state file diff against each other: every
+        # finding of the one reads as resolved, every finding of the other as
+        # new, on every alternate run. Refused rather than silently reset,
+        # because a reset would report the whole current state as a baseline
+        # and lose the history the file exists to hold.
+        print(
+            f"error: {args.state} holds the state of `{state.target}`, not "
+            f"`{target}`. Use a separate --state file per command.",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+    state.target = target
+
+    rounds = max(1, int(args.runs or 1))
+    interval = max(0.0, float(args.interval or 0.0))
+    payload: dict[str, Any] = {}
+    exit_code = EXIT_OK
+
+    for index in range(rounds):
+        if index:
+            time.sleep(interval)
+        findings, inconclusive, measured = _monitor_once(argv)
+        transitions = apply_run(state, findings, inconclusive=inconclusive, measured=measured)
+        payload = report(transitions, target=target)
+        try:
+            state.save(args.state)
+        except OSError as exc:
+            print(f"error: could not write {args.state}: {exc}", file=sys.stderr)
+            return EXIT_INTERNAL
+        if args.out:
+            try:
+                Path(args.out).write_text(
+                    json.dumps(
+                        {"tool": "apiverity", "command": "monitor", **payload},
+                        indent=2,
+                        default=str,
+                    )
+                    + NL,
+                    encoding="utf-8",
+                    newline=NL,
+                )
+            except OSError as exc:
+                print(f"error: could not write {args.out}: {exc}", file=sys.stderr)
+                return EXIT_INTERNAL
+        if transitions.inconclusive:
+            exit_code = EXIT_UNREACHABLE
+        elif transitions.appeared:
+            exit_code = EXIT_FINDINGS
+        else:
+            exit_code = EXIT_OK
+        if rounds > 1:
+            print(f"-- {time.strftime('%H:%M:%S')} {payload['summary']}", file=sys.stderr)
+
+    _emit({"tool": "apiverity", "command": "monitor", **payload}, args.json)
+    return exit_code
+
+
 def cmd_plugins(args: argparse.Namespace) -> int:
     from apiverity.plugins.registry import list_entry_points
 

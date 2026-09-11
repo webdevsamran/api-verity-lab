@@ -273,6 +273,17 @@
       ]
     },
     {
+      "name": "monitor",
+      "summary": "run a command on a schedule and report what changed since last time",
+      "options": [
+        "--interval",
+        "--json",
+        "--out",
+        "--runs",
+        "--state"
+      ]
+    },
+    {
       "name": "notify",
       "summary": "route a result artifact's findings to the teams they concern",
       "options": [
