@@ -105,6 +105,17 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 | `LIFECYCLE-SUNSET-PASSED` | ERROR | `validate` | A declared sunset date has passed and the operation is still here. | Remove the operation, or move the date to one the team still means. A retirement date nobody enforces teaches callers to ignore the next one. |
 | `LIFECYCLE-SUNSET-WITHOUT-DEPRECATION` | WARN | `validate` | An operation declares a retirement date and is not marked deprecated. | Mark it `deprecated: true`. The contract is currently retiring something it never told anyone to stop using. |
 
+## Agent call budgets
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `BUDGET-EXCEEDED` | ERROR | `budget` | An operation was called more times in the window than its budget allows. | Raise the limit if the traffic is expected, or find what is calling it. The single most-cited security worry about agent traffic is exactly this: too many calls, not wrong ones. |
+| `BUDGET-FORBIDDEN` | ERROR | `budget` | An operation budgeted at zero calls was called. | A zero budget is a prohibition. Either the caller should not have it or the budget is wrong, and both are decisions rather than tuning. |
+| `BUDGET-OPERATION-UNKNOWN` | ERROR | `budget` | The budget names an operation the contract does not declare. | Fix the key. A limit on an operation that does not exist constrains nothing and reads as though it does. |
+| `BUDGET-UNBUDGETED` | ERROR | `budget` | An operation was called and no limit covers it. | Add a limit, or set the budget to allow uncovered operations. Whether this is an error depends on the budget's own mode -- an allow-list is only an allow-list if the gaps fail. |
+| `BUDGET-UNDATED-CALLS` | WARN | `budget` | Some calls carried no timestamp, so they could not be placed in a window. | Capture timestamps. A per-minute limit checked against undated calls is arithmetic on an unknown denominator. |
+| `BUDGET-UNUSED` | INFO | `budget` | A limit covered nothing in this traffic. | Nothing, unless the operation was expected to be called. A budget nothing exercised is a budget nothing has tested. |
+
 ## AsyncAPI
 
 | Rule | Severity | Produced by | Fires when | Instead |
@@ -122,6 +133,12 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 | `AUTHZ-BOLA-READ` | ERROR | `test --authz` | One identity read an object another identity created. | Resolve the object against the caller's tenant, not against the id alone. This is OWASP API1: the request is well-formed, the schema is satisfied, the status is 200, and the data belongs to somebody else -- which is why no schema check and no single-identity run can see it. |
 | `AUTHZ-BOLA-WRITE` | ERROR | `test --authz` | One identity updated an object another identity created. | The same fix as the read, and worse if only this one fires: a service that hides another tenant's object from a GET and accepts a PATCH on it is checking visibility somewhere that is not the write path. |
 | `AUTHZ-SCOPES-UNDECLARED` | INFO | `test --authz` | An identity states no scopes, so nothing checked what it may call. | Add `scopes: []` to the profile if it genuinely holds none. An unstated list is not a basis for a finding -- assuming an identity holds nothing would report every operation it can reach as a defect. |
+
+## Consumers
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `CONSUMER-UNKNOWN-OPERATION` | ERROR | `breaking` | A registered consumer declares it uses an operation the contract does not declare. | Fix the registry or the contract. Blast-radius reporting is only as good as the registry, and an operation key that matches nothing silently drops that consumer out of every impact answer. |
 
 ## Cross-version compatibility
 
@@ -169,12 +186,23 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 | `SDK-PARAMETER-ORDER-CHANGED` | WARN | `breaking --sdk` | the required parameters of an operation were reordered | restore the declaration order -- nothing about the request depends on it. Where a generator emits required parameters positionally, existing call sites keep compiling and start passing the arguments the other way round, which is the one finding in this family that is silent at build time |
 | `SDK-TAG-NAMESPACE-CHANGED` | WARN | `breaking --sdk` | an operation's first tag changed | add the new tag alongside the old one rather than replacing it. Where a generator groups operations into a class per tag, this moves the method to a different client object |
 
+## Ghost routes
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `GHOST-GONE` | INFO | `ghosts` | A route that was removed from the contract is also gone from the deployment. | Nothing, this is the good outcome, and it is reported so that a clean run still shows what was checked. |
+| `GHOST-NOT-PROBED` | INFO | `ghosts` | A candidate was skipped because its method writes. | Nothing automatic. A route auditor that issued a DELETE to find out whether a route still exists would find out, and so would the data. Check it by hand if it matters. |
+| `GHOST-PATH-ALIVE` | WARN | `ghosts` | The path answers, for a method other than the one probed. | Check what is still mounted there. The route is alive even though the specific operation is not, which usually means a framework catch-all rather than a deliberate handler. |
+| `GHOST-ROUTE` | ERROR | `ghosts` | A route answered and no contract declares it. | Remove the handler, or declare the route. An endpoint nobody documented is an endpoint nobody reviewed, versioned or rate-limited on purpose. |
+| `GHOST-UNREACHABLE` | INFO | `ghosts` | A candidate could not be probed, so this run establishes nothing about it. | Check the base URL and the network, then re-run. Recorded rather than dropped because a route nobody could reach is not a route anybody confirmed gone. |
+
 ## Governance
 
 | Rule | Severity | Produced by | Fires when | Instead |
 |---|---|---|---|---|
 | `GOV-MISSING-OPERATION-ID` | INFO | `validate` | An operation has no `operationId`. | Give it one, unique across the document. Generated SDKs name methods from it, and without one the name is derived from the path -- so it changes whenever the path does. |
 | `GOV-UNUSED-SECURITY-SCHEME` | INFO | `validate` | A security scheme is declared and required by no operation. | Remove it, or require it where it applies. A scheme in the document that nothing uses tells a reader the API supports an authentication method it does not, and that reader is often the one writing a client. |
+| `POLICY-RULE-CRASHED` | ERROR | `rules` | A policy rule raised while evaluating a contract. | Fix the rule. Reported rather than swallowed: a pack whose rule crashes is a gate a team believes is running, and silence would be the worst available answer. |
 
 ## GraphQL compatibility
 
@@ -218,6 +246,90 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 | `LINT-CONTRADICTORY-REQUIRED` | ERROR | `validate` | A schema requires a property it does not declare. | Declare the property, or drop it from `required`. As written the schema cannot be satisfied by any document, and a validator will reject every payload including the service's own. |
 | `LINT-EMPTY-RESPONSE` | INFO | `validate` | A 2xx response declares neither content nor headers. | Nothing, if the operation really returns an empty body -- a 204 usually does. Otherwise describe what comes back: a consumer reading the contract sees an endpoint that returns nothing. |
 | `LINT-INVALID-EXAMPLE` | WARN | `validate` | An example does not validate against the schema it illustrates. | Fix the example, or the schema -- one of them is wrong. An example is the part of a contract people copy, so a wrong one is a wrong request in somebody's client. |
+
+## MCP authentication
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `MCP-AUTH-ANONYMOUS-LIST` | ERROR | `drift` | The server returned its whole tool list to a request carrying no credentials. | Require authentication on `tools/list`. The tool list is the map of what this server can be made to do, and roughly half of the internet-exposed MCP servers catalogued in 2026 handed it to anybody who asked. |
+| `MCP-AUTH-ENFORCED` | INFO | `drift` | An unauthenticated `tools/list` was refused. | Nothing, this is the good outcome, and it is recorded so a clean run still shows what was established. |
+| `MCP-AUTH-INDETERMINATE` | INFO | `drift` | The unauthenticated probe did not complete, so whether this server requires credentials was not established. | Re-run when the server is reachable. This is the absence of an answer, not an answer -- and reporting it as either would be a claim nobody measured. |
+| `MCP-AUTH-NO-CHALLENGE` | WARN | `drift` | The refusal carried no `WWW-Authenticate` header. | Send one. Without it a client cannot tell what kind of credential to get, so it retries with whatever it already has. |
+| `MCP-AUTH-PLAINTEXT-TRANSPORT` | WARN | `drift` | The endpoint is plain HTTP. | Use TLS. Every tool call, argument and result on this connection is readable by anything on the path, including the credentials that authorise them. |
+
+## MCP inventory
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `MCP-INVENTORY-CONFIG-UNREADABLE` | WARN | `mcp-inventory` | A configuration file exists and could not be read, so the servers it configures were not inventoried. | Fix the permissions or the syntax. An unread config is a set of servers this run says nothing about, which is not the same as none. |
+| `MCP-INVENTORY-UNCONFIGURED` | INFO | `mcp-inventory` | An approved server was not found in any configuration this run read. | Nothing, if it is meant to be available and unused. It is reported so the approved list does not quietly accumulate entries nobody has. |
+| `MCP-INVENTORY-UNREADABLE` | ERROR | `mcp-inventory` | A source named on the command line could not be read. | Check the path. Named explicitly and missing is an error, where a config file this tool merely knows about is not. |
+| `MCP-SHADOW-FETCHED-AT-LAUNCH` | WARN | `mcp-inventory` | A server is started by a command that fetches its code at launch. | Pin the version, or vendor the package. The code that starts tomorrow is whatever the registry serves tomorrow, which is the supply-chain shape behind OWASP MCP04. |
+| `MCP-SHADOW-INLINE-CREDENTIAL` | ERROR | `mcp-inventory` | A server configuration carries a literal credential value. | Move it to the environment or a secret store and rotate it. A client config file is synced, backed up and frequently committed. |
+| `MCP-SHADOW-PLAINTEXT-URL` | WARN | `mcp-inventory` | A server is configured over plain HTTP. | Use HTTPS. Every tool call to it, and every result from it, is readable on the path. |
+| `MCP-SHADOW-SERVER` | ERROR | `mcp-inventory` | A configured server is not on the approved list. | Approve it or remove it. A server nobody approved is a set of tools nobody reviewed, reachable by every agent on this machine. |
+
+## MCP lockfile
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `MCP-LOCK-SIGNATURE-INVALID` | ERROR | `mcp-lock` | The lockfile's signature does not match its contents. | Do not trust this lock. It was edited by something that did not have the key, which is the case the signature exists for. |
+| `MCP-LOCK-SIGNATURE-UNVERIFIED` | WARN | `mcp-lock` | The lockfile is signed and the key is not available here, so the signature was not checked. | Set the key environment variable. An unverified signature offers exactly as much assurance as no signature, and looks like more. |
+| `MCP-LOCK-TOOL-ADDED` | ERROR | `mcp-lock` | A served tool is not in the baseline lockfile. | Review the tool and re-lock. Adding a tool broadens what every agent using this server can be talked into doing, which is a change worth a review even when the tool is benign. |
+| `MCP-LOCK-UNSIGNED` | INFO | `mcp-lock` | The lockfile carries no signature. | Sign it if the lock matters. Unsigned, an edit to it is indistinguishable from a legitimate re-lock -- which makes the baseline as trustworthy as the file permissions on it. |
+
+## MCP manifests
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `MCP-INPUT-SCHEMA-MISSING` | ERROR | `validate` | A tool declares no `inputSchema`, which the specification makes mandatory. | Declare one, even `{"type": "object"}`. Without it there is nothing to validate a call against, and an agent constructs arguments from the description alone. |
+| `MCP-INPUT-SCHEMA-NOT-OBJECT` | ERROR | `validate` | A tool's `inputSchema` declares a type other than `object`. | Make it an object schema. Tool arguments are named, so anything else cannot describe a call. |
+| `MCP-LIST-RESULT-INCOMPLETE` | WARN | `validate` | The envelope carries `resultType` without both `ttlMs` and `cacheScope`. | Declare all three or none. A partial caching envelope leaves a client to guess how long the tool list is good for. |
+| `MCP-MANIFEST-TRUNCATED` | WARN | `validate` | This is one page of a paginated `tools/list`: `nextCursor` is set. | Capture the remaining pages before diffing. Every tool past this page reads as removed, which is a very loud way to discover pagination. |
+| `MCP-PROTOCOL-ERA-UNOBSERVED` | INFO | `validate` | Which protocol era this manifest came from was not established. | Nothing, unless era matters to you -- capture the manifest with the negotiated version recorded. A saved document carries no record of the handshake that produced it, and guessing would be inventing a fact. |
+| `MCP-SCHEMA-KEYWORD-UNMODELED` | WARN | `validate` | A JSON Schema keyword in a tool's schema is not represented in the normalized model. | Nothing to fix in the manifest. It is reported so that what the rules cannot see is visible, rather than being assumed absent. |
+| `MCP-TOOL-DUPLICATE` | ERROR | `validate` | A tool name is declared more than once. | Rename or remove one. `tools/call` dispatches on the name, so which of the two an agent reaches is the server's implementation detail rather than your decision. |
+| `MCP-TOOL-INVALID` | ERROR | `validate` | An entry in the tools list is not an object. | Fix the document. A non-object entry is skipped entirely, which quietly shrinks the surface every other rule sees. |
+| `MCP-TOOL-NAME-MISSING` | ERROR | `validate` | A tool in the manifest has no `name`, which the specification requires. | Give it one. `tools/call` dispatches on the name, so a nameless tool is one no agent can invoke and no diff can track. |
+
+## MCP runtime and conformance
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `MCP-CALL-RESULT-CREDENTIAL` | ERROR | `drift` | A tool's result contains something shaped like a credential. | Rotate it if it is one, and stop returning it. A tool result goes into the model's context, which is the last place a secret should be. |
+| `MCP-CONF-CALL-CONTENT-BLOCK-UNKNOWN` | WARN | `drift` | A tool result carried a content block of a type the specification does not define. | Use a defined block type. A client that does not recognise it will drop it, so the part of the answer it carries silently disappears. |
+| `MCP-CONF-INPUT-SCHEMA-MISSING` | ERROR | `drift` | A served tool has no `inputSchema`, which the specification requires. | Fix the server. An agent with no schema builds arguments out of the description. |
+| `MCP-CONF-INPUT-SCHEMA-NOT-OBJECT` | ERROR | `drift` | A served tool's `inputSchema` is not an object schema. | Fix the server. Tool arguments are named, so no other type can describe them. |
+| `MCP-CONF-LIST-ORDER-NONDETERMINISTIC` | INFO | `drift` | `tools/list` returned the same tools in a different order across two calls. | Nothing is broken -- order is not specified. It is reported because a lockfile or a diff taken across two runs will show noise that is not change. |
+| `MCP-CONF-LIST-RESULT-INCOMPLETE` | WARN | `drift` | A `tools/list` result omitted a key the specification requires on it. | Fix the server. A client written to the specification reads that key. |
+| `MCP-CONF-LIST-UNSTABLE` | ERROR | `drift` | Two `tools/list` calls on separate connections returned different tool sets. | Make the tool set the same for every connection. The specification says it MUST NOT vary by connection, and an agent that saw one set and called from the other gets a tool that is not there. |
+| `MCP-CONF-SCHEMA-DIALECT` | INFO | `drift` | A served tool declares a JSON Schema dialect other than the one MCP specifies. | Usually nothing -- it is reported because a validator honouring the declared dialect may accept or reject arguments differently from one assuming MCP's. |
+| `MCP-CONF-TOOL-NAME-MISSING` | ERROR | `drift` | A served tool has no `name`, which the specification requires. | Fix the server. Nothing can call a tool that has no name. |
+| `MCP-DRIFT-ANNOTATION` | WARN | `drift` | A served tool's annotation hint differs from the declared one. | Reconcile them. Annotations are what a client uses to decide whether to ask a human first. |
+| `MCP-DRIFT-CALL-ERROR-SHAPE` | WARN | `drift` | `tools/call` returned a JSON-RPC error rather than a tool result. | Tool failures belong in the result with `isError`, not in the transport. A protocol-level error is for a call that could not be dispatched. |
+| `MCP-DRIFT-CALL-NO-STRUCTURED-CONTENT` | WARN | `drift` | A tool declares an `outputSchema` and returned no `structuredContent`. | Return it, or drop the schema. A declared output shape that never arrives is a promise the client cannot use. |
+| `MCP-DRIFT-CALL-OUTPUT-SCHEMA` | ERROR | `drift` | A tool's `structuredContent` violates the `outputSchema` it declares. | Fix the handler or the schema. An agent parsing the result against the declared shape gets something else. |
+| `MCP-DRIFT-LEGACY-SERVER` | INFO | `drift` | The server negotiated a pre-2026-07-28 protocol version. | Nothing, if that is expected. It is reported because the older era has different requirements, and a rule written for the new one would be wrong about this server. |
+| `MCP-DRIFT-PAGINATION-CAPPED` | WARN | `drift` | `tools/list` was still returning a cursor when the page limit was reached. | Raise `--max-pages`. Everything past the cap was not read, so tools there are neither confirmed present nor reported missing. |
+| `MCP-DRIFT-PROTOCOL-UNSUPPORTED` | ERROR | `drift` | The server negotiated a protocol version this tool cannot speak. | Nothing was checked past the handshake. Upgrade one side, or capture a manifest and check that instead. |
+| `MCP-DRIFT-SCHEMA` | ERROR | `drift` | A served tool's schema differs from the one the manifest declares. | The finding names the change. The manifest is what a reviewer approved and the server is what agents call. |
+| `MCP-DRIFT-SCHEMA-COMPATIBLE` | WARN | `drift` | A served tool's schema differs from the declared one in a way no breaking rule objected to. | Update the manifest so it describes what is served. The difference breaks nobody today; the manifest being wrong about the server is the thing that compounds. |
+| `MCP-DRIFT-TOOL-MISSING` | ERROR | `drift` | A tool declared in the manifest is not served by the running server. | Deploy it or take it out of the manifest. An agent planning against the manifest will call a tool that is not there. |
+| `MCP-DRIFT-TOOL-UNDECLARED` | WARN | `drift` | A tool is served and is absent from the manifest. | Add it, or stop serving it. Agents will discover it from `tools/list` and use it, which means a capability reached production without review. |
+
+## MCP tool poisoning
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `MCP-ANNOTATION-ABSENT` | INFO | `validate` | Some tools declare no annotations at all. | Declare them. The specification's default for an undeclared `destructiveHint` is true, so a client honouring defaults must treat every one of those tools as destructive. |
+| `MCP-ANNOTATION-CONTRADICTORY` | WARN | `validate` | A tool declares `readOnlyHint` and `destructiveHint` both true. | Pick one. The specification defines `destructiveHint` only when `readOnlyHint` is false, so these say two incompatible things and a client believing either is guessing which. |
+| `MCP-ANNOTATION-CONTRADICTS-NAME` | WARN | `validate` | A tool claims `readOnlyHint` while its name says otherwise. | Check which is true and fix the other. The specification says annotations are untrusted unless the server is, so this is reported for a human to decide -- no gate in this tool consults the hint either way. |
+| `MCP-POISON-CREDENTIAL-PATH` | ERROR | `validate` | A tool description names a credential location in prose. | Declare what the tool reads in `inputSchema`, where a caller can see it. A tool that legitimately reads a credential says so in its schema; one that points the agent at a path in prose is asking for something nobody approved. |
+| `MCP-POISON-CROSS-TOOL` | WARN | `validate` | A tool description names another tool alongside an instruction. | Keep each description about its own tool. A description that changes how a *different* tool is used is a change nobody reviewing that tool would see. |
+| `MCP-POISON-DESCRIPTION-OUTSIZED` | INFO | `validate` | A tool description is far longer than the rest of the manifest's. | Nothing on its own -- length is not an attack. It is a place to look, because an injected payload has to go somewhere and a description is where it fits. |
+| `MCP-POISON-HIDDEN-MARKUP` | WARN | `validate` | A tool description hides text inside markup -- an HTML comment, say. | Remove it. A client rendering the description as markdown shows nothing while the model reads all of it. |
+| `MCP-POISON-INSTRUCTION` | WARN | `validate` | A tool description contains a sentence addressed to the agent rather than a description of the tool. | Rewrite it to describe what the tool does. In MCP the description is what the agent routes on, so a sentence aimed at the agent is executable text, not documentation. |
+| `MCP-POISON-INVISIBLE-TEXT` | ERROR | `validate` | A tool description carries characters that reach the model and not the human reviewing the manifest -- zero-width spaces, direction overrides, unicode tag characters. | Remove them. There is no legitimate reason for text the reviewer cannot see and the model can, which is the only reason to put it there. |
 
 ## Objectives
 
@@ -281,6 +393,30 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 | `SPEC-REF-UNREADABLE` | ERROR | `validate` | A referenced document could not be read or is not a JSON or YAML mapping. | Check the path and the file. A multi-file contract is only as loadable as its least available file. |
 | `SPEC-REF-UNRESOLVED` | ERROR | `validate` | A `$ref` points at something this document does not contain. | Fix the pointer, or add the component it names. Everything downstream treats the referenced schema as absent, so an unresolved ref quietly shrinks what the rules can see. |
 
+## Runtime drift
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `DRIFT-CONTENT-TYPE` | ERROR | `drift` | The service returned a media type the contract does not declare. | Declare it, or fix the handler. A client that negotiated on the contract will parse this with the wrong reader. |
+| `DRIFT-HEADER` | WARN | `drift` | A response header the contract declares was missing from a real response. | Send it, or remove it from the contract. Headers carry pagination cursors and rate-limit budgets, which clients read rather than guess. |
+| `DRIFT-MISSING-FIELD` | ERROR | `drift` | A field the contract declares required was absent from a real response. | Return it, or stop declaring it required. A consumer generated from this contract has a non-optional type where the service sends nothing. |
+| `DRIFT-RESPONSE-CREDENTIAL` | ERROR | `drift` | A response carried something shaped like a credential. | Rotate it if it is one, and stop returning it. This is the finding worth acting on before confirming, because the cost of being wrong is asymmetric. |
+| `DRIFT-RESPONSE-PII` | WARN | `drift` | A response carried something shaped like personal data. | Confirm the field is meant to be there and is declared as such. A shape match is a reason to look, not a finding of fact. |
+| `DRIFT-SCHEMA` | ERROR | `drift` | The response body does not satisfy the declared schema. | The message names the position. Either the schema is out of date or the handler is, and the contract is what consumers built against. |
+| `DRIFT-STATUS` | ERROR | `drift` | The service returned a status code the contract does not declare for that operation. | Declare it, or stop returning it. A status nobody documented is one every client handles by accident. |
+| `DRIFT-UNDECLARED-FIELD` | WARN | `drift` | A real response carried a field the contract does not declare. | Declare it, or stop sending it. An undeclared field is one nobody reviewed, which is how personal data reaches a payload without a decision. |
+| `DRIFT-UNREACHABLE` | ERROR | `drift` | The probe did not complete, so nothing was observed for this operation. | Check the base URL, the network and the authentication. This is the absence of a measurement, not a fault in the service -- and not evidence the service is fine either. |
+
+## Semantic versioning
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `SEMVER-DECREASE` | ERROR | `breaking` | The declared version went backwards. | Fix the version. A version that goes backwards makes ordering meaningless for every tool that resolves by range. |
+| `SEMVER-MAJOR-REQUIRED` | ERROR | `breaking` | Breaking changes were found and the version did not move to a new major. | Release it as a major, or make the change additive using the alternatives listed against the findings above. |
+| `SEMVER-MINOR-REQUIRED` | WARN | `breaking` | Risky but non-breaking changes were found without a minor bump. | Release it as a minor. The change is additive, and additions are minors. |
+| `SEMVER-NO-BUMP` | WARN | `breaking` | The contract changed materially and the version did not change at all. | Bump the version. A contract that changed under an unchanged version is one a consumer cannot detect having changed. |
+| `SEMVER-UNPARSEABLE` | WARN | `breaking` | A version is not semver, so no policy could be applied to it. | Nothing about the change: use a version this tool can order. Without one, the bump can be classified but the number it lands on cannot. |
+
 ## Supply chain
 
 | Rule | Severity | Produced by | Fires when | Instead |
@@ -320,4 +456,13 @@ The suppressions file, talking about itself. An entry that is not justified and 
 | `SPEC-WSDL-UNMODELLED` | WARN | `validate` | A WSDL construct is not carried into the contract model. | Nothing, if the construct does not matter to your consumers. It is reported by name so that what the model does *not* know about is visible rather than assumed absent. |
 | `SPEC-WSDL-UNRESOLVED` | ERROR | `validate` | A port or binding names something this document does not define. | Import the document that defines it, or fix the QName. An unresolved binding means the operations behind it are not modelled. |
 
-_160 check rules._
+## Workflows
+
+| Rule | Severity | Produced by | Fires when | Instead |
+|---|---|---|---|---|
+| `WF-CLEANUP-UNKNOWN-VAR` | ERROR | `workflow` | Cleanup deletes a variable no step defines. | Fix the name. Cleanup that names nothing deletes nothing, and the run looks tidy while the resources remain. |
+| `WF-DUP-STEP` | ERROR | `workflow` | Two steps in a workflow share a name. | Rename one. Steps refer to each other's outputs by name, so a duplicate makes every later reference ambiguous. |
+| `WF-INCOMPLETE-CLEANUP` | WARN | `workflow` | A resource a workflow creates is never deleted in cleanup. | Delete it, or say why not. A workflow run against a real environment that leaves resources behind gets run once. |
+| `WF-MISSING-VAR` | ERROR | `workflow` | A step uses a variable no earlier step defines. | Define it, or fix the name. The step will run with an unsubstituted placeholder, which usually reaches the service as a literal. |
+
+_245 check rules._

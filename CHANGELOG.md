@@ -4,6 +4,61 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Fixed — every rule this tool can emit can now be explained
+
+`apiverity explain` exists because a rule nobody understands gets suppressed
+rather than fixed. It answered *"no rule with id ..."* for about a hundred and
+sixty of the ids this package emits. A reader who received one and looked it up
+concluded the catalogue was incomplete rather than that the rule was — the same
+shape of defect as a README quoting rule ids the engine cannot produce, which
+this project fixed in its own README and then left everywhere else.
+
+Three commits closed it. This one is the last eighty-one and the guard.
+
+- **`apiverity/runtime/mcp_catalog.py`** — fifty-two rules, six families:
+  manifests, tool poisoning, runtime and conformance, authentication,
+  inventory and shadow servers, the lockfile. MCP is this project's wedge and
+  not one of its rules could be looked up. `BRK-RESP-FIELD-REMOVED` is legible
+  from its name; `MCP-CONF-LIST-UNSTABLE` is not, and neither is
+  `MCP-AUTH-INDETERMINATE` — and a reader who cannot tell those two apart
+  cannot act on either.
+
+- **`apiverity/runtime/drift_catalog.py`** — the fourteen `DRIFT-*` and
+  `GHOST-*` rules. Half of that family reports the **absence** of an
+  observation rather than a fault, and the entries say so: `DRIFT-UNREACHABLE`
+  is not evidence the service is wrong and not evidence it is right, and
+  `GHOST-NOT-PROBED` means a write was skipped on purpose, because a route
+  auditor that issued a `DELETE` to find out whether a route still exists would
+  find out, and so would the data.
+
+- **`apiverity/rules/workflow_catalog.py`** — budgets, workflows, semver,
+  policy crashes and the consumer registry.
+
+  Semantic versioning had been *half*-answered, which was worse than not at
+  all: `explain` found the five rules through `rules/alternatives.py` and gave
+  every one the same description — "The declared version does not match the
+  changes." True of all five and useful for none, because the five differ
+  precisely in **how** it does not match. They now describe themselves and take
+  their remediation from `ALTERNATIVES` rather than restating it, so there
+  stays exactly one wording.
+
+- **`tests/unit/test_every_rule_is_explainable.py`** is the guard. It scans the
+  package for rule-id-shaped literals and requires every one to resolve, so a
+  rule added without an entry fails here instead of in somebody's terminal.
+  Five exemptions, each named with its reason: they are prefixes
+  `rules/summary.py` uses to phrase a finding, and a pattern-based exemption is
+  where a real rule would go to hide.
+
+- **Six rows of `explain`'s prefix table were unreachable.** `_guide_for` takes
+  the first prefix that matches, and six rows had accumulated whose prefixes
+  started with an earlier row's — including a `DRIFT-` pointing at a page that
+  documents no drift rules. Nothing would ever have shown it; a test does now,
+  along with one asserting every row matches a rule that exists and every page
+  it names is a file that exists.
+
+`docs/check-rules.md` went from 90 rules to 245 across the three commits.
+
+
 ### Fixed — the parser's findings could not be looked up, and `validate` ignored the config
 
 Thirty-three more rules got catalogue entries, and a setting that reached one

@@ -74,6 +74,14 @@ def catalog() -> dict[str, CheckRuleSpec]:
     from apiverity.rules.lifecycle_catalog import LIFECYCLE_CATALOG
     from apiverity.rules.lint_catalog import LINT_CATALOG
     from apiverity.rules.policy_catalog import GOVERNANCE_CATALOG
+    from apiverity.rules.workflow_catalog import (
+        BUDGET_CATALOG,
+        GOVERNANCE_EXTRA_CATALOG,
+        SEMVER_CATALOG,
+        WORKFLOW_CATALOG,
+    )
+    from apiverity.runtime.drift_catalog import DRIFT_CATALOG, GHOST_CATALOG
+    from apiverity.runtime.mcp_catalog import merged as mcp_catalog
     from apiverity.runtime.semantic_catalog import SEMANTIC_CATALOG
     from apiverity.security.authz_catalog import AUTHZ_CATALOG
     from apiverity.security.catalog import SECURITY_CATALOG
@@ -103,6 +111,13 @@ def catalog() -> dict[str, CheckRuleSpec]:
     merged.update(SPEC_CATALOG)
     merged.update(SWAGGER2_CATALOG)
     merged.update(ASYNCAPI_CATALOG)
+    merged.update(DRIFT_CATALOG)
+    merged.update(GHOST_CATALOG)
+    merged.update(mcp_catalog())
+    merged.update(BUDGET_CATALOG)
+    merged.update(WORKFLOW_CATALOG)
+    merged.update(SEMVER_CATALOG)
+    merged.update(GOVERNANCE_EXTRA_CATALOG)
     return merged
 
 
