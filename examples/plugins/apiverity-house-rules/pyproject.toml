@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "apiverity-house-rules"
+version = "1.0.0"
+description = "A worked example of an api-verity-lab rule pack, distributed as its own package."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+dependencies = ["api-verity-lab>=0.2,<1.0"]
+
+# This is the whole integration. A distribution declaring this group is
+# discovered by every installation that pip-installs it -- there is no registry
+# to register with, because Python already has a distribution channel and
+# inventing a second index would mean operating one.
+[project.entry-points."apiverity.rules"]
+house-rules = "house_rules:pack"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/house_rules"]

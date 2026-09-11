@@ -90,6 +90,7 @@ nav:
       - OIDC authentication: oidc.md
       - Network egress map: egress.md
       - Workflow authoring: workflow-authoring.md
+      - Writing a plugin: plugin-authoring.md
   - Status:
       - Capability status: capability-status.md
       - Product gaps: product-gaps.md

@@ -30,9 +30,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
       - name: Ruff lint
-        run: ruff check apiverity tests scripts .github/scripts
+        run: ruff check apiverity tests scripts examples .github/scripts
       - name: Ruff format check
-        run: ruff format --check apiverity tests scripts .github/scripts
+        run: ruff format --check apiverity tests scripts examples .github/scripts
       - name: Type check
         run: mypy apiverity
       - name: Tests with coverage
@@ -133,6 +133,13 @@ jobs:
         # It is generated from real runs against fixtures/, so this step fails
         # the moment it stops matching.
         run: python scripts/record_demo.py --check
+
+      - name: The example plugin's own tests
+        # `testpaths = ["tests"]`, so the main run never reaches these. An
+        # example whose own tests are not run is an example that can stop
+        # working while every check here stays green -- and this one is the
+        # shape the plugin guide tells people to copy.
+        run: pytest examples/plugins/apiverity-house-rules/tests -q
 
       - name: Playground manifest matches the package
         # The browser playground installs `api_verity_lab-<version>.whl`. A

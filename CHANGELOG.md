@@ -4,6 +4,51 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — the plugin system, proved by installing a plugin
+
+Six entry-point groups have been published since the registry existed, and
+every test of them handed `discover()` a hand-built entry point. That tests the
+loading logic and skips the part that has to work in the field: a distribution's
+metadata being found by `importlib.metadata` at all, with nothing in this
+repository knowing the plugin exists.
+
+- **`examples/plugins/apiverity-house-rules`** is a complete rule pack as its
+  own package — `pyproject.toml`, three rules, its own tests. Three rules a
+  platform team would want and the engine deliberately does not ship:
+  `HOUSE-PATH-CASE`, `HOUSE-LIST-PAGINATION`, `HOUSE-ERROR-SHAPE`.
+
+  That is the line the system draws. The engine ships rules about what
+  **breaks consumers**; a pack ships rules about what a **team has agreed to**.
+  "Paths are kebab-case" is true for many teams and false for the ones who
+  standardised on something else years ago — as a built-in it would be a false
+  positive on their first run, and a false positive is what gets a rule
+  switched off along with its neighbours.
+
+- **One test installs it.** `tests/unit/test_example_plugin.py` builds the
+  example, installs it into a throwaway virtualenv beside this package, and
+  runs the CLI there: `rules --packs` finds it with its distribution as the
+  source, and `validate` produces `HOUSE-*` findings. It is the slowest test in
+  the suite and the only one that proves the plugin system is a plugin system
+  rather than an interface with one implementation.
+
+- **`docs/plugin-authoring.md`** is the guide: all six groups, a rule pack in
+  full, what a rule owes its reader, how a broken pack is reported, the v2
+  manifest and conformance kit, and the scaffold. A test holds the guide
+  against the code — a group the code reads and the guide omits is a capability
+  nobody finds, and a group the guide names and the code ignores is worse.
+
+- **The example's own tests run in CI**, and the linters now cover `examples/`.
+  `testpaths = ["tests"]` means the main run never reaches them, so an example
+  whose tests nobody runs can stop working while every check stays green — and
+  this one is the shape the guide tells people to copy.
+
+- Writing it found a defect in the example itself before it shipped:
+  `Operation.responses` is a list of `Response`, not a mapping keyed by status
+  code, and the first `HOUSE-ERROR-SHAPE` read it as a mapping and reported
+  every operation. A rule that fires on everything is a rule nobody keeps,
+  which is exactly what the pack's own tests are for.
+
+
 ### Added — a playground that runs the real engine, in the reader's browser
 
 Paste two contracts, get the breaking changes with rule ids. No account, no
