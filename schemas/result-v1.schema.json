@@ -39,6 +39,7 @@
         "freeze",
         "ghosts",
         "graph",
+        "import-rules",
         "infer",
         "init",
         "mcp-inventory",

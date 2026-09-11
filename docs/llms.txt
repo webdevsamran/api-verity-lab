@@ -60,7 +60,7 @@ thing they count by a test.
 
 ## Commands
 
-`agent-setup`, `audit`, `baseline`, `breaking`, `budget`, `capture`, `changelog`, `config`, `coverage`, `diff`, `digest`, `drift`, `evidence`, `explain`, `export`, `freeze`, `ghosts`, `graph`, `infer`, `init`, `mcp-inventory`, `mcp-lock`, `mock`, `monitor`, `notify`, `plugins`, `regression`, `replay`, `report`, `rules`, `self-test`, `serve`, `server-db`, `sweep`, `test`, `validate`, `verify`, `watch`, `workflow`.
+`agent-setup`, `audit`, `baseline`, `breaking`, `budget`, `capture`, `changelog`, `config`, `coverage`, `diff`, `digest`, `drift`, `evidence`, `explain`, `export`, `freeze`, `ghosts`, `graph`, `import-rules`, `infer`, `init`, `mcp-inventory`, `mcp-lock`, `mock`, `monitor`, `notify`, `plugins`, `regression`, `replay`, `report`, `rules`, `self-test`, `serve`, `server-db`, `sweep`, `test`, `validate`, `verify`, `watch`, `workflow`.
 
 ## What it does not do
 

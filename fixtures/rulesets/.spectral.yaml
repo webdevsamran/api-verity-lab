@@ -1,0 +1,19 @@
+# A ruleset in the shape teams actually write: extend the published set, turn a
+# few rules off, add a couple of house rules with bespoke names.
+extends:
+  - spectral:oas
+rules:
+  # Covered here.
+  operation-operationId: warn
+  oas3-valid-schema-example: error
+  operation-success-response: warn
+  # About the document rather than the contract.
+  info-contact: warn
+  info-description: warn
+  path-keys-no-trailing-slash: error
+  # Turned off by this team.
+  operation-tags: off
+  oas3-api-servers: false
+  # House rules with names this mapping has never seen.
+  acme-paths-kebab-case: error
+  acme-no-internal-hosts: error

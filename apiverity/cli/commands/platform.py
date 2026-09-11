@@ -490,6 +490,35 @@ def cmd_monitor(args: argparse.Namespace) -> int:
     return exit_code
 
 
+def cmd_import_rules(args: argparse.Namespace) -> int:
+    """Read a Spectral ruleset and report what migrating it would cost.
+
+    A migration report, not a compatibility layer. This does not run Spectral's
+    rules -- doing that would mean a second engine whose findings look like
+    this project's and were computed by different code.
+    """
+    from apiverity.rules.spectral import SpectralError, read
+
+    try:
+        imported = read(args.ruleset)
+    except SpectralError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    _emit(
+        {
+            "tool": "apiverity",
+            "command": "import-rules",
+            "format": "spectral",
+            **imported.as_dict(),
+        },
+        args.json,
+    )
+    # The backlog is the finding. A migration tool reporting only its coverage
+    # would be claiming a completeness it does not have.
+    return EXIT_FINDINGS if imported.not_covered else EXIT_OK
+
+
 def cmd_agent_setup(args: argparse.Namespace) -> int:
     """Tell the coding agents in this repository that this tool exists.
 

@@ -46,6 +46,7 @@ from apiverity.cli.commands.platform import (
     cmd_audit,
     cmd_explain,
     cmd_freeze,
+    cmd_import_rules,
     cmd_monitor,
     cmd_notify,
     cmd_plugins,
@@ -96,6 +97,7 @@ __all__ = [
     "cmd_freeze",
     "cmd_ghosts",
     "cmd_graph",
+    "cmd_import_rules",
     "cmd_infer",
     "cmd_init",
     "cmd_mcp_inventory",
@@ -1291,6 +1293,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_agent_setup)
+    p = sub.add_parser(
+        "import-rules",
+        help="read a Spectral ruleset and report what migrating it would cost",
+    )
+    p.add_argument("ruleset", help="a .spectral.yaml / .spectral.yml file")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_import_rules)
     p = sub.add_parser(
         "notify",
         help="route a result artifact's findings to the teams they concern",

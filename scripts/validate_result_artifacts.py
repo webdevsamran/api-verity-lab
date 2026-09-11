@@ -299,6 +299,11 @@ COMMANDS: list[tuple[str, list[str]]] = [
             "--json",
         ],
     ),
+    # `import-rules` reads somebody else's ruleset rather than a contract.
+    (
+        "import-rules",
+        ["import-rules", str(ROOT / "fixtures/rulesets/.spectral.yaml"), "--json"],
+    ),
     # `agent-setup` writes files rather than reading a contract. Run dry, so
     # this check never installs anything into the checkout it runs in.
     (

@@ -213,6 +213,18 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   comment, because a corpus whose gaps are invisible has gaps that read as facts
   about the service. What redaction cannot catch — an unlabelled secret in free
   text — is stated rather than implied
+- Spectral ruleset import (`apiverity import-rules`) — NEW, completing DX-12
+  alongside the Postman importer that already shipped. A **migration report**,
+  not a compatibility layer: it does not run Spectral's rules, because a
+  JSONPath evaluator bolted on here would be a second engine producing findings
+  that look like this project's and were computed by different code. Four
+  answers — covered, not covered, not expressible, and disabled-in-the-ruleset —
+  and the useful one is not the first. A tool asking to replace another that
+  reported only its own coverage would be claiming a completeness it does not
+  have, so the backlog is the exit-1 finding. `extends: spectral:oas` is counted
+  separately and said out loud, since those are sixty-odd rules the file never
+  names. Matching is by rule name and errs toward the backlog: a custom rule
+  lands there even when this project happens to check the same thing
 - Synthetic monitoring (`apiverity monitor`) — NEW. Runs any other command on a
   schedule and reports the transitions rather than the snapshot, because a cron
   entry that posts the same twelve findings every five minutes is muted inside a

@@ -40,6 +40,7 @@ nav:
       - Protocol support: protocol-support.md
       - Exit codes: exit-codes.md
       - Migrating from oasdiff: oasdiff-migration.md
+      - Migrating a Spectral ruleset: spectral-migration.md
       - Generated SDKs: sdk-surface.md
       - Arazzo workflows: arazzo.md
       - MCP drift: mcp-drift.md

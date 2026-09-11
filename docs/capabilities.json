@@ -260,6 +260,13 @@
       ]
     },
     {
+      "name": "import-rules",
+      "summary": "read a Spectral ruleset and report what migrating it would cost",
+      "options": [
+        "--json"
+      ]
+    },
+    {
       "name": "infer",
       "summary": "draft a contract from recorded traffic, labelled as a draft",
       "options": [

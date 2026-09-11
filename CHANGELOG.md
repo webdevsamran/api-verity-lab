@@ -4,6 +4,44 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — `apiverity import-rules`, for a Spectral ruleset
+
+Spectral owns rule-catalog linting, and a team that has a ruleset has invested
+in it. Migration cost is the real competitor.
+
+- **It is a report, not a compatibility layer.** This does not run Spectral's
+  rules. A Spectral rule is a JSONPath `given` plus a function over the
+  document, and reimplementing that would put a second engine inside this one,
+  producing findings that look like this project's and were computed by
+  different code — exactly what "one contract model every engine reads" exists
+  to avoid.
+
+- **Four answers, and the useful one is not the first.** `covered` names the
+  equivalent rule here. `not_covered` is the backlog, and it is what the run
+  exits 1 on: a tool asking to replace another that reported only its own
+  coverage would be claiming a completeness it does not have. `not_expressible`
+  is the rules about the *document* rather than the contract — a description's
+  wording, a path's spelling, a tagging convention — which are good rules this
+  project is not behind on, because they do not survive compiling a document
+  into a normalized model. `disabled` names the rules the ruleset turns off,
+  since a migration that silently re-enabled one has changed somebody's gate.
+
+- **`extends` is counted separately and said out loud.** `extends: spectral:oas`
+  is sixty-odd rules the file never names; a report counting only the named ones
+  describes a fraction of the gate and reads as though the migration is nearly
+  done.
+
+- **Matching errs toward the backlog.** Spectral rule names are conventional,
+  not standardised, so a custom rule lands in `not_covered` even when this
+  project happens to check the same thing. Over-reporting the backlog is the
+  safe direction; claiming coverage of a rule nobody matched is not.
+
+- A test asserts every rule id the mapping claims to cover actually exists, and
+  that no rule is classified twice. YAML 1.1 parses a bare `off` as `False`, so
+  both `operation-tags: off` and `severity: off` arrive as booleans and both are
+  recognised — a check against the string `"off"` alone catches neither.
+
+
 ### Added — `apiverity capture`, a recording proxy
 
 `drift --corpus` and `infer` both want real traffic, and until now the only way
