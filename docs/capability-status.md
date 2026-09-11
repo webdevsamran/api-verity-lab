@@ -324,6 +324,17 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   half an OIDC configuration rather than falling back to local tokens — a server
   meant to use your identity provider and quietly not using it looks exactly
   like a working one
+- Merge-queue and required-check integration (`TEAM-07`) — NEW, completing
+  section G. A gate that runs only on `pull_request` proves nothing about the
+  merge *result*: two pull requests that are individually safe can combine into
+  a breaking change, and the merge queue is the only place that combination is
+  built before it is `main`. Both gating workflows run on `merge_group` now, and
+  the action reads `github.event.merge_group.base_ref` — before which it reached
+  its "no base ref" branch and exited 1, so it could not be a required check in
+  a merge queue at all. `tests/unit/test_required_checks.py` pins the five job
+  names branch protection matches byte-for-byte, and fails in both directions: a
+  required job that vanished hangs every pull request, and a job added without a
+  decision is a check that is neither required nor advisory
 - Synthetic monitoring (`apiverity monitor`) — NEW. Runs any other command on a
   schedule and reports the transitions rather than the snapshot, because a cron
   entry that posts the same twelve findings every five minutes is muted inside a

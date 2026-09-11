@@ -163,6 +163,12 @@ runs:
         FAIL_ON: ${{ inputs.fail-on }}
         CHECK_SEMVER: ${{ inputs.check-semver }}
         GITHUB_BASE_REF_FALLBACK: ${{ github.base_ref }}
+        # A merge-queue run has no `github.base_ref` -- it is not a pull
+        # request. Without this the action reached its "no base ref" branch and
+        # exited 1, so it could not be a required check in a merge queue at
+        # all. The merge group's base is what the combined result lands on,
+        # which is the only ref worth diffing against there.
+        MERGE_GROUP_BASE: ${{ github.event.merge_group.base_ref }}
         ACTION_PATH: ${{ github.action_path }}
       run: |
         set -uo pipefail
@@ -171,7 +177,13 @@ runs:
         mkdir -p "$ARTIFACTS"
         echo "artifacts_dir=$ARTIFACTS" >> "$GITHUB_OUTPUT"
 
+        # An explicit input wins; then the pull request's base; then the merge
+        # group's. `refs/heads/main` from a merge-group event is stripped to
+        # `main`, because everything below builds `origin/$BASE`.
         BASE="${BASE_REF:-$GITHUB_BASE_REF_FALLBACK}"
+        if [ -z "$BASE" ] && [ -n "${MERGE_GROUP_BASE:-}" ]; then
+          BASE="${MERGE_GROUP_BASE#refs/heads/}"
+        fi
 
         if [ -n "${SPEC_PATHS// /}" ]; then
           SPECS=$(echo "$SPEC_PATHS" | tr ' ' '\n' | grep -v '^$' || true)

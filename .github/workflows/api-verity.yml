@@ -14,6 +14,12 @@ on:
         type: string
   pull_request:
     branches: [main]
+  # A gate that only runs on `pull_request` proves nothing about the merge
+  # result. Two pull requests that are each individually safe can combine into
+  # a breaking change -- one removes a field's last declared consumer, the
+  # other removes the field -- and the merge queue is the only place that
+  # combination is ever built.
+  merge_group:
     paths:
       - "**/*.yaml"
       - "**/*.yml"

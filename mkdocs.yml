@@ -78,6 +78,7 @@ nav:
       - Agent setup: agent-setup.md
   - Guides:
       - CI contract gate: ci.md
+      - Merge queues: merge-queue.md
       - SDK: sdk.md
       - Self-hosting: self-hosting.md
       - Air-gapped install: air-gapped.md

@@ -4,6 +4,40 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — the gate runs where merges happen
+
+A contract gate that runs only on `pull_request` proves something about that
+branch merged into the base *as it was when the check ran*. It proves nothing
+about what actually merges.
+
+Two pull requests, each individually safe: one removes the last declared
+consumer of a field, the other removes the field. Both pass, both merge, and
+nothing ever evaluated the combination — because the merge queue is the only
+place that combination is built.
+
+- `ci.yml` and `api-verity.yml` run on `merge_group` as well as
+  `pull_request`. Both, not one: the merge queue is the last gate, and finding
+  out there is finding out after review.
+
+- **The action can find a base ref in a merge queue.** `github.base_ref` is
+  empty for a `merge_group` event — it is not a pull request — so the action
+  reached its "no base ref to diff against" branch and exited 1. It could not
+  be a required check in a merge queue at all: safe, in that it failed rather
+  than passing vacuously, and useless. It reads
+  `github.event.merge_group.base_ref` now and strips the `refs/heads/` prefix
+  everything downstream does not expect.
+
+- The PR comment step stays scoped to `pull_request`. There is no pull request
+  to comment on in a queued run, and a step that tried would fail the gate for
+  a reason that has nothing to do with the contract.
+
+- **The five required job names are pinned.** Branch protection matches them
+  byte for byte: rename one and the required check waits forever for a name
+  nothing reports. `tests/unit/test_required_checks.py` fails in both
+  directions — a required job that disappeared, and a job added to `ci.yml`
+  that nobody decided about.
+
+
 ### Added — a real OIDC identity provider
 
 `IdentityProvider` has been a `Protocol` with one implementation — a lookup in
