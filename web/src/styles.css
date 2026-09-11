@@ -946,3 +946,83 @@ kbd {
 .section-head h3 {
   margin: 0;
 }
+
+/* Saved views. A dropdown rather than a page: the list is a shortcut, and a
+ * shortcut that needs navigating to is not one. */
+.saved-views {
+  position: relative;
+}
+.saved-panel {
+  position: absolute;
+  top: calc(100% + var(--s2));
+  right: 0;
+  z-index: 40;
+  width: 280px;
+  padding: var(--s3);
+  display: grid;
+  gap: var(--s2);
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg, 0 8px 24px rgb(0 0 0 / 18%));
+}
+.saved-panel label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.saved-add {
+  display: flex;
+  gap: var(--s2);
+}
+.saved-add input {
+  flex: 1;
+  min-width: 0;
+  padding: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+}
+.saved-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.saved-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 2px var(--s2);
+  border-radius: var(--radius-sm);
+}
+.saved-list li:hover {
+  background: var(--panel-hover);
+}
+.saved-list a {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: inherit;
+  text-decoration: none;
+}
+.saved-list a:hover {
+  color: var(--accent);
+}
+.saved-problem {
+  margin: 0;
+  color: var(--error);
+  font-size: var(--text-sm);
+}
+.saved-note {
+  margin: 0;
+  font-size: var(--text-sm);
+  border-top: 1px solid var(--border);
+  padding-top: var(--s2);
+}

@@ -13,6 +13,7 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react'
 import ChunkBoundary from './components/ChunkBoundary'
 import { SourceContext, Skeleton } from './components/ui'
+import { SavedViews } from './components/SavedViews'
 import { useData } from './hooks/useData'
 import { NAV, prefetchGroup, resolvePage } from './pages'
 import { useRoute } from './router'
@@ -167,6 +168,7 @@ export default function App() {
         </button>
         <span className="brand">API Verity Lab</span>
         <div className="topbar-actions">
+          <SavedViews />
           <button
             type="button"
             className="btn btn-ghost"

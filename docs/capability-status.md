@@ -174,6 +174,16 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   not test what it says it tested. Deliberately not guarded: injection-shaped
   values, which came out of the contract's own `pattern` and are what the run
   exists to exercise
+- Saved views (`DASH-14`) — NEW, completing the half that was already there.
+  Filters were serialized into the URL already, so a view was shareable by
+  copying the link; what was missing was a name for a link you want back. A
+  saved view stores the name and the hash and nothing else, since storing more
+  would be a second representation of state the URL already holds. It lives in
+  `localStorage`, which means this browser — said in the panel rather than
+  discovered on another machine — and every entry is a real link, because the
+  URL is the shareable form and the list is not. A read that throws gives an
+  empty list; a write that throws is reported, since saying nothing is how
+  somebody finds out on their next visit that nothing was kept
 - Synthetic monitoring (`apiverity monitor`) — NEW. Runs any other command on a
   schedule and reports the transitions rather than the snapshot, because a cron
   entry that posts the same twelve findings every five minutes is muted inside a

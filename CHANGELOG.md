@@ -4,6 +4,33 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — saved views
+
+Filters were already serialized into the URL, so a view was shareable by
+copying the link. What was missing was a name for a link you want back.
+
+- **A saved view stores a name and the hash route, and nothing else.** The URL
+  already carries the whole view, so storing more would be a second
+  representation of the same state — and the two would disagree the first time
+  a filter was added. The default name is the page plus its filters, because
+  "contract" and "contract filtered to errors" are two different views.
+
+- **Every entry is a real link**, so middle-click opens a tab and right-click
+  copies the URL. That matters: the link is the shareable form of a view, and
+  the list itself is per-browser.
+
+- **The panel says where they live.** `localStorage`, which means this browser
+  and not your account or your other laptop — said in the UI rather than
+  discovered by opening the dashboard somewhere else.
+
+- **Both storage failures are handled, differently.** `localStorage` does not
+  merely come back empty in a private window; the accessor throws. A read that
+  fails gives an empty list and the dashboard keeps working. A write that fails
+  is reported — saying nothing is how somebody finds out on their next visit
+  that what they saved was never saved. A stored value this feature did not
+  write is discarded rather than crashing the read.
+
+
 ### Added — guardrails on what a generated payload may carry out
 
 - **`GUARD-PAYLOAD-CREDENTIAL`.** `SEC-RESPONSE-CREDENTIAL` reads what comes
