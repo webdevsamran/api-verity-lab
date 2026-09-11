@@ -4,6 +4,39 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Fixed — four places said which protocols this tool reads, and all four were wrong
+
+GitHub keeps a repository's description and topics in a settings page. Nothing
+reviews them, nothing notices when they go stale, and this repository's said it
+handled **three** protocols while the loader reads **seven** — so somebody
+arriving from a search for "asyncapi breaking changes" was told, by the
+repository's own card, that it does not do that.
+
+It was not alone. The README's headline said OpenAPI, GraphQL and gRPC;
+`mkdocs.yml` said those plus AsyncAPI; `pyproject.toml` said the README's
+version; `docs/index.md` said a fourth thing. One sentence, four copies, four
+different lists, and a fifth — `SPEC_FORMATS` — that cannot be wrong.
+
+- **`.github/repo-metadata.yml`** puts the description, homepage and topics in
+  the repository, where they get reviewed like anything else. Twenty topics
+  including `mcp` and `ai-agents`, which were in neither the old description
+  nor the old topic list despite being the thing this project leads on.
+
+- **`scripts/check_repo_metadata.py --check`** holds that file against
+  `SPEC_FORMATS` *and* against the other four places, offline, in CI. Running
+  it with no arguments prints the single `gh repo edit` command that applies
+  it; `--live` asks GitHub what the repository currently says.
+
+- **Nothing here writes to GitHub, and a test asserts that.** Repository
+  settings are the maintainer's, and a script that edited them from CI would be
+  a script with more access than it needs.
+
+- `PRODUCT_GAPS.md` now lists what is finished on this side and waiting on an
+  account owner: PyPI's Trusted Publisher, these repository settings, a Zenodo
+  DOI, awesome-list entries, and an opt-in dataset whose honest version starts
+  with a consent decision this project should not make for a user.
+
+
 ### Fixed — every rule this tool can emit can now be explained
 
 `apiverity explain` exists because a rule nobody understands gets suppressed

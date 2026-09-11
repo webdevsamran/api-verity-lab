@@ -37,6 +37,34 @@ typed: a gap nobody wrote down is a gap that gets described as shipped.
    adapter for them is a shell pipeline rather than code here. `docs/framework-adapters.md`
    gives the table and the reasoning.
 
+## Waiting on the maintainer, not on code
+
+Each of these is finished on this side and needs an action only an account
+owner can take. Listed with what is already prepared, so the remaining step is
+minutes rather than a project.
+
+1. **PyPI publishing.** The release workflow does OIDC trusted publishing and is
+   guarded behind the `PUBLISH_ENABLED` repository variable. Registering a
+   Trusted Publisher is a form on the PyPI account that owns the name. One step
+   unlocks `pip`, `pipx` and `uvx` at once. See `docs/install.md`.
+2. **Repository description and topics.** `.github/repo-metadata.yml` holds
+   them, `scripts/check_repo_metadata.py` holds that file against the code, and
+   running the script with no arguments prints the single `gh repo edit`
+   command that applies it. The live repository currently names three protocols
+   and the tool reads seven.
+3. **A Zenodo DOI.** `CITATION.cff` exists with no DOI, which means citations
+   have nothing stable to point at. Enabling the GitHub–Zenodo integration and
+   cutting one release mints it.
+4. **Awesome-list entries and upstream issues.** Pull requests to other
+   people's repositories. Worth doing from an account with a history, and not
+   something to automate.
+5. **An opt-in "State of API Contracts" dataset.** Blocked on a decision this
+   project should not make on a user's behalf: it collects nothing today, and
+   the honest version of the feature starts with explicit consent, a published
+   schema, and a way to see exactly what would be sent. Until that exists there
+   is nothing to write a report from, which also blocks the content pipeline
+   that would draw on it.
+
 ## Features deliberately not pursued
 
 - Hosted SaaS collaboration platform (Postman/Hive/BSR model) — self-hosted server instead.

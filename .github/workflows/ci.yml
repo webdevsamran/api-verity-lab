@@ -141,6 +141,13 @@ jobs:
         # shape the plugin guide tells people to copy.
         run: pytest examples/plugins/apiverity-house-rules/tests -q
 
+      - name: The repository's own description names what it supports
+        # GitHub keeps the description and topics in a settings page, so
+        # nothing reviews them. This one said three protocols while the loader
+        # read seven, and had since AsyncAPI shipped. Offline: this compares
+        # the checked-in file with the code, and never touches the network.
+        run: python scripts/check_repo_metadata.py --check
+
       - name: Landing pages match the measurement and the evidence file
         # docs/for/* lists the rules observed firing on each protocol and
         # docs/vs/* is built from the competitor evidence file. Both are the

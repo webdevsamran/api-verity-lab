@@ -1,0 +1,42 @@
+# The repository's own description and topics, in the repository.
+#
+# GitHub keeps these in a settings page, which means nothing reviews them and
+# nothing notices when they go stale. This one had: the description named three
+# protocols while the tool read seven, and had said so since AsyncAPI shipped.
+#
+# `scripts/check_repo_metadata.py` holds this file against the code -- the
+# protocol list has to match what `apiverity.specs.loader.SPEC_FORMATS`
+# actually supports -- and prints the one command that applies it. Nothing here
+# reaches GitHub on its own: repository settings are the maintainer's, and a
+# tool that edited them from CI would be a tool with more access than it needs.
+
+description: >-
+  API contract governance in one tool: breaking-change rules, runtime drift
+  detection, schema-driven fuzzing, traffic replay and performance budgets for
+  OpenAPI, Swagger 2.0, AsyncAPI, GraphQL, gRPC, MCP tool manifests and WSDL.
+
+homepage: https://webdevsamran.github.io/api-verity-lab/
+
+# GitHub allows twenty. Ordered by what somebody would actually search for,
+# because the first few are what appear on the repository card.
+topics:
+  - api-governance
+  - breaking-changes
+  - contract-testing
+  - openapi
+  - mcp
+  - ai-agents
+  - drift-detection
+  - graphql
+  - grpc
+  - asyncapi
+  - api-diff
+  - semver
+  - fuzzing
+  - api-testing
+  - developer-tools
+  - performance-testing
+  - soap
+  - swagger
+  - api-security
+  - cli

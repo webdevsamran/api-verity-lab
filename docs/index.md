@@ -1,8 +1,8 @@
 # api-verity-lab
 
-**Unified API contract governance, breaking-change analysis, schema-driven
-testing, runtime drift detection, traffic replay and performance regression
-for OpenAPI, AsyncAPI, GraphQL and gRPC.**
+**API contract governance in one tool: breaking-change rules, runtime drift
+detection, schema-driven fuzzing, traffic replay and performance budgets — for
+OpenAPI, Swagger 2.0, AsyncAPI, GraphQL, gRPC, MCP tool manifests and WSDL.**
 
 Every supported spec format compiles into one normalized contract model, and
 every engine downstream reads that model rather than the original document.

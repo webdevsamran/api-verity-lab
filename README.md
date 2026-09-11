@@ -9,9 +9,9 @@
 [![Coverage floor](https://img.shields.io/badge/coverage%20floor-72%25-informational)](pyproject.toml)
 <!-- /badges -->
 
-**Unified API contract governance, breaking-change analysis, schema-driven
-testing, runtime drift detection, traffic replay and performance regression
-for OpenAPI, GraphQL and gRPC.**
+**API contract governance in one tool: breaking-change rules, runtime drift
+detection, schema-driven fuzzing, traffic replay and performance budgets — for
+OpenAPI, Swagger 2.0, AsyncAPI, GraphQL, gRPC, MCP tool manifests and WSDL.**
 
 ![apiverity, running](docs/demo.svg)
 
