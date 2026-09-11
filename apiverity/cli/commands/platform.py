@@ -490,6 +490,45 @@ def cmd_monitor(args: argparse.Namespace) -> int:
     return exit_code
 
 
+def cmd_agent_setup(args: argparse.Namespace) -> int:
+    """Tell the coding agents in this repository that this tool exists.
+
+    An agent that does not know `apiverity breaking` exists will write a
+    migration guide by comparing two YAML files by eye. Writes nothing without
+    `--write`: installing into somebody's editor configuration as a side
+    effect of being run is not something a tool gets to do.
+    """
+    from apiverity.agents.skill import TARGETS, apply, plan
+
+    try:
+        setup = plan(args.root or ".", list(args.target or []) or None)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    written: list[str] = []
+    if getattr(args, "write", False):
+        written = [str(item.path) for item in apply(setup, force=bool(args.force))]
+
+    payload = setup.as_dict(written=bool(getattr(args, "write", False)))
+    payload["wrote"] = written
+    if not getattr(args, "write", False):
+        payload["note"] = (
+            f"nothing was written. {len(setup.plans)} target(s) of "
+            f"{len(TARGETS)} planned; pass --write to install them"
+        )
+    _emit({"tool": "apiverity", "command": "agent-setup", **payload}, args.json)
+
+    blocked = [item for item in setup.plans if item.blocked]
+    if blocked and not getattr(args, "force", False):
+        for item in blocked:
+            print(f"note: {item.path} was not written: {item.blocked}", file=sys.stderr)
+        # A refused target is a finding about this repository, not an error in
+        # the run: the other targets installed.
+        return EXIT_FINDINGS
+    return EXIT_OK
+
+
 def cmd_plugins(args: argparse.Namespace) -> int:
     from apiverity.plugins.registry import list_entry_points
 

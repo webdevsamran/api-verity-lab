@@ -47,6 +47,16 @@
   ],
   "commands": [
     {
+      "name": "agent-setup",
+      "summary": "tell the coding agents working in this repository that this tool exists",
+      "options": [
+        "--force",
+        "--json",
+        "--target",
+        "--write"
+      ]
+    },
+    {
       "name": "audit",
       "summary": "export the hash-chained audit log, or verify an exported one",
       "options": [

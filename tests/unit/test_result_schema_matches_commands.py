@@ -22,8 +22,32 @@ from pathlib import Path
 _ROOT = Path(__file__).resolve().parents[2]
 _SCHEMA = _ROOT / "schemas" / "result-v1.schema.json"
 
-#: A payload names its command in one place and always the same way.
-_EMITS = re.compile(r'"command":\s*"([a-z0-9-]+)"')
+#: A result payload names its command in one place and always the same way:
+#: immediately after `"tool": "apiverity"`.
+#:
+#: The pair, not `"command"` alone. `agents/skill.py` writes an `.mcp.json`
+#: entry -- `{"command": "apiverity-mcp", "args": [...]}` -- which is a server
+#: launch configuration and not a result artifact, and a scan for the bare key
+#: reported it as a command the published enum rejects. Matching the pair drops
+#: exactly that one string and nothing else: every one of the emitters this
+#: file exists to police writes the two keys adjacent, and a test below asserts
+#: the set found here is the set the CLI defines.
+_EMITS = re.compile(r'"tool":\s*"apiverity",\s*"command":\s*"([a-z0-9-]+)"')
+
+
+#: Commands that emit no result artifact of their own, and why.
+#:
+#: Named rather than absorbed into a loose floor: a command that stops emitting
+#: an artifact should fail this file, and it cannot if the assertion is "more
+#: than fifteen of them do".
+_NO_ARTIFACT = frozenset(
+    {
+        # Re-runs another command and prints *that* command's output.
+        "watch",
+        # Renders an artifact into a document; the document is the output.
+        "report",
+    }
+)
 
 
 def _schema_commands() -> set[str]:
@@ -62,9 +86,19 @@ def test_the_schema_promises_no_command_the_cli_does_not_define() -> None:
     )
 
 
-def test_the_scan_found_something_to_check() -> None:
-    """A regex that matches nothing would make both tests pass silently."""
-    assert len(_emitted_commands()) > 15
+def test_the_scan_found_every_command_the_cli_defines() -> None:
+    """A regex that matched nothing would make both tests pass silently.
+
+    Bound to the parser rather than to a floor, because the scan was tightened
+    to a key *pair* and a looser floor would not notice if the tightening had
+    also dropped a real emitter.
+    """
+    missed = sorted(_cli_commands() - _emitted_commands() - _NO_ARTIFACT)
+    assert not missed, (
+        f"{missed} define a subcommand and the scan found no artifact for them. Either "
+        "the pattern above stopped matching one, or they genuinely emit none -- in "
+        "which case say so in _NO_ARTIFACT, with the reason"
+    )
 
 
 def test_the_enum_is_sorted() -> None:

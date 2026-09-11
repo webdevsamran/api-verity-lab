@@ -299,6 +299,12 @@ COMMANDS: list[tuple[str, list[str]]] = [
             "--json",
         ],
     ),
+    # `agent-setup` writes files rather than reading a contract. Run dry, so
+    # this check never installs anything into the checkout it runs in.
+    (
+        "agent-setup",
+        ["agent-setup", str(_SCRATCH / "agent-setup"), "--json"],
+    ),
     # `graph` walks a tree rather than loading one contract, and emits a shape
     # no other command does.
     (

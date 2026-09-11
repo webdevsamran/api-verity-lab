@@ -65,6 +65,7 @@ nav:
       - Audit export: audit-export.md
       - Emergency freeze: kill-switch.md
       - MCP exposure: mcp-exposure.md
+      - Agent setup: agent-setup.md
   - Guides:
       - CI contract gate: ci.md
       - SDK: sdk.md

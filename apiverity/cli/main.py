@@ -42,6 +42,7 @@ from apiverity.cli.commands.governance import (
     cmd_validate,
 )
 from apiverity.cli.commands.platform import (
+    cmd_agent_setup,
     cmd_audit,
     cmd_explain,
     cmd_freeze,
@@ -76,6 +77,7 @@ from apiverity.specs.loader import SPEC_FORMATS
 
 __all__ = [
     "build_parser",
+    "cmd_agent_setup",
     "cmd_audit",
     "cmd_baseline",
     "cmd_breaking",
@@ -1188,6 +1190,32 @@ def build_parser() -> argparse.ArgumentParser:
         help="-- followed by the command to run, e.g. `-- drift api.yaml --base-url URL`",
     )
     p.set_defaults(func=cmd_monitor)
+    p = sub.add_parser(
+        "agent-setup",
+        help="tell the coding agents working in this repository that this tool exists",
+    )
+    p.add_argument("root", nargs="?", default=".", help="repository root (default: .)")
+    p.add_argument(
+        "--target",
+        action="append",
+        metavar="NAME",
+        help=(
+            "install only this target (repeatable): agents-md, claude-skill, "
+            "cursor-rule, mcp-json. Default: all four"
+        ),
+    )
+    p.add_argument(
+        "--write",
+        action="store_true",
+        help="actually write the files. Without it the run reports what it would do",
+    )
+    p.add_argument(
+        "--force",
+        action="store_true",
+        help="overwrite a file that exists without this tool's markers",
+    )
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_agent_setup)
     p = sub.add_parser(
         "notify",
         help="route a result artifact's findings to the teams they concern",

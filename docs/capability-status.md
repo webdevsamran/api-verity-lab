@@ -139,6 +139,17 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   shared schema with fewer dependents than it has). Cycles -- including the
   self-reference in this repository's own multi-file fixture -- are named once
   and the walk is iterative
+- Agent installer (`apiverity agent-setup`) — NEW. Writes the same body of
+  guidance into `AGENTS.md`, a Claude Code skill, a Cursor rule and `.mcp.json`,
+  so an agent working in a repository stops comparing two YAML files by eye. The
+  body is **generated**: commands from the argument parser, tools from
+  `mcp.tools.TOOLS`, exit codes from the constants, version stamped — a stale
+  agent file costs an agent nothing to notice, which is why it is the worst kind
+  of documentation drift. Dry by default; only the marked block moves on a
+  re-run; a Cursor rule or Claude skill already at its path without those
+  markers is refused by name rather than overwritten; `.mcp.json` is merged so
+  other integrations survive. This repository's own `AGENTS.md` carries the
+  block and a test fails when it falls behind the CLI
 - Synthetic monitoring (`apiverity monitor`) — NEW. Runs any other command on a
   schedule and reports the transitions rather than the snapshot, because a cron
   entry that posts the same twelve findings every five minutes is muted inside a

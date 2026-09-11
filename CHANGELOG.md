@@ -4,6 +4,60 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — `apiverity agent-setup`, and guidance that cannot go stale
+
+- **`apiverity agent-setup --write`** installs the same body of guidance into
+  four places: `AGENTS.md`, `.claude/skills/apiverity/SKILL.md`,
+  `.cursor/rules/apiverity.mdc` and `.mcp.json`. An agent that does not know
+  `apiverity breaking` exists will write a migration guide by comparing two
+  YAML files by eye.
+
+  Those are file formats this writes, not claims about which assistant reads
+  them. The run reports what went where and says nothing about what will read
+  it.
+
+- **The body is generated, not typed.** Commands from the argument parser, MCP
+  tools from `apiverity.mcp.tools.TOOLS`, exit codes from the constants, and
+  the version stamped into the footer so a stale copy is detectable. A stale
+  README costs a human a minute; a stale agent file costs an agent nothing at
+  all — it runs `apiverity check`, gets a usage error, and invents a reason.
+  Tests assert the body against those sources in both directions: every command
+  listed, and no command named that does not exist.
+
+  This repository's own `AGENTS.md` carries the block, and a test fails when it
+  falls behind the CLI — the same rule every other generated document here
+  already lives under.
+
+- **It does nothing to files it did not write, unless asked twice.** Dry by
+  default, like `replay` and `notify`: installing into somebody's editor
+  configuration as a side effect of being run is not something a tool gets to
+  do. Only the marked block moves on a re-run. An existing `AGENTS.md` gains a
+  section rather than being replaced — it is a file a repository is expected to
+  have. A Cursor rule or Claude skill already at its single-purpose path
+  *without* the markers is refused by name, and the other targets still
+  install.
+
+- **`.mcp.json` is merged, never replaced.** The other servers in it belong to
+  other integrations, and a rewrite that dropped them would break three to fix
+  one. A file that is not valid JSON is refused rather than overwritten: the
+  run does not get to decide somebody's unparseable config was worthless.
+
+### Changed — the artifact-command guard now matches a key pair
+
+`tests/unit/test_result_schema_matches_commands.py` scanned the package for
+`"command": "..."`, and `agents/skill.py` writes an `.mcp.json` launch entry —
+`{"command": "apiverity-mcp", ...}` — which is not a result artifact. It now
+matches `"tool": "apiverity"` immediately followed by `"command"`, which drops
+exactly that one string and nothing else.
+
+Tightening a guard can hide things, so the floor beneath it was tightened too:
+instead of asserting the scan found "more than fifteen" commands, it asserts
+the scan found *every* command the CLI defines. The two that genuinely emit no
+artifact — `watch`, which re-runs another command, and `report`, whose output
+is the rendered document — are named with their reasons rather than absorbed
+into a loose threshold.
+
+
 ### Added — `apiverity graph`: whose build goes red if I edit this
 
 - **`apiverity graph .`** answers the question forty independent contract gates
