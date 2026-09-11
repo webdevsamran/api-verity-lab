@@ -1026,3 +1026,57 @@ kbd {
   border-top: 1px solid var(--border);
   padding-top: var(--s2);
 }
+
+/* Onboarding tour. Dimmed everywhere except the control being described:
+ * a highlight that does not visibly exclude the rest is a caption. */
+.tour-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgb(0 0 0 / 45%);
+}
+.tour-spot {
+  position: fixed;
+  border-radius: var(--radius-md);
+  /* The cutout, done with a shadow rather than a mask so it needs no SVG and
+   * degrades to a plain outline where `box-shadow` spread is unsupported. */
+  box-shadow: 0 0 0 9999px rgb(0 0 0 / 45%);
+  outline: 2px solid var(--accent);
+  pointer-events: none;
+}
+.tour-panel {
+  position: fixed;
+  top: 64px;
+  right: 16px;
+  width: min(340px, calc(100vw - 32px));
+  padding: var(--s4);
+  background: var(--elevated);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 28%);
+}
+.tour-panel h3 {
+  margin: 0 0 var(--s2);
+}
+.tour-panel p {
+  margin: 0 0 var(--s3);
+}
+.tour-count {
+  margin: 0 0 var(--s2);
+  font-size: var(--text-sm);
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.tour-problem {
+  color: var(--warn);
+  font-size: var(--text-sm);
+}
+.tour-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+.tour-actions .btn:last-child {
+  margin-left: auto;
+}

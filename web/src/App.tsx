@@ -14,12 +14,14 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react
 import ChunkBoundary from './components/ChunkBoundary'
 import { SourceContext, Skeleton } from './components/ui'
 import { SavedViews } from './components/SavedViews'
+import { tourSeen } from './tour-state'
 import { useData } from './hooks/useData'
 import { NAV, prefetchGroup, resolvePage } from './pages'
 import { useRoute } from './router'
 
 const CommandPalette = lazy(() => import('./components/CommandPalette'))
 const SourcePicker = lazy(() => import('./components/SourcePicker'))
+const Tour = lazy(() => import('./components/Tour'))
 
 type ThemeMode = 'dark' | 'light' | 'system'
 
@@ -90,6 +92,9 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [sourceOpen, setSourceOpen] = useState(false)
+  // Resolved once, and false on every visit after the first -- so the chunk
+  // is never fetched by a returning reader.
+  const [tourOpen, setTourOpen] = useState(false)
 
   /* The attribute write is what gets cross-faded, not the state update.
    *
@@ -100,6 +105,14 @@ export default function App() {
    * three presses vanished. React state now changes immediately and only the
    * paint is animated, so every press counts and the cross-fade is decoration
    * on top rather than a gate in front. */
+  // First visit only. Deferred a beat so the topbar the tour points at has
+  // been laid out -- a highlight measured before layout lands at (0, 0).
+  useEffect(() => {
+    if (tourSeen()) return
+    const id = window.setTimeout(() => setTourOpen(true), 500)
+    return () => window.clearTimeout(id)
+  }, [])
+
   useEffect(() => {
     withTransition(() => {
       if (theme === 'system') delete document.documentElement.dataset.theme
@@ -252,6 +265,14 @@ export default function App() {
           </div>
         </main>
       </div>
+
+      {tourOpen && (
+        <ChunkBoundary what="The tour">
+          <Suspense fallback={null}>
+            <Tour onClose={() => setTourOpen(false)} />
+          </Suspense>
+        </ChunkBoundary>
+      )}
 
       {paletteOpen && (
         <ChunkBoundary what="The command palette">

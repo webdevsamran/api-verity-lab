@@ -184,6 +184,18 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   URL is the shareable form and the list is not. A read that throws gives an
   empty list; a write that throws is reported, since saying nothing is how
   somebody finds out on their next visit that nothing was kept
+- Onboarding tour (`DASH-17`) — NEW; the empty-state half of that item was
+  already done and is better than the tour (`Empty` vs `Missing` distinguishes
+  "no findings" from "this source has no findings section", and the hint depends
+  on whether the source is live). The tour is four steps, once, lazily loaded so
+  a returning reader never fetches the chunk. What it refuses to do is point at
+  something that is not there: steps are filtered against the document before
+  anything renders, the counter counts what survived, and a tour with no
+  surviving steps does not run *and is not marked seen* — nothing was shown, so
+  marking it would spend its one chance. A dismissal that cannot be recorded is
+  reported rather than silently reappearing next visit, and About carries a way
+  back, because a tour that runs once with no re-entry is one the people most
+  likely to skip it never see again
 - Synthetic monitoring (`apiverity monitor`) — NEW. Runs any other command on a
   schedule and reports the transitions rather than the snapshot, because a cron
   entry that posts the same twelve findings every five minutes is muted inside a

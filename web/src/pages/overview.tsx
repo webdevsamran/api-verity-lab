@@ -1,5 +1,6 @@
 /* Overview pages: home, catalog, docs, plugins, contributors, about. */
 import { Badge, CopyCmd, Empty, PageHead, Skeleton, StatGrid, type Stat } from '../components/ui'
+import { TOUR_KEY } from '../tour-state'
 import type { PageProps } from './types'
 
 export function HomePage({ data }: { data: PageProps['data'] }) {
@@ -150,6 +151,25 @@ export function AboutPage() {
         GraphQL and gRPC — one shared contract model instead of a bag of wrappers.
       </p>
       <p className="muted">Apache-2.0 · Created by @webdevsamran · No cloud component required.</p>
+      {/* The tour runs once. Without a way back to it, "once" means "never
+        * again for anyone who skipped it in their first ten seconds". */}
+      <p>
+        <button
+          type="button"
+          className="linklike"
+          onClick={() => {
+            try {
+              window.localStorage.removeItem(TOUR_KEY)
+            } catch {
+              // Storage refused, which is also why it never recorded the tour
+              // as seen. Reloading shows it regardless.
+            }
+            window.location.reload()
+          }}
+        >
+          Take the tour again
+        </button>
+      </p>
     </>
   )
 }

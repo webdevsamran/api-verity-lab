@@ -4,6 +4,37 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — an onboarding tour that will not point at nothing
+
+Four steps, on a first visit, lazily loaded — so a returning reader never
+fetches the chunk at all.
+
+- **Steps are filtered against the document before anything renders.** A step
+  anchored to a selector that matches nothing would leave a highlight box at
+  the top-left corner and a caption describing a control the reader cannot
+  see: worse than not running, because it teaches them the tour is lying about
+  the interface it exists to explain. The counter counts what survived.
+
+- **A tour with no surviving steps does not run, and is not marked as seen.**
+  Nothing was shown, so nothing was learned, and marking it seen would spend
+  the one chance it has.
+
+- **A dismissal that could not be recorded says so.** `localStorage` refuses in
+  a private window or with site data blocked; the tour reports it on the step
+  you dismissed from rather than silently returning every visit and leaving you
+  to conclude the dashboard is broken. A *read* that throws is treated as
+  already seen — an undismissable tour that returns on every load is the worse
+  failure.
+
+- **About → Take the tour again.** A tour that runs once with no way back is a
+  tour nobody sees: the people most likely to skip it in their first ten
+  seconds are the ones who later want it.
+
+Arrow keys move, Escape dismisses, focus enters the panel and returns to where
+it was. Entry chunk 214,396 B against the 220,000 B budget; the tour is a
+3.1 kB chunk of its own.
+
+
 ### Added — saved views
 
 Filters were already serialized into the URL, so a view was shareable by

@@ -57,6 +57,7 @@ nav:
       - Blast radius: blast-radius.md
       - Dependency graph: dependency-graph.md
       - Saved views: saved-views.md
+      - Onboarding tour: onboarding.md
       - Ghost routes: ghost-routes.md
       - Synthetic monitoring: monitoring.md
       - Inferred contracts: inferred-contracts.md
