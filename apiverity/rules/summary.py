@@ -242,6 +242,17 @@ def summarize(
             "Or make it additive: deprecate with a sunset date instead of removing, "
             "and add optional fields instead of changing required ones."
         )
+    # Before the generic advice, because the API owner's own guide beats
+    # anything this tool can say about their API. It reaches here on the
+    # finding, put there by `rules/migration.py` from the old contract.
+    from apiverity.rules.migration import summarize as _guides
+
+    for entry in _guides(findings):
+        line = f"`{entry['operation']}` has a migration guide: {entry['guide']}"
+        if entry.get("impact"):
+            line += f" — {entry['impact']}"
+        what_to_do.append(line)
+
     if consumers:
         named = ", ".join(sorted(consumers)[:5])
         what_to_do.append(f"Registered consumers affected: {named}.")

@@ -1,0 +1,43 @@
+openapi: 3.1.0
+info:
+  title: Deprecation Fixture API
+  version: 1.0.0
+paths:
+  /users/{id}:
+    get:
+      operationId: getUser
+      deprecated: true
+      # The owner already wrote down what to do instead. Until now nothing read
+      # it, so the finding that objected to the removal did not carry it.
+      x-deprecation:
+        announced: "2026-01-15"
+        sunset: "2027-01-01"
+        guide: https://docs.example.test/migrating-to-v2
+        impact: mobile clients pinned below 3.4 need a release
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: one user
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, email]
+                properties:
+                  id: {type: string}
+                  email: {type: string}
+  /reports:
+    get:
+      operationId: listReports
+      responses:
+        "200":
+          description: report list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {type: string}

@@ -180,7 +180,16 @@ def main() -> None:
         org_id, "breaking", "max_breaking=0" + chr(10) + "require_approval_on_breaking=true"
     )
     aid = store.request_approval(
-        org_id, "Catalog", "1.0.0", "2.0.0", "remove legacy sort param", "bob"
+        org_id,
+        "Catalog",
+        "1.0.0",
+        "2.0.0",
+        "remove legacy sort param",
+        "bob",
+        # The field the schema has always had. Left empty here, the approvals
+        # view demonstrated a column that was never populated -- which is how
+        # it went unrendered for as long as it did.
+        "https://docs.example.test/catalog/migrating-off-sort",
     )
     store.decide_approval(aid, "approved", "alice")
     rid = store.record_run(

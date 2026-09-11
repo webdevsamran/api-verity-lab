@@ -92,6 +92,11 @@ export function ApprovalsPage({ data }: { data: PageProps["data"] }) {
               <th>Contract</th>
               <th>Transition</th>
               <th>Justification</th>
+              {/* Stored on every approval since the server had a table, typed
+                * in `data.ts`, and rendered nowhere until now -- so the one
+                * field that tells a consumer what to do about the exception
+                * was the one nobody could read. */}
+              <th>Migration guide</th>
               <th>Status</th>
               <th>Requested by</th>
               <th>Decided by</th>
@@ -105,6 +110,22 @@ export function ApprovalsPage({ data }: { data: PageProps["data"] }) {
                   v{a.from_version} → v{a.to_version}
                 </td>
                 <td>{a.justification}</td>
+                <td>
+                  {a.migration_guide ? (
+                    /^https?:\/\//.test(a.migration_guide) ? (
+                      <a href={a.migration_guide} rel="noreferrer noopener" target="_blank">
+                        {a.migration_guide}
+                      </a>
+                    ) : (
+                      a.migration_guide
+                    )
+                  ) : (
+                    /* An exception with no guide is a fact worth seeing: it is
+                     * a breaking change somebody approved without saying what
+                     * a consumer should do about it. */
+                    <span className="muted">none given</span>
+                  )}
+                </td>
                 <td>
                   <Badge
                     tone={

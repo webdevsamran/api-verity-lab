@@ -225,6 +225,18 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   separately and said out loud, since those are sixty-odd rules the file never
   names. Matching is by rule name and errs toward the backlog: a custom rule
   lands there even when this project happens to check the same thing
+- Migration guides on the finding that blocks (`TEAM-10`) — FIX. Two fields,
+  two places, both written and never read: `DeprecationInfo.migration_guide` had
+  been in the model since the beginning, populated by no parser and read by no
+  rule; `Approval.migration_guide` is a server column accepted on every request
+  and typed in the dashboard, rendered nowhere. `breaking` now puts the owner's
+  own guidance on every finding about that operation and prints it above the
+  generic advice, read from the **old** contract — a guide added in the change
+  that breaks people was not published when they needed it. Found while wiring
+  it: `LIFECYCLE-DEPRECATED-NO-SUNSET` and `LIFECYCLE-DEPRECATED-NO-GUIDANCE`
+  read only the flat extension spellings, so a contract using the structured
+  `x-deprecation` block was told it names no retirement date and points nowhere
+  while doing both
 - Synthetic monitoring (`apiverity monitor`) — NEW. Runs any other command on a
   schedule and reports the transitions rather than the snapshot, because a cron
   entry that posts the same twelve findings every five minutes is muted inside a

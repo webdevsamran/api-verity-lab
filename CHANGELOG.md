@@ -4,6 +4,54 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — the migration guide reaches the finding that blocks
+
+A breaking-change finding says *what* broke. It does not say what to do
+instead, and the person who knows that is the API owner — who very often wrote
+it down next to the operation, in a field nothing read.
+
+- `breaking` attaches the owner's guidance to every finding about that
+  operation (`metadata.migration_guide`) and lists it once per operation under
+  `migration_guides`. Eleven findings about one removed operation should not
+  print the same link eleven times.
+
+- `--summary` prints it **above** the generic advice, because the API owner's
+  own guide beats anything this tool can say about their API.
+
+- It is read from the **old** contract. The operation being broken is the one
+  consumers wrote against; a guide added in the same change that breaks them
+  was not published when they needed it.
+
+- Both spellings are understood: the structured `x-deprecation` block and the
+  flat `x-migration` / `x-sunset-link` extensions in common use.
+
+- It is never fetched. A URL in a contract is an address somebody else
+  controls, and this project does not request addresses the caller did not
+  choose.
+
+- The approvals view in the dashboard has a **Migration guide** column. The
+  server has stored the field since the table existed and the frontend has
+  always typed it; nothing rendered it. An approval without one reads "none
+  given" rather than blank — a breaking change approved without saying what a
+  consumer should do about it is a fact worth seeing.
+
+### Fixed — two lifecycle rules fired on contracts that satisfy them
+
+`LIFECYCLE-DEPRECATED-NO-SUNSET` and `LIFECYCLE-DEPRECATED-NO-GUIDANCE` read
+only the flat extension keys. A contract using the structured form —
+
+```yaml
+x-deprecation:
+  sunset: "2027-01-01"
+  guide: https://docs.example.com/migrating-to-v2
+```
+
+— was told it *names no retirement date* and *points nowhere* while doing both.
+That is the kind of false positive that gets a governance rule switched off
+along with its neighbours. Both rules read the structured block now, and both
+still fire on a contract that genuinely says nothing.
+
+
 ### Added — `apiverity import-rules`, for a Spectral ruleset
 
 Spectral owns rule-catalog linting, and a team that has a ruleset has invested

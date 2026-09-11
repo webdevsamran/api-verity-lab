@@ -129,6 +129,14 @@ def cmd_breaking(args: argparse.Namespace) -> int:
 
     findings = findings + analyze_compat(old, new) + analyze_protocol_compat(old, new)
 
+    # The guide the API owner already wrote, attached to the finding that
+    # objects. Read from the *old* contract: the operation being broken is the
+    # one consumers wrote against, and a guide added in the same change that
+    # breaks them was not published when they needed it.
+    from apiverity.rules.migration import attach as attach_guides
+
+    findings = attach_guides(findings, old)
+
     # Wire-compatible changes that move a generated client's surface. Opt-in,
     # and narrowable: every rule in the family depends on a convention a
     # generator may or may not follow, and a run that asserted them all
@@ -209,6 +217,10 @@ def cmd_breaking(args: argparse.Namespace) -> int:
         findings = findings + policy.evaluate(findings, changes)
     errors = sum(1 for f in findings if f.severity.value == "ERROR")
 
+    from apiverity.rules.migration import summarize as summarize_guides
+
+    guides = summarize_guides(findings)
+
     # Advice first: the summary quotes the concrete version when both flags are
     # given, and "release this as 2.0.0" is a more useful sentence than
     # "release this behind a major version bump".
@@ -265,6 +277,9 @@ def cmd_breaking(args: argparse.Namespace) -> int:
             # conventions reports fewer findings than one that assumed six, and
             # an artifact that did not say which would read as the same run.
             **({"sdk_conventions": sdk_conventions} if sdk_conventions is not None else {}),
+            # Deduplicated by operation: eleven findings about one removed
+            # operation should not print the same link eleven times.
+            **({"migration_guides": guides} if guides else {}),
             "findings": findings,
             "errors": errors,
             **({"blast_radius": radius} if radius is not None else {}),

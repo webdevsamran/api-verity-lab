@@ -97,7 +97,23 @@ def _parse_date(value: Any) -> date | None:
 
 
 def _declared_date(op: Operation, keys: tuple[str, ...], header: str) -> date | None:
-    """The date this operation states, from an extension or a header example."""
+    """The date this operation states, from an extension or a header example.
+
+    The structured block first. `x-deprecation` is read here as a flat date
+    *and* published in the wild as an object with `sunset` and `guide` inside
+    it -- and reading only the flat form reported "names no retirement date"
+    about a contract that names one, which is the kind of false positive that
+    gets a governance rule switched off.
+    """
+    from apiverity.rules.migration import deprecation_of
+
+    info = deprecation_of(op)
+    if info is not None:
+        structured = info.sunset_date if header == SUNSET_HEADER else info.announced_date
+        found = _parse_date(structured)
+        if found is not None:
+            return found
+
     for key in keys:
         found = _parse_date(op.extensions.get(key))
         if found is not None:
@@ -112,10 +128,18 @@ def _declared_date(op: Operation, keys: tuple[str, ...], header: str) -> date | 
 
 
 def _has_guidance(op: Operation) -> bool:
+    from apiverity.rules.migration import deprecation_of
+
     text = f"{op.description or ''} {op.summary or ''}".lower()
     if any(marker in text for marker in _GUIDANCE_MARKERS):
         return True
-    # A `deprecation` or `sunset` link relation is the RFCs' own answer.
+    # A `deprecation` or `sunset` link relation is the RFCs' own answer, and a
+    # `guide` inside a structured `x-deprecation` block is the same answer
+    # written the other common way. Reading only the flat keys reported
+    # "points nowhere" about contracts that point somewhere.
+    info = deprecation_of(op)
+    if info is not None and (info.migration_guide or info.consumer_impact):
+        return True
     return any(
         key in op.extensions for key in ("x-deprecation-link", "x-sunset-link", "x-migration")
     )
