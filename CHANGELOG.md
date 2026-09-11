@@ -4,6 +4,68 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — a playground that runs the real engine, in the reader's browser
+
+Paste two contracts, get the breaking changes with rule ids. No account, no
+upload, no server: Pyodide loads CPython as WebAssembly and `micropip` installs
+the same wheel a `pip install` would, so what runs is `diff_services` and
+`evaluate_breaking` — the functions the CLI calls, not a reimplementation of
+them.
+
+- **Nothing leaves the tab, and that is the point.** "Paste your API spec into
+  our website" is a request most people should refuse, and most playgrounds are
+  asking exactly that. This one cannot receive the text: there is no endpoint
+  for it to be sent to.
+
+- **Python loads on the first Compare, not on page load.** A docs page that
+  pulls tens of megabytes because somebody scrolled past it is a docs page that
+  is slow for everybody.
+
+- **`httpx` and `flask` are not installed, deliberately, and the cost is
+  stated.** Both are declared dependencies, and nothing on the analysis path
+  imports either — every command that needs them imports them inside the
+  function that uses them. Installing them would add a dozen wheels to a first
+  load for code the page cannot reach. The trade is that a future import of
+  something new fails at runtime rather than at install, so the page catches an
+  ImportError and names the missing module, and
+  `tests/unit/test_playground.py` fails the build the moment the analysis path
+  imports something the playground does not have.
+
+- **`graphql-core` *is* installed, because a test in a browser said so.**
+  Without it the GraphQL plugin cannot even recognise an SDL document, so a
+  pasted schema came back as "not an API contract in any recognized format" —
+  wrong, and the least helpful thing the page could say. OpenAPI, Swagger 2.0,
+  AsyncAPI, GraphQL SDL and an MCP tool manifest were each driven through the
+  page and each produced findings.
+
+- **A document that will not parse names which pane and why.** The first
+  version showed a Python traceback, which is the wrong answer to a half-typed
+  contract: the reader knows they are mid-edit, and what they need is the
+  parser's own complaint with its line and column.
+
+- **The page's Python is executed by the test suite**, against the real engine,
+  with the page's own sample contracts. It is the only logic the page has, and
+  a renamed function in `apiverity.diff` would otherwise leave an ImportError
+  in somebody's browser and a green suite here.
+
+- **`scripts/generate_playground.py` generates the manifest**, and `--check`
+  runs in CI. The wheel filename, the pinned Pyodide release and the preloaded
+  packages all have to agree, and a version bump with a hand-written manifest
+  is a 404 on the wheel and a page that spins forever — for visitors, with
+  nothing failing here.
+
+- **The docs workflow now watches `apiverity/**` and builds the wheel it
+  publishes.** It triggered only on markdown and `mkdocs.yml`, so the
+  playground would have served whatever the code was the last time a doc
+  changed. A step then checks the wheel actually reached the site, because a
+  404 there is only visible after thirty seconds of loading Python.
+
+Pinned to Pyodide 0.28.3, which bundles pydantic 2.10.6, PyYAML 6.0.2 and
+packaging 24.2 — every runtime dependency the analysis path imports. `latest`
+would move the Python and the pydantic under the page, for visitors, with
+nobody here running anything.
+
+
 ### Added — a VS Code extension, deliberately thin
 
 `editors/vscode` is a client over `apiverity lsp` and nothing more. Every rule,

@@ -30,6 +30,7 @@ theme:
 
 nav:
   - Home: index.md
+  - Playground: playground.md
   - Architecture: architecture.md
   - Roadmap: roadmap.md
   - Reference:

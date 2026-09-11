@@ -9,6 +9,11 @@ on:
       - 'mkdocs.yml'
       - 'requirements-docs.txt'
       - '.github/workflows/docs.yml'
+      # The playground runs a wheel built from this tree. Without these, a
+      # code change would publish a page running whatever the source was the
+      # last time a markdown file happened to change.
+      - 'apiverity/**'
+      - 'pyproject.toml'
   pull_request:
     branches: [main]
     paths:
@@ -17,6 +22,11 @@ on:
       - 'mkdocs.yml'
       - 'requirements-docs.txt'
       - '.github/workflows/docs.yml'
+      # The playground runs a wheel built from this tree. Without these, a
+      # code change would publish a page running whatever the source was the
+      # last time a markdown file happened to change.
+      - 'apiverity/**'
+      - 'pyproject.toml'
   workflow_dispatch:
 
 permissions:
@@ -39,8 +49,24 @@ jobs:
           python-version: "3.12"
       - name: Install docs toolchain
         run: pip install -r requirements-docs.txt
+      # The playground installs this wheel in the reader's browser under
+      # Pyodide, so it has to be the tree being published and not the last
+      # release. Built before mkdocs runs, because mkdocs is what copies
+      # `docs/` into the site.
+      - name: Build the wheel the playground runs
+        run: |
+          pip install build
+          python -m build --wheel --outdir dist
+          python scripts/generate_playground.py --check
+          cp dist/*.whl docs/playground/
       - name: Build docs (strict)
         run: mkdocs build --strict --site-dir site
+      - name: The playground's wheel reached the site
+        # A missing wheel is a 404 the page can only report after thirty
+        # seconds of loading Python, which reads as the page being broken.
+        run: |
+          test -n "$(ls site/playground/*.whl 2>/dev/null)" \
+            || { echo "no wheel in site/playground"; exit 1; }
       - name: Docs site actually contains its documents
         # A green mkdocs build does not mean the pages have anything in them.
         # devrepro-doctor published empty pages for months because every

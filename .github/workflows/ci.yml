@@ -134,6 +134,12 @@ jobs:
         # the moment it stops matching.
         run: python scripts/record_demo.py --check
 
+      - name: Playground manifest matches the package
+        # The browser playground installs `api_verity_lab-<version>.whl`. A
+        # version bump with a hand-written manifest is a 404 on that wheel and
+        # a page that spins forever, for visitors, with nothing here failing.
+        run: python scripts/generate_playground.py --check
+
       - name: Secret scan
         # The only secret check here was a local pre-commit `detect-private-key`
         # hook, which `git commit --no-verify` skips and CI never ran. This is

@@ -1,0 +1,19 @@
+{
+  "_generated_by": "scripts/generate_playground.py",
+  "version": "0.2.0",
+  "wheel": "api_verity_lab-0.2.0-py3-none-any.whl",
+  "pyodide": "0.28.3",
+  "preload": [
+    "micropip",
+    "pydantic",
+    "pyyaml",
+    "packaging"
+  ],
+  "install": [
+    "graphql-core>=3.2,<4.0"
+  ],
+  "skipped_dependencies": [
+    "httpx",
+    "flask"
+  ]
+}

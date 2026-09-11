@@ -38,7 +38,7 @@ fuzzing, drift detection, mocking and performance budgets. Each has its own
 result format, its own CI wiring and its own mental model — so findings never
 compose: you can't ask "which endpoints are both under-tested *and* drifting?"
 
-api-verity-lab answers fifty-two questions from one place:
+api-verity-lab answers fifty-three questions from one place:
 
 | Question | Command |
 |---|---|
@@ -56,6 +56,7 @@ api-verity-lab answers fifty-two questions from one place:
 | Can I paste this into a PR description? | `apiverity breaking --summary` |
 | Is it safe on the wire and breaking in every generated client? | `apiverity breaking --sdk` |
 | What does this rule mean and how do I change it? | `apiverity explain BRK-RESP-FIELD-REMOVED` |
+| Can I try it without installing anything? | [Playground](https://webdevsamran.github.io/api-verity-lab/playground/) — runs in your browser, uploads nothing |
 | Can we enforce our own house rules without forking? | `apiverity validate --policy-file house.yaml` |
 | What would moving our Spectral ruleset cost? | `apiverity import-rules .spectral.yaml` |
 | Can it re-run itself while I edit the spec? | `apiverity watch -- breaking old.yaml new.yaml` |

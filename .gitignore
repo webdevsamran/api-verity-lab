@@ -50,3 +50,4 @@ tests/_dbg*.py
 build/
 web/dist/
 .pr-summary.md
+api_verity_lab-*.whl
