@@ -318,6 +318,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("spec")
     p.add_argument("--json", action="store_true")
+    p.add_argument(
+        "--policy-file",
+        action="append",
+        metavar="FILE",
+        help=(
+            "a YAML policy file of house rules (repeatable). A fixed vocabulary over "
+            "the contract model -- see docs/policy-dsl.md. An unknown field or "
+            "predicate fails the run rather than matching nothing. Named "
+            "`--policy-file` because `regression --policy` already means a "
+            "performance budget, and one flag with two meanings is a trap"
+        ),
+    )
     p.set_defaults(func=cmd_validate)
     p = sub.add_parser(
         "diff",
@@ -1365,6 +1377,11 @@ def build_parser() -> argparse.ArgumentParser:
             "from. A pack is a Python distribution declaring an `apiverity.rules` "
             "entry point"
         ),
+    )
+    p.add_argument(
+        "--policy-vocabulary",
+        action="store_true",
+        help="print every field and predicate a --policy-file may use",
     )
     p.set_defaults(func=cmd_rules)
     p = sub.add_parser(

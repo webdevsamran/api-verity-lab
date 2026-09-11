@@ -33,6 +33,24 @@ def cmd_validate(args: argparse.Namespace) -> int:
     # nothing. Checked here because `validate` is where a contract gets read,
     # and a check nobody invokes is a check nobody has.
     sec.extend(validate_objectives(service))
+
+    # A policy file a team wrote, in a fixed YAML vocabulary, without shipping
+    # a Python package. Loaded here rather than merged into the built-in packs
+    # so a malformed policy fails the run by name instead of silently checking
+    # nothing.
+    policies = list(getattr(args, "policy_file", None) or [])
+    for policy in policies:
+        from apiverity.rules.dsl import PolicyError
+        from apiverity.rules.dsl import load as load_policy
+        from apiverity.rules.policy import PolicyEngine
+
+        try:
+            pack, _ = load_policy(policy)
+        except PolicyError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return EXIT_USAGE
+        sec.extend(PolicyEngine(packs=[pack]).evaluate(service))
+
     all_findings, suppressed = apply_project_suppressions(findings + sec)
     errors = sum(1 for f in all_findings if f.severity.value == "ERROR")
     data = {
@@ -40,6 +58,10 @@ def cmd_validate(args: argparse.Namespace) -> int:
         "command": "validate",
         "spec": args.spec,
         "protocol": plugin.protocol().value,
+        # Named, so an artifact from a run with a house policy is
+        # distinguishable from one without. Two runs over the same contract
+        # reporting different findings should say why.
+        **({"policies": policies} if policies else {}),
         "title": service.title,
         "version": service.version,
         # `operations` in a result-v1 artifact is the array of per-operation

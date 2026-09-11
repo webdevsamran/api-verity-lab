@@ -1,0 +1,42 @@
+# A policy a team writes without shipping a Python package. Everything here is
+# a field of the normalized contract model and a predicate from a fixed list;
+# there is no expression language, on purpose.
+pack: fixture-house-style
+version: 1.0.0
+description: The rules an organisation actually wants, written in YAML
+rules:
+  - id: HOUSE-PATHS-KEBAB
+    severity: warn
+    rationale: a mixed-case path is a support ticket about a 404
+    remediation: rename it, adding the old path as a deprecated alias first
+    select: operation
+    where:
+      path: {matches: '^(/[a-z0-9-]+|/\{[a-zA-Z0-9_]+\})+$'}
+
+  - id: HOUSE-OPERATION-ID
+    severity: warn
+    rationale: every operation needs a stable name for generated clients
+    remediation: add an operationId
+    select: operation
+    where:
+      operation_id: present
+
+  - id: HOUSE-NO-ANONYMOUS-WRITES
+    severity: error
+    rationale: a write with no declared security is an unauthenticated write
+    remediation: declare a security requirement, or say why in an exemption
+    select: operation
+    where:
+      method: {one_of: [GET, HEAD, OPTIONS]}
+    # Named individually rather than globbed: an exemption that grows to cover
+    # six operations nobody reviewed is the escape hatch becoming the policy.
+    except:
+      - "POST /users"
+
+  - id: HOUSE-NO-INTERNAL-SERVERS
+    severity: error
+    rationale: an internal hostname in a published contract is a leak
+    remediation: publish the gateway hostname instead
+    select: service
+    where:
+      servers: {not_matches: '\.internal\.'}

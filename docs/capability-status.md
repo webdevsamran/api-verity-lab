@@ -259,6 +259,19 @@ Legend: EXISTING · PARTIAL (improved this pass where noted) · NEW (this pass) 
   both claim is reported as data naming both, because `PolicyEngine` raising is
   right for the engine and wrong for the listing that has to say which pack is
   the problem
+- Policy DSL (`validate --policy-file`) — EXTENDED to a shipped feature,
+  completing RULE-05. House rules in YAML over a **fixed vocabulary**: ten
+  operation fields, five service fields, seven predicates, each reading one part
+  of the normalized model. Deliberately not an expression language — a general
+  evaluator would be a second engine and would let somebody write a rule this
+  project cannot explain. An unknown field, predicate, severity, selector or
+  protocol fails at *load* time with the list of what is available, because a
+  DSL that accepts an unrecognised word and matches nothing hands a team a gate
+  they believe they have; an uncompilable regex is refused there too rather than
+  at check time. `matches` on an absent field fails rather than vacuously
+  passing. Exemptions are operation keys, not globs. `rules
+  --policy-vocabulary` publishes the vocabulary from the same tables the loader
+  validates against
 - Synthetic monitoring (`apiverity monitor`) — NEW. Runs any other command on a
   schedule and reports the transitions rather than the snapshot, because a cron
   entry that posts the same twelve findings every five minutes is muted inside a

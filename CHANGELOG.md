@@ -4,6 +4,49 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — house rules in YAML, without forking
+
+`apiverity validate openapi.yaml --policy-file house-style.yaml`.
+
+[Rule packs](docs/rule-packs.md) are the right answer for a rule with real
+logic in it and the wrong one for *"every path must be kebab-case"* — which is
+most of what an organisation wants to enforce, and does not justify a Python
+package, a release process and somewhere to publish it.
+
+- **A fixed vocabulary, not an expression language.** Ten operation fields,
+  five service fields, seven predicates, each reading one part of the
+  normalized contract model. No `eval`, no JSONPath. That ceiling is
+  deliberate: a general evaluator would be a second engine inside this one —
+  the same objection the Spectral importer makes — and would let somebody write
+  a rule this project cannot explain, in a tool whose claim is that every
+  finding has a stable id and a reason. When it runs out, write a pack.
+
+- **An unknown word fails at load time**, by name, with the list of what is
+  available. A DSL that accepts an unrecognised selector, matches nothing and
+  reports clean has handed a team a gate they believe they have. A regex that
+  will not compile is refused there too, rather than at check time against the
+  first contract somebody runs it on.
+
+- **`matches` on an absent field fails.** `absent` is the predicate for asking
+  about that; conflating the two would make `matches` silently pass on every
+  operation that omits the field.
+
+- **Exemptions are operation keys, not globs.** A pattern that grows to cover
+  six operations nobody reviewed is the escape hatch becoming the policy. For
+  an exemption with an owner, a reason and an expiry, suppressions already
+  exist.
+
+- `apiverity rules --policy-vocabulary` prints the vocabulary from the same
+  tables the loader validates against, so what the documentation says is
+  available cannot disagree with what is accepted. The artifact names the
+  policy files that ran, because two runs over one contract reporting different
+  findings should say why.
+
+- Named `--policy-file` rather than `--policy`: `regression --policy` already
+  means a performance budget, and one flag with two meanings across two
+  commands is a trap.
+
+
 ### Added — rule packs are discovered, not hard-coded
 
 - `apiverity rules --packs` lists every pack this installation can run, with

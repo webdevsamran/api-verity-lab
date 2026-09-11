@@ -408,6 +408,7 @@
       "options": [
         "--json",
         "--packs",
+        "--policy-vocabulary",
         "--profiles"
       ]
     },
@@ -474,7 +475,8 @@
       "name": "validate",
       "summary": "load a contract, report what is wrong with the document itself",
       "options": [
-        "--json"
+        "--json",
+        "--policy-file"
       ]
     },
     {

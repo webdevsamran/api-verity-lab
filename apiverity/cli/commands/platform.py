@@ -570,6 +570,15 @@ def cmd_rules(args: argparse.Namespace) -> int:
     from apiverity.rules.breaking import CATALOG
     from apiverity.rules.profiles import active_severity, summary
 
+    if getattr(args, "policy_vocabulary", False):
+        # Published from the same tables the loader validates against, so what
+        # the documentation says is available cannot disagree with what is
+        # accepted.
+        from apiverity.rules.dsl import vocabulary
+
+        _emit({"tool": "apiverity", "command": "rules", **vocabulary()}, args.json)
+        return EXIT_OK
+
     if getattr(args, "packs", False):
         # Where a rule came from, which is the question a listing of seventy
         # rule ids cannot answer.
