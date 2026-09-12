@@ -101,6 +101,32 @@ def test_the_vendored_schema_is_recorded_in_the_directorys_table() -> None:
     assert digest in table, "the recorded SHA-256 is not this file's"
 
 
+def test_the_vendored_copies_are_exempt_from_line_ending_conversion() -> None:
+    """The test above compares bytes, and git rewrites bytes.
+
+    With `core.autocrlf` on -- the default on Windows -- a checkout converts
+    line endings, the vendored file stops matching the digest recorded beside
+    it, and a file with provenance becomes a file of unknown origin. It
+    happened: the digests were recorded from a POSIX checkout and the Windows
+    leg of the platform matrix could not reproduce them.
+
+    `.gitattributes` marks the directory `-text`. This asserts the attribute is
+    still there, and fails everywhere rather than only on the platform that
+    converts -- which is the half that made the original defect invisible for
+    as long as it was.
+    """
+    result = subprocess.run(
+        ["git", "check-attr", "text", "--", str(_SCHEMA.relative_to(_ROOT).as_posix())],
+        cwd=_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        pytest.skip("not a git checkout")
+    assert result.stdout.strip().endswith(": text: unset"), result.stdout
+
+
 #: Fields that exist only in an unpushed working tree of the sibling project.
 #: The published schema takes `additionalProperties: true`, so a task using one
 #: still *validates* -- it simply does nothing, which is the worse failure: the

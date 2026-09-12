@@ -1,0 +1,41 @@
+# Line endings, where they are load-bearing.
+#
+# Git converts line endings on checkout when `core.autocrlf` is set, which it
+# is by default on Windows. That is usually invisible and twice it was not:
+# this repository's platform matrix caught a digest recorded on one operating
+# system that no machine running the other could reproduce, in both
+# directions. The entries below are the places where the bytes of a file are
+# part of what the file means.
+#
+# The repository is deliberately *not* declared `* text=auto eol=lf` wholesale.
+# That would rewrite every Windows working tree on the next checkout for a
+# problem that only three kinds of file actually have, and the tool itself now
+# normalizes line endings before hashing a contract, so the fixtures do not
+# need it.
+
+# A vendored copy is evidence. `schemas/vendor/README.md` records where each
+# file came from, when it was fetched and its SHA-256, and
+# `tests/unit/test_agent_tasks.py` recomputes that digest from the bytes on
+# disk. Converted line endings make the recorded digest wrong on exactly the
+# platforms that convert, which is how a file with provenance becomes a file
+# of unknown origin.
+schemas/vendor/** -text
+
+# A shell script with CRLF line endings fails on Linux with
+# "bad interpreter: /bin/sh^M: no such file or directory". `install.sh` is
+# piped into `sh` from the README's one-line install, and
+# `docker/entrypoint.sh` is the container's ENTRYPOINT -- neither gets a
+# second chance to be readable.
+*.sh text eol=lf
+
+# The counterpart, for the same reason in the other direction: a PowerShell
+# script or a batch file with bare LF is read by some Windows shells as one
+# line.
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# The recorded terminal session. `scripts/record_demo.py --check` compares it
+# against a fresh run, and while that comparison reads text rather than bytes,
+# an asciinema player reads the file as it is.
+docs/demo.cast text eol=lf
