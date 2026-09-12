@@ -48,7 +48,12 @@ commit it.**
 
 ## What it refuses to be
 
-**An open relay.** Every request goes to the one `--target` the run named.
+**An open relay.** Every request goes to the one `--target` the run named. A
+client configured to use a proxy writes the whole URL on the request line --
+`GET http://somewhere-else/ HTTP/1.1` -- so that is where an open relay comes
+from, and it is checked rather than assumed: a request naming any other scheme
+or host gets a `403` and is counted as `off_target`. The absolute form for the
+target itself still works, because that is what a browser sends.
 
 **Reachable from the network.** It binds `127.0.0.1` and refuses any other
 address without `--i-know-this-is-exposed`. An unauthenticated recording proxy
@@ -71,6 +76,7 @@ written into the HAR's own `log.comment` so it survives the file:
 | `binary_request` / `binary_response` | a content type with no useful `text` in a HAR |
 | `upstream_failed` | the target never answered; the client got a `502` |
 | `after_limit` | `--max-entries` was reached and traffic kept arriving |
+| `off_target` | a request named a host that is not `--target`; the client got a `403` |
 
 `--max-entries` is a hard cap, not a threshold: asking for two gives two. The
 poll loop notices a limit a tenth of a second later, by which time more requests
