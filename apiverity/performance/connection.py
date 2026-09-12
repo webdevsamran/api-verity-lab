@@ -134,6 +134,14 @@ def probe(base_url: str, *, timeout: float = DEFAULT_TIMEOUT) -> ConnectionProbe
             # performs, and would quietly turn this tool into one that talks to
             # servers it cannot authenticate.
             context = ssl.create_default_context()
+            # And TLS 1.2 at the floor, for the same reason rather than a
+            # different one. `create_default_context` still permits 1.0 and
+            # 1.1 on many builds; browsers and every Python HTTP client in
+            # this project's dependency list have refused both since 2020. A
+            # probe that negotiated 1.0 would report a comfortable handshake
+            # time for an endpoint no real client can reach, which is the one
+            # answer a performance measurement must not give.
+            context.minimum_version = ssl.TLSVersion.TLSv1_2
             context.set_alpn_protocols(["h2", "http/1.1"])
             t0 = time.perf_counter()
             wrapped = context.wrap_socket(sock, server_hostname=host)
@@ -143,7 +151,19 @@ def probe(base_url: str, *, timeout: float = DEFAULT_TIMEOUT) -> ConnectionProbe
             result.cipher = cipher[0] if cipher else None
             result.alpn = wrapped.selected_alpn_protocol()
             sock = wrapped
-    except (OSError, ssl.SSLError) as exc:
+    except ssl.SSLError as exc:
+        # Said plainly, because "handshake failure" against a server that is
+        # up and answering reads as a bug in this tool rather than a finding
+        # about the server.
+        detail = f"{type(exc).__name__}: {exc}"
+        if "protocol" in str(exc).lower() or "version" in str(exc).lower():
+            detail += (
+                " -- this probe requires TLS 1.2 or newer, as every current"
+                " client does; a server offering only 1.0 or 1.1 is unreachable"
+                " for them too"
+            )
+        result.error = detail
+    except OSError as exc:
         result.error = f"{type(exc).__name__}: {exc}"
     finally:
         if sock is not None:
