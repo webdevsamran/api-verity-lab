@@ -31,6 +31,8 @@ theme:
 nav:
   - Home: index.md
   - Playground: playground.md
+  - Who this is for: use-cases.md
+  - FAQ: faq.md
   - Architecture: architecture.md
   - Roadmap: roadmap.md
   - Reference:
@@ -80,6 +82,7 @@ nav:
       - MCP exposure: mcp-exposure.md
       - Agent setup: agent-setup.md
       - Agent task packs: agent-tasks.md
+      - Awesome-list entries: awesome-list-submissions.md
   - Guides:
       - Installing: install.md
       - Editor diagnostics: lsp.md

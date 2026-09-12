@@ -4,6 +4,46 @@ All notable changes. Format based on Keep a Changelog; versions are semver.
 
 ## [Unreleased]
 
+### Added — the pages a reader arrives on, and the ones that ask for support
+
+- **`docs/faq.md`** — twenty questions with the command or the page that backs
+  each answer. "What is API contract governance", "how do I detect breaking
+  changes in an OpenAPI spec", "does it send my spec anywhere", "will it fail my
+  build on day one".
+
+- **`docs/use-cases.md`** — the same tool at four scales: one developer, a team,
+  an organisation under audit, a team shipping agents. With a **"not a fit
+  if…"** section, because somebody should be able to find out in a minute
+  rather than an afternoon.
+
+- **`SPONSORS.md`** and `.github/FUNDING.yml`. The tiers are there, and so is
+  the half that usually is not: sponsorship does **not** buy priority support,
+  an SLA, a feature on demand, a logo in any artifact this tool produces, or
+  influence over a finding. The benchmark publishes where this tool loses for
+  the same reason. The current sponsor list says "none yet" rather than being
+  left out, so its emptiness is a fact rather than an oversight.
+
+- **`ACKNOWLEDGEMENTS.md`** — the specifications this reads (OpenAPI, Arazzo,
+  AsyncAPI, GraphQL, protobuf, MCP, WSDL, JSON Schema, SARIF, HAR, four RFCs,
+  OWASP), the libraries it runs on, and the projects it learned from — with
+  what each of them does better. ESLint gets the longest entry: it won on
+  explanations, and that is why `explain` exists.
+
+- **`docs/awesome-list-submissions.md`** — prepared entries per list, plus the
+  three things not to claim in one. Drafts, not submissions: opening a pull
+  request against somebody else's repository is the maintainer's to do.
+
+- **`tests/unit/test_project_meta.py`** keeps all of it honest. Every runtime
+  dependency and optional extra must be credited; every spec format the loader
+  reads must be acknowledged; the funding file must name only keys GitHub
+  actually renders; no tier may offer influence over a finding; and every
+  relative link in the top-level markdown must resolve — which `mkdocs
+  --strict` never checked, because it only sees `docs/`.
+
+The README gained a **Who this is for** table, a short FAQ, sponsorship and
+credits, without touching a single generated block.
+
+
 ### Fixed — four places said which protocols this tool reads, and all four were wrong
 
 GitHub keeps a repository's description and topics in a settings page. Nothing

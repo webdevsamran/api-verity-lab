@@ -1,0 +1,8 @@
+# GitHub renders this as a "Sponsor" button on the repository.
+#
+# Only platforms with a real account are listed. A funding file naming a
+# platform nobody has registered renders a button that leads to a 404, which
+# is a worse first impression than no button.
+#
+# `SPONSORS.md` says what sponsorship funds and what it does not buy.
+github: [webdevsamran]
