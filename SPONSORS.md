@@ -73,9 +73,9 @@ most useful thing:
   to find one is for somebody to run the tool on an API this repository has
   never seen.
 - **Tell it what your protocol does that it models badly.** The gaps are
-  written down in [`PRODUCT_GAPS.md`](https://webdevsamran.github.io/api-verity-lab/product-gaps/); the ones that are not
+  written down in [`PRODUCT_GAPS.md`](https://github.com/webdevsamran/api-verity-lab/blob/main/PRODUCT_GAPS.md); the ones that are not
   written down are the expensive ones.
-- **Write a rule pack.** [`docs/plugin-authoring.md`](https://webdevsamran.github.io/api-verity-lab/plugin-authoring/)
+- **Write a rule pack.** [`docs/plugin-authoring.md`](https://github.com/webdevsamran/api-verity-lab/blob/main/docs/plugin-authoring.md)
   and the worked example in
   [`examples/plugins/`](https://github.com/webdevsamran/api-verity-lab/tree/main/examples/plugins/apiverity-house-rules) exist so that
   your house rules do not have to live in a fork.
@@ -94,4 +94,4 @@ budget line rather than from an individual's card. That is what turns
 If procurement needs paperwork: the licence is Apache-2.0, the SBOM ships with
 every release, releases carry Sigstore provenance, and the tool makes no
 outbound connection you did not ask it to — the full egress map is generated
-from the source in [`docs/egress.md`](https://webdevsamran.github.io/api-verity-lab/egress/).
+from the source in [`docs/egress.md`](https://github.com/webdevsamran/api-verity-lab/blob/main/docs/egress.md).

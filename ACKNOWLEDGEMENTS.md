@@ -121,7 +121,7 @@ Also by the same maintainer, and sharing one rule rather than any code:
 
 ## Sponsors
 
-None yet. [`SPONSORS.md`](https://webdevsamran.github.io/api-verity-lab/sponsors/) says what sponsorship would fund and,
+None yet. [`SPONSORS.md`](https://github.com/webdevsamran/api-verity-lab/blob/main/SPONSORS.md) says what sponsorship would fund and,
 more importantly, what it does not buy.
 
 ## Licence

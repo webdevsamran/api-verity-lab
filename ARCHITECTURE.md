@@ -134,7 +134,7 @@ Breaking rules distinguish **request** from **response** compatibility:
   breaking for clients that send old values (ERROR).
 - Type widening in a response → WARN; type narrowing in a request → ERROR.
 
-The full catalog lives in [`docs/rule-catalog.md`](https://webdevsamran.github.io/api-verity-lab/rule-catalog/) and is introspectable via
+The full catalog lives in [`docs/rule-catalog.md`](https://github.com/webdevsamran/api-verity-lab/blob/main/docs/rule-catalog.md) and is introspectable via
 `apiverity rules`.
 
 ## Result artifact schema
