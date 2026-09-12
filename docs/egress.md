@@ -42,7 +42,7 @@ Found by `scripts/generate_egress_map.py`: **24 call sites** across **18 modules
 | `apiverity/specs/graphql/runner.py` | `test` / `drift` against a GraphQL endpoint | `httpx.Client` (runner.py:124), `httpx.Client` (runner.py:83) |
 | `apiverity/specs/mcp/runner.py` | `drift <manifest> --base-url` | `httpx.Client` (runner.py:240) |
 | `apiverity/stateful/engine.py` | `workflow run --base-url` | `httpx.Client` (engine.py:247) |
-| `apiverity/traffic/capture.py` | `capture` forwarding to its one `--target` | `httpx.Client` (capture.py:383) |
+| `apiverity/traffic/capture.py` | `capture` forwarding to its one `--target` | `httpx.Client` (capture.py:416) |
 | `apiverity/traffic/replay.py` | `replay --send` | `httpx.Client` (replay.py:63) |
 
 ### Modules with no trigger listed

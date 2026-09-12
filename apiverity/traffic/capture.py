@@ -111,6 +111,33 @@ class CaptureRefused(Exception):
     """A configuration this will not run under."""
 
 
+def upstream_path(raw: str, target: str) -> str | None:
+    """What to request upstream for a proxied `raw` path, or `None` to refuse.
+
+    `BaseHTTPRequestHandler.path` is whatever the client wrote on the request
+    line. A browser or `curl` configured to use a proxy writes the **absolute
+    form** -- `GET http://example.com/orders HTTP/1.1` -- and `httpx` treats an
+    absolute URL as the whole address, ignoring the client's `base_url`. So a
+    recorder pointed at one target would fetch any host a caller named, which
+    is the open relay this module's own documentation says it is not, and is
+    reachable by anything that can open a socket to the port.
+
+    Origin-form paths pass through unchanged. Absolute-form ones are accepted
+    only when their scheme and authority are the target's, and are reduced to
+    path and query so `base_url` is what resolves them.
+    """
+    parsed = urlsplit(raw)
+    if not parsed.scheme and not parsed.netloc:
+        return raw
+    wanted = urlsplit(target)
+    if (parsed.scheme.lower(), parsed.netloc.lower()) != (
+        wanted.scheme.lower(),
+        wanted.netloc.lower(),
+    ):
+        return None
+    return urlunsplit(("", "", parsed.path or "/", parsed.query, ""))
+
+
 def _textual(content_type: str) -> bool:
     lowered = content_type.lower()
     return any(marker in lowered for marker in TEXTUAL)
@@ -145,6 +172,12 @@ class Skips:
     binary_request: int = 0
     binary_response: int = 0
     upstream_failed: int = 0
+    #: Requests naming a host that is not the target. A proxy client sends the
+    #: absolute form -- `GET http://host/path HTTP/1.1` -- and httpx honours an
+    #: absolute URL over its `base_url`, so without this the recorder forwarded
+    #: wherever the caller asked and was the open relay its own documentation
+    #: says it is not.
+    off_target: int = 0
     #: Exchanges that arrived after the entry limit was reached. Counted rather
     #: than dropped silently: a corpus of exactly the requested size otherwise
     #: hides that traffic kept flowing, which is the difference between "this
@@ -401,6 +434,16 @@ def serve(
         def _proxy(self) -> None:
             import time
 
+            requested = upstream_path(self.path, capture.target)
+            if requested is None:
+                capture.skips.off_target += 1
+                self.send_error(
+                    403,
+                    "this proxy records one target and will not forward elsewhere; "
+                    "start it with --target for the host you meant",
+                )
+                return
+
             length = int(self.headers.get("content-length") or 0)
             body = self.rfile.read(length) if length else b""
             request_headers = {k: v for k, v in self.headers.items() if k.lower() not in HOP_BY_HOP}
@@ -413,7 +456,7 @@ def serve(
             began = time.monotonic()
             try:
                 response = upstream.request(
-                    self.command, self.path, headers=request_headers, content=body or None
+                    self.command, requested, headers=request_headers, content=body or None
                 )
             except Exception as exc:
                 capture.skips.upstream_failed += 1
@@ -463,4 +506,5 @@ __all__ = [
     "Skips",
     "check_bind",
     "serve",
+    "upstream_path",
 ]

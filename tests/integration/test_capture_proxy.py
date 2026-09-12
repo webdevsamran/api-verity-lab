@@ -25,7 +25,13 @@ import pytest
 
 from apiverity.cli.commands.common import EXIT_USAGE
 from apiverity.cli.main import main
-from apiverity.traffic.capture import Capture, CaptureRefused, check_bind, serve
+from apiverity.traffic.capture import (
+    Capture,
+    CaptureRefused,
+    check_bind,
+    serve,
+    upstream_path,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -304,6 +310,81 @@ def test_connect_is_refused_with_a_reason() -> None:
                 sock.sendall(b"CONNECT example.test:443 HTTP/1.1\r\nHost: example.test\r\n\r\n")
                 head = sock.recv(200).decode("utf-8", "replace")
     assert " 405 " in head
+
+
+def test_a_request_for_another_host_is_refused() -> None:
+    """The module docstring says "every request goes to the one target the run
+    named. A proxy that forwards wherever the client asks is an open relay."
+    Nothing enforced it.
+
+    A client configured to use a proxy sends the **absolute form** on the
+    request line -- `GET http://elsewhere/ HTTP/1.1` -- and httpx treats an
+    absolute URL as the whole address, ignoring the `base_url` the recorder was
+    started with. So the recorder forwarded wherever it was asked, to anything
+    that could open a socket to the port. CodeQL reported it as a full SSRF and
+    was right.
+    """
+    import socket
+
+    with _Upstream() as upstream:
+        capture = Capture(target=upstream.base_url)
+        with _proxy(capture) as proxy:
+            name, _, port = proxy.removeprefix("http://").partition(":")
+            with socket.create_connection((name, int(port)), 5) as sock:
+                sock.sendall(
+                    b"GET http://169.254.169.254/latest/meta-data/ HTTP/1.1\r\n"
+                    b"Host: 169.254.169.254\r\n\r\n"
+                )
+                head = sock.recv(400).decode("utf-8", "replace")
+
+    assert " 403 " in head, head
+    assert capture.skips.off_target == 1
+    assert not capture.entries, "an off-target request must not reach the corpus either"
+
+
+def test_the_absolute_form_for_the_target_itself_still_works() -> None:
+    """Refusing every absolute URL would break the ordinary case: a browser
+    told to use this proxy sends the absolute form for the target too."""
+    import socket
+
+    with _Upstream() as upstream:
+        capture = Capture(target=upstream.base_url)
+        with _proxy(capture) as proxy:
+            name, _, port = proxy.removeprefix("http://").partition(":")
+            with socket.create_connection((name, int(port)), 5) as sock:
+                sock.sendall(
+                    f"GET {upstream.base_url}/orders HTTP/1.1\r\n".encode()
+                    + b"Host: ignored.invalid\r\n\r\n"
+                )
+                head = sock.recv(400).decode("utf-8", "replace")
+
+    assert " 200 " in head, head
+    assert capture.skips.off_target == 0
+    assert capture.entries
+
+
+def test_the_off_target_count_rides_in_the_file_like_every_other_skip() -> None:
+    """A refusal nobody can see afterwards is a refusal nobody can audit."""
+    assert "off_target" in Capture(target="http://x").skips.__dict__
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("/orders?page=2", "/orders?page=2"),
+        ("http://api.test:9/orders?page=2", "/orders?page=2"),
+        ("HTTP://API.TEST:9/orders", "/orders"),
+        ("http://api.test:9", "/"),
+        ("http://evil.test/steal", None),
+        ("https://api.test:9/orders", None),
+        ("http://api.test:80/orders", None),
+        ("//evil.test/steal", None),
+    ],
+)
+def test_which_paths_reach_the_upstream(raw: str, expected: str | None) -> None:
+    """Scheme and authority both have to match, and a matching one is reduced
+    to path and query so `base_url` is what resolves it."""
+    assert upstream_path(raw, "http://api.test:9") == expected
 
 
 def test_binding_beyond_localhost_needs_saying_so() -> None:
