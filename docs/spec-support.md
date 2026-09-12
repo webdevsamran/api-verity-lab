@@ -1,3 +1,8 @@
+---
+description: >-
+  Which specification versions api-verity-lab reads, how a document is detected, and exactly what each format supports -- OpenAPI 3.0 to 3.2 through WSDL 1.1.
+---
+
 # Spec Support Matrix
 
 | Capability | OpenAPI 3.0/3.1/3.2 | GraphQL | gRPC | MCP | WSDL 1.1 / SOAP |

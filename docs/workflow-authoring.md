@@ -1,3 +1,8 @@
+---
+description: >-
+  Authoring workflow manifests: human-authored YAML, an engine that never invents destructive sequences, and hosts refused outside `allowed_hosts`.
+---
+
 # Authoring Workflow Manifests
 
 Workflows are **human-authored** YAML. The engine never invents destructive

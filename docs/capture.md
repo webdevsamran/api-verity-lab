@@ -1,3 +1,8 @@
+---
+description: >-
+  Record real traffic into a HAR corpus with `apiverity capture`, then run drift detection against it instead of against a synthetic probe.
+---
+
 # Recording real traffic
 
 ```bash

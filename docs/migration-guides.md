@@ -1,3 +1,8 @@
+---
+description: >-
+  Attach the migration guide to the operation, so a breaking-change finding says what to do instead rather than only what broke.
+---
+
 # Migration guides
 
 A breaking-change finding says *what* broke. It does not say what to do

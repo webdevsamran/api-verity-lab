@@ -1,3 +1,8 @@
+---
+description: >-
+  The dashboard's four-step first-run tour, shown once, and how to bring it back when you want it.
+---
+
 # The onboarding tour
 
 Four steps, once, on a first visit. Then never again — unless you ask.

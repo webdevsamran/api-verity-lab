@@ -1,3 +1,8 @@
+---
+description: >-
+  Running api-verity-lab as an MCP server, exposing a read-only governance surface to an agent -- what it exposes and, deliberately, what it does not.
+---
+
 # api-verity-lab as an MCP server
 
 **Shipped, as the deliberately small read-only subset this document specified.**

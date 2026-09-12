@@ -1,3 +1,8 @@
+---
+description: >-
+  api-verity-lab is local-first: nothing leaves your machine unless you pass a URL. What is redacted, when, and what never reaches disk.
+---
+
 # Privacy & Redaction
 
 api-verity-lab is local-first: nothing leaves your machine unless you send it

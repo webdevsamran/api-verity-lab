@@ -1,3 +1,8 @@
+---
+description: >-
+  api-verity-lab compared with Pact, from dated GitHub evidence: consumer-driven contracts and a broker against contract diffing and runtime drift.
+---
+
 # api-verity-lab compared with Pact (OSS)
 
 <!-- generated:landing -->

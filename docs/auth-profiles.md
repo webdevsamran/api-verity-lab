@@ -1,3 +1,8 @@
+---
+description: >-
+  One auth-profiles file for every command that takes a base URL, so credentials live in one place and never in a shell history or a CI log.
+---
+
 # Auth profiles
 
 Every command that takes `--base-url` takes `--auth-profiles FILE` and

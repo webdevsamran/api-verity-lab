@@ -1,3 +1,8 @@
+---
+description: >-
+  Import an existing Spectral ruleset with `apiverity import-rules`, and see which rules translate, which approximate and which have no equivalent.
+---
+
 # Migrating a Spectral ruleset
 
 ```bash

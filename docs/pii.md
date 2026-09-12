@@ -1,3 +1,8 @@
+---
+description: >-
+  Personal data and credential handling: two rules with opposite defaults, because secrets and personal data fail in opposite directions.
+---
+
 # Personal data
 
 Two rules with opposite defaults, because credentials and personal data fail in

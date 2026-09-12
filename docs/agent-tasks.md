@@ -1,3 +1,8 @@
+---
+description: >-
+  Exporting a verified MCP tool surface as a task pack for tooltrace-bench, which measures whether agents can actually use the interface you proved sound.
+---
+
 # Handing a verified tool surface to a benchmark
 
 This project answers **is this tool surface sound?** It cannot answer **will an

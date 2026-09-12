@@ -1,3 +1,8 @@
+---
+description: >-
+  Breaking-change rules for the JSON Schema 2020-12 keywords OpenAPI 3.1 brought in: prefixItems, if/then, dependentRequired and patternProperties.
+---
+
 # JSON Schema 2020-12 breaking changes
 
 <!-- generated:landing -->

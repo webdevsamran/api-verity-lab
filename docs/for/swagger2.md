@@ -1,3 +1,8 @@
+---
+description: >-
+  Breaking-change detection for Swagger 2.0, under the same rules as OpenAPI 3 -- including diffing a 2.0 document against a 3.x one.
+---
+
 # Swagger 2.0 breaking changes
 
 <!-- generated:landing -->

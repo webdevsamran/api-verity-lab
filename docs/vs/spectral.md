@@ -1,3 +1,8 @@
+---
+description: >-
+  api-verity-lab compared with Spectral, from dated GitHub evidence: style linting against versioned breaking-change rules, and importing a Spectral ruleset.
+---
+
 # api-verity-lab compared with Spectral
 
 <!-- generated:landing -->

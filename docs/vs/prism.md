@@ -1,3 +1,8 @@
+---
+description: >-
+  api-verity-lab compared with Prism, from dated GitHub evidence: mocking and validation proxying against breaking-change rules and drift detection.
+---
+
 # api-verity-lab compared with Prism
 
 <!-- generated:landing -->

@@ -1,3 +1,8 @@
+---
+description: >-
+  Why eBPF zero-instrumentation capture was evaluated as prior art and deliberately not built: what it would add here, against what it would cost to maintain.
+---
+
 # eBPF capture: evaluated, not built
 
 **Decision: no. `apiverity capture` covers the case, and eBPF costs an order of

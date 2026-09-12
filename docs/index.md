@@ -1,3 +1,8 @@
+---
+description: >-
+  API contract governance in one tool: breaking-change rules, drift detection, fuzzing and performance budgets for OpenAPI, AsyncAPI, GraphQL, gRPC, MCP and WSDL.
+---
+
 # api-verity-lab
 
 **API contract governance in one tool: breaking-change rules, runtime drift

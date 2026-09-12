@@ -1,3 +1,8 @@
+---
+description: >-
+  Authenticate the self-hosted server against your identity provider, with signature, issuer, audience and expiry all actually checked rather than decoded.
+---
+
 # Authenticating against your identity provider
 
 ```python

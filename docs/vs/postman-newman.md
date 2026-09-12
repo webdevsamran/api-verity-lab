@@ -1,3 +1,8 @@
+---
+description: >-
+  api-verity-lab compared with Postman and Newman, from dated GitHub evidence: collection running against contract diffing, drift and breaking-change rules.
+---
+
 # api-verity-lab compared with Postman/Newman
 
 <!-- generated:landing -->

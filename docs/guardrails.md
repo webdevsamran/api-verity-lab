@@ -1,3 +1,8 @@
+---
+description: >-
+  Two checks that run before a generated request leaves the machine, and over the response after: payload guardrails for fuzzing and replay.
+---
+
 # Outbound payload guardrails
 
 Two checks that run **before** a generated request goes out.

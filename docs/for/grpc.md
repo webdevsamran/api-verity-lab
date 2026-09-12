@@ -1,3 +1,8 @@
+---
+description: >-
+  Breaking-change detection for gRPC and protobuf: field numbers, presence, streaming and reserved ranges, from .proto sources or descriptor sets.
+---
+
 # gRPC and protobuf breaking changes
 
 <!-- generated:landing -->

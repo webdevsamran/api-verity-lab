@@ -1,3 +1,8 @@
+---
+description: >-
+  Every place this package can open a socket, walked out of the source rather than remembered -- which is what makes the no-telemetry claim checkable.
+---
+
 # Where this connects, and what makes it
 
 `docs/self-hosting.md` says "no telemetry, no phone-home, no auto-update". That

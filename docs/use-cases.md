@@ -1,3 +1,8 @@
+---
+description: >-
+  What to switch on at your scale: one developer with one API, a team with several services, an organisation under audit, or a team shipping AI agents.
+---
+
 # Who this is for
 
 The same tool at three scales. Nothing below is a different edition — there is

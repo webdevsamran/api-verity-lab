@@ -1,3 +1,8 @@
+---
+description: >-
+  Every rule that is not a breaking-change rule: static checks over a normalized contract, plus the few that need a live service, generated from the catalogues.
+---
+
 # Check rules
 
 Every rule this tool emits that is not a breaking-change rule. Most are static

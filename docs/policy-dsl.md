@@ -1,3 +1,8 @@
+---
+description: >-
+  Express naming, authentication, pagination and deprecation rules as YAML, and enforce them with `apiverity validate --policy-file` without writing Python.
+---
+
 # House rules in YAML
 
 ```bash

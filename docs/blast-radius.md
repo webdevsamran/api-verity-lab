@@ -1,3 +1,8 @@
+---
+description: >-
+  Turn `severity: ERROR` into the names of the services that break, by evaluating a breaking change against a registry of declared consumers.
+---
+
 # Blast radius: who breaks, not just what
 
 ```bash

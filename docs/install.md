@@ -1,3 +1,8 @@
+---
+description: >-
+  Every install channel for api-verity-lab -- pipx, uvx, pip, Docker, Homebrew, npm, Scoop -- what each needs, and which of them work today.
+---
+
 # Installing
 
 Every channel this project has, what each one actually needs, and which of them

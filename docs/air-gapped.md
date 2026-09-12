@@ -1,3 +1,8 @@
+---
+description: >-
+  Running api-verity-lab in a disconnected network: container image, Helm chart, vendored schemas, and an egress map generated from the source rather than promised.
+---
+
 # Running this in a disconnected network
 
 Nothing here phones home. That is checkable rather than asserted: every place

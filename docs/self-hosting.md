@@ -1,3 +1,8 @@
+---
+description: >-
+  Running the optional self-hosted server: organisations, RBAC, approvals, hash-chained audit, signed webhooks and can-i-deploy, on Flask and SQLite.
+---
+
 # Self-Hosting Guide
 
 The server is a modular Flask monolith with SQLite (`apiverity/server/`).

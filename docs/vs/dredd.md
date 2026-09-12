@@ -1,3 +1,8 @@
+---
+description: >-
+  api-verity-lab compared with Dredd, from dated GitHub evidence: the archived contract-testing workflow, and what replaced it here.
+---
+
 # api-verity-lab compared with Dredd
 
 <!-- generated:landing -->

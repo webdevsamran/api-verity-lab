@@ -1,3 +1,8 @@
+---
+description: >-
+  Server-Sent Events, JSON Lines and multipart streams: the OpenAPI 3.2 itemSchema, itemEncoding and prefixEncoding keywords, and the rules that diff them.
+---
+
 # Streaming payloads
 
 Server-Sent Events, JSON Lines, and multipart streams — the payloads that have

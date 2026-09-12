@@ -1,3 +1,8 @@
+---
+description: >-
+  An audited classification of every capability against the code that implements it, rather than a feature list nobody re-reads.
+---
+
 # Capability Status
 
 Honest classification of the transformation target list against the actual

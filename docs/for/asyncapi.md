@@ -1,3 +1,8 @@
+---
+description: >-
+  Breaking-change detection for AsyncAPI 2.x and 3.x: channels, messages and payload schemas, diffed with the direction each channel runs in.
+---
+
 # AsyncAPI breaking changes
 
 <!-- generated:landing -->

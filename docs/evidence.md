@@ -1,3 +1,8 @@
+---
+description: >-
+  Dated, checksummed evidence packs for SOC 2, ISO/IEC 42001, DORA and the EU AI Act, naming the controls each artifact speaks to -- and the ones it does not.
+---
+
 # Evidence packs for SOC 2, ISO 42001, DORA and the EU AI Act
 
 ```bash

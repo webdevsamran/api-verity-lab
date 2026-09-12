@@ -1,3 +1,8 @@
+---
+description: >-
+  Export the self-hosted server's hash-chained audit log so an auditor can verify it independently, without trusting the server that produced it.
+---
+
 # Tamper-evident audit export
 
 The self-hosted server has hash-chained every audit entry into the previous one

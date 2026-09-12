@@ -148,6 +148,15 @@ jobs:
         # wrong, and it is read by people who have no other source.
         run: python scripts/check_roadmap.py --check
 
+      - name: Every docs page has its own meta description
+        # A page with no `description:` front matter inherits the site's, and
+        # ninety-five of ninety-seven pages did -- invisible in the rendered
+        # site, visible only as ninety-seven search results carrying one
+        # identical sentence. Descriptions live in scripts/page_meta.py because
+        # twenty-seven of those pages are generated and a generator overwrites
+        # anything hand-added to the top of its file.
+        run: python scripts/check_page_descriptions.py --check
+
       - name: The repository's own description names what it supports
         # GitHub keeps the description and topics in a settings page, so
         # nothing reviews them. This one said three protocols while the loader

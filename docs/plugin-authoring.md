@@ -1,3 +1,8 @@
+---
+description: >-
+  Writing a plugin for api-verity-lab: six versioned entry-point groups, discovered by any installation that pip-installs your distribution.
+---
+
 # Writing a plugin
 
 This project has six versioned entry-point groups. A distribution declaring one

@@ -1,3 +1,8 @@
+---
+description: >-
+  Turn a sweep into one contract-health document per team, on a schedule -- routing is the difference between an alert and a muted channel.
+---
+
 # Scheduled governance reports
 
 `apiverity digest` turns a [sweep](monorepo-sweep.md) into one contract-health

@@ -1,3 +1,8 @@
+---
+description: >-
+  Serve several mocked contracts from one workspace file under one seed, so a whole dependency surface comes up deterministically with one command.
+---
+
 # Virtualization workspaces
 
 `apiverity mock openapi.yaml` serves one contract. `apiverity mock --workspace`

@@ -1,3 +1,8 @@
+---
+description: >-
+  All 134 planned items, each carrying evidence -- a command, a module, a rule prefix, a CI step -- that is re-checked on every build.
+---
+
 # Roadmap status
 
 The 134-item roadmap, held against the code that implements it.

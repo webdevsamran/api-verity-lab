@@ -1,3 +1,8 @@
+---
+description: >-
+  Prepared awesome-list entries for api-verity-lab, plus the submission etiquette and the three claims not to make.
+---
+
 # Awesome-list submissions
 
 Prepared entries for the lists where this project belongs, so submitting one is

@@ -1,3 +1,8 @@
+---
+description: >-
+  api-verity-lab compared with Karate, from dated GitHub evidence: declarative API test authoring against versioned contract rules and drift.
+---
+
 # api-verity-lab compared with Karate
 
 <!-- generated:landing -->

@@ -1,3 +1,8 @@
+---
+description: >-
+  One language server, so breaking-change diagnostics appear as you type in VS Code, Neovim, JetBrains, Helix, Zed and Emacs without five separate plugins.
+---
+
 # Editor diagnostics, from one language server
 
 Editor support for a linter is usually five plugins, each reimplementing the

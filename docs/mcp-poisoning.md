@@ -1,3 +1,8 @@
+---
+description: >-
+  Detecting MCP tool-description poisoning -- hidden markup, invisible characters, cross-tool instructions and credential paths in the text an agent routes on.
+---
+
 # MCP tool poisoning: reading a description as executable text
 
 ```bash

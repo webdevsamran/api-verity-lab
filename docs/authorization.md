@@ -1,3 +1,8 @@
+---
+description: >-
+  BOLA and BFLA probes: what happens when a different caller asks. Authorized-testing only, driven by the stateful engine across two identities.
+---
+
 # Authorization, between identities
 
 Every other check in this project reads a contract, or watches one identity

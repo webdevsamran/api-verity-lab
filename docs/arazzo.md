@@ -1,3 +1,8 @@
+---
+description: >-
+  Importing and exporting Arazzo, the OpenAPI Initiative's workflow specification, and exactly what survives the round trip into this project's workflow engine.
+---
+
 # Arazzo workflows
 
 `apiverity workflow` runs a manifest this project invented. [Arazzo][spec] is

@@ -1,3 +1,8 @@
+---
+description: >-
+  The exit codes api-verity-lab treats as a public contract, so CI gates and onboarding scripts can branch on them without breaking on an upgrade.
+---
+
 # Exit codes
 
 `api-verity-lab` treats its exit codes as a public contract: CI gates and onboarding

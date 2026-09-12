@@ -1,3 +1,8 @@
+---
+description: >-
+  Breaking-change detection for OpenAPI 3.0, 3.1 and 3.2 and Swagger 2.0: paths, parameters, schemas, security schemes and the 3.2 additions.
+---
+
 # OpenAPI breaking changes
 
 <!-- generated:landing -->

@@ -1,3 +1,8 @@
+---
+description: >-
+  Which breaking-change rules actually fire for OpenAPI, Swagger 2.0, AsyncAPI, GraphQL, gRPC, MCP and WSDL -- measured by making every rule fire, not asserted.
+---
+
 # Rule parity across protocols
 
 Which of the breaking-change rules actually fire, for each format this tool

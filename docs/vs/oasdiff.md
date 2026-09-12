@@ -1,3 +1,8 @@
+---
+description: >-
+  api-verity-lab compared with oasdiff, from dated GitHub evidence: what each covers, where oasdiff is stronger, and what migrating actually costs.
+---
+
 # api-verity-lab compared with oasdiff
 
 <!-- generated:landing -->

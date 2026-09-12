@@ -1,3 +1,8 @@
+---
+description: >-
+  Behavioural drift asks whether a service still matches itself: a field that stopped being populated, an enum value that stopped appearing, a latency that moved.
+---
+
 # Behavioural drift
 
 Every other check in this project asks whether reality matches the document.

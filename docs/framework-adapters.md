@@ -1,3 +1,8 @@
+---
+description: >-
+  Generate the contract from the running application -- FastAPI, Flask, Express, NestJS, Laravel, Spring, gin -- so the committed file cannot silently go stale.
+---
+
 # Framework adapters
 
 Most teams keep an `openapi.yaml` in the repository and check it in CI. The

@@ -1,3 +1,8 @@
+---
+description: >-
+  Synthetic monitoring: run any api-verity-lab command on a schedule against staging or production, and alert on what changed since the last run.
+---
+
 # Synthetic monitoring
 
 `apiverity monitor` runs any other command on a schedule and reports what

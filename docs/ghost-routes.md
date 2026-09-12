@@ -1,3 +1,8 @@
+---
+description: >-
+  Ghost routes: endpoints that were deleted from the contract and still answer in production. Found by probing what the old contract declared and the new one does not.
+---
+
 # Ghost routes: still answering, no longer declared
 
 ```bash

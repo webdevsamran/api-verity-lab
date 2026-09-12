@@ -1,3 +1,8 @@
+---
+description: >-
+  Register api-verity-lab with Claude Code, Cursor, Windsurf, Codex and Aider in one command, so a coding agent knows the contract gate exists before it edits a spec.
+---
+
 # Telling coding agents this tool exists
 
 ```bash

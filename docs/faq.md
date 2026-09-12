@@ -1,3 +1,8 @@
+---
+description: >-
+  Short answers about API contract governance, breaking-change detection, drift, MCP tool surfaces and CI gating, each backed by the command that proves it.
+---
+
 # Frequently asked questions
 
 Short answers, each with the command or the page that backs it up.

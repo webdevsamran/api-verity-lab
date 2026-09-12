@@ -1,3 +1,8 @@
+---
+description: >-
+  api-verity-lab compared with Optic, from dated GitHub evidence: traffic-driven contract inference, archived upstream and rebuilt here as `infer`.
+---
+
 # api-verity-lab compared with Optic
 
 <!-- generated:landing -->

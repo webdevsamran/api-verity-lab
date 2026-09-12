@@ -1,3 +1,8 @@
+---
+description: >-
+  The Python SDK surface: Contract, Operation, SchemaNode, diff_services, evaluate_breaking and the rest, for driving contract governance from your own code.
+---
+
 # SDK
 
 ```python

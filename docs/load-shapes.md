@@ -1,3 +1,8 @@
+---
+description: >-
+  Drive one operation at a declared arrival rate for a declared duration, instead of measuring every operation a fixed number of times.
+---
+
 # Load shapes
 
 `apiverity regression` measures every operation a fixed number of times.

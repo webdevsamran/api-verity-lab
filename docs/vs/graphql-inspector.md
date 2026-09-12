@@ -1,3 +1,8 @@
+---
+description: >-
+  api-verity-lab compared with GraphQL Inspector, from dated GitHub evidence: GraphQL schema diffing against multi-protocol contract governance.
+---
+
 # api-verity-lab compared with GraphQL Inspector
 
 <!-- generated:landing -->

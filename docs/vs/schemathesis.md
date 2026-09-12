@@ -1,3 +1,8 @@
+---
+description: >-
+  api-verity-lab compared with Schemathesis, from dated GitHub evidence: property-based API testing against contract governance, and where each fits.
+---
+
 # api-verity-lab compared with Schemathesis
 
 <!-- generated:landing -->

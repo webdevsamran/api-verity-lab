@@ -1,3 +1,8 @@
+---
+description: >-
+  GraphQL federation: evaluating a subgraph change against the composed supergraph, so a safe-looking subgraph edit that breaks the gateway is caught.
+---
+
 # GraphQL federation
 
 ```bash

@@ -14,7 +14,13 @@ from __future__ import annotations
 import pathlib
 import sys
 
+# `scripts/` so `page_meta` resolves, the repository root so `apiverity`
+# does. Running this as a script puts the first one on the path; loading
+# it by file location -- which is how the tests load it -- puts neither.
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+from page_meta import front_matter
 
 from apiverity.reports.oasdiff import (
     FOREIGN_PREFIX,
@@ -67,7 +73,10 @@ from-memory implementation gets wrong.
 
 def render() -> str:
     detail = coverage()
-    out = [_HEADER.format(checked=detail["checked_on"], version=detail["oasdiff_version_checked"])]
+    out = [
+        front_matter("oasdiff-migration.md")
+        + _HEADER.format(checked=detail["checked_on"], version=detail["oasdiff_version_checked"])
+    ]
 
     out.append("## Rules that map exactly" + NL)
     out.append("| This tool | oasdiff |")

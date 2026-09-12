@@ -1,3 +1,8 @@
+---
+description: >-
+  api-verity-lab compared with WireMock, from dated GitHub evidence: service virtualization against contract governance, and where the two overlap.
+---
+
 # api-verity-lab compared with WireMock
 
 <!-- generated:landing -->

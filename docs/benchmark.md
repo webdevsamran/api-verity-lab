@@ -1,3 +1,8 @@
+---
+description: >-
+  Both engines over the same contracts, with what each reported -- including the cases where api-verity-lab loses to oasdiff. Reproducible from committed evidence.
+---
+
 # Benchmark against oasdiff
 
 Both engines over the same contracts, with what each reported.

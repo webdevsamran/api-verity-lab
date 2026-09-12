@@ -1,3 +1,8 @@
+---
+description: >-
+  Every dashboard view is a URL: filters write themselves into the address bar, so sharing a view is copying a link rather than a feature to build.
+---
+
 # Saved views and shareable links
 
 Every view in this dashboard is a URL. `#/contract?sev=ERROR` is the page and

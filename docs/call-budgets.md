@@ -1,3 +1,8 @@
+---
+description: >-
+  Call budgets for agent traffic: declare how much an agent may use an interface, and fail when recorded calls exceed it. The most-cited worry about agent load.
+---
+
 # Call budgets: how much an agent may use an interface
 
 ```bash

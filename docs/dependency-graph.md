@@ -1,3 +1,8 @@
+---
+description: >-
+  Map which repositories share which schemas, and find every dependent of a shared contract before you change it.
+---
+
 # Cross-repo spec dependency graph
 
 ```bash

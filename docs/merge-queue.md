@@ -1,3 +1,8 @@
+---
+description: >-
+  Why a gate that only runs on pull_request proves nothing about what merges, and how to run this one in a GitHub merge queue instead.
+---
+
 # Merge queues and required checks
 
 ## The gap a pull-request gate leaves

@@ -1,3 +1,8 @@
+---
+description: >-
+  Breaking-change detection for MCP tool manifests: annotation hints, outputSchema presence and the tool-description edits an agent routes on.
+---
+
 # MCP tool manifest breaking changes
 
 <!-- generated:landing -->

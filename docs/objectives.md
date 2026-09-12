@@ -1,3 +1,8 @@
+---
+description: >-
+  Attach latency and error-rate objectives to operations in the contract itself, so a performance budget is a declared SLO rather than a flag on a command line.
+---
+
 # Objectives the contract declares
 
 A performance budget used to be a flag:

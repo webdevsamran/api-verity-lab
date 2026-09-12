@@ -1,3 +1,8 @@
+---
+description: >-
+  api-verity-lab compared with Buf, from dated GitHub evidence: protobuf compatibility as a gate, against the same gate across seven protocols.
+---
+
 # api-verity-lab compared with Buf
 
 <!-- generated:landing -->

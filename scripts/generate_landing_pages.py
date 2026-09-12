@@ -30,6 +30,14 @@ import sys
 from pathlib import Path
 from typing import Any
 
+# `scripts/` so `page_meta` resolves, the repository root so `apiverity`
+# does. Running this as a script puts the first one on the path; loading
+# it by file location -- which is how the tests load it -- puts neither.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from page_meta import front_matter
+
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 # `scripts/` too, because this imports `generate_rule_parity` for its contract
@@ -407,7 +415,10 @@ def render() -> dict[Path, str]:
     for label, rules in result.by_protocol.items():
         if label not in PROTOCOLS:
             continue
-        pages[FOR / f"{_slug(label)}.md"] = protocol_page(label, set(rules), merged)
+        slug = _slug(label)
+        pages[FOR / f"{slug}.md"] = front_matter(f"for/{slug}.md") + protocol_page(
+            label, set(rules), merged
+        )
 
     capabilities = json.loads(CAPABILITIES.read_text(encoding="utf-8"))
     fetched = str(json.loads(META.read_text(encoding="utf-8")).get("fetched_utc", "")).split("T")[0]
@@ -415,7 +426,8 @@ def render() -> dict[Path, str]:
     for entry in capabilities["competitors"]:
         page = competitor_page(entry, matrix, fetched)
         if page is not None:
-            pages[VS / f"{_slug(entry['name'])}.md"] = page
+            slug = _slug(entry["name"])
+            pages[VS / f"{slug}.md"] = front_matter(f"vs/{slug}.md") + page
     return pages
 
 

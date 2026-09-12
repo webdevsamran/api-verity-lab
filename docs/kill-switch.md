@@ -1,3 +1,8 @@
+---
+description: >-
+  The emergency policy freeze auditors of agent-era systems ask for by name, as one command -- plus the activity log and permission review alongside it.
+---
+
 # Emergency freeze
 
 Auditors of agent-era systems ask for three things by name: activity logs,

@@ -1,3 +1,8 @@
+---
+description: >-
+  A signed baseline of an MCP tool surface in `mcp.lock`, so CI fails the moment the surface changes without review.
+---
+
 # `mcp.lock`: a reviewed baseline for a tool surface
 
 ```bash

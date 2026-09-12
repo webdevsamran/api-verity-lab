@@ -1,3 +1,8 @@
+---
+description: >-
+  Changes that are safe on the wire and breaking in every generated client -- detected by modelling what a code generator does with the contract.
+---
+
 # Generated-SDK break detection
 
 ```bash

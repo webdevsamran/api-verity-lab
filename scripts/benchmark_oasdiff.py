@@ -38,7 +38,13 @@ import subprocess
 import sys
 from typing import Any
 
+# `scripts/` so `page_meta` resolves, the repository root so `apiverity`
+# does. Running this as a script puts the first one on the path; loading
+# it by file location -- which is how the tests load it -- puts neither.
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+from page_meta import front_matter
 
 NL = chr(10)
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -247,7 +253,7 @@ a `.proto` to report that it found nothing would be a rigged comparison.
 
 
 def render(evidence: dict[str, Any]) -> str:
-    out = [_HEADER]
+    out = [front_matter("benchmark.md") + _HEADER]
     out.append("## Provenance" + NL)
     out.append(f"- Run: **{evidence['generated_at']}**")
     out.append(f"- api-verity-lab: **{evidence['apiverity_version']}**")

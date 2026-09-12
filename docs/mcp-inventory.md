@@ -1,3 +1,8 @@
+---
+description: >-
+  Find shadow MCP servers: what this checkout and this machine's agent clients are actually configured to reach, checked against an approved inventory.
+---
+
 # Shadow MCP servers: what is this machine configured to reach?
 
 ```bash

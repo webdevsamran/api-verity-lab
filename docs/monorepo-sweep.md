@@ -1,3 +1,8 @@
+---
+description: >-
+  Check every contract in a monorepo against a base branch in one command, with results routed to the team that owns each file.
+---
+
 # Sweeping a monorepo, and who owns what
 
 ```bash

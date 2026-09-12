@@ -1,3 +1,8 @@
+---
+description: >-
+  Compare a declared MCP tool manifest against a running server over Streamable HTTP: schema drift, specification conformance and an authentication posture probe.
+---
+
 # MCP drift: declared tool schema vs a running server
 
 ```bash

@@ -1,3 +1,8 @@
+---
+description: >-
+  Moving a CI gate from oasdiff: which of your jq filters keep matching, the change-code mapping, and `report --format oasdiff` so leaving again is cheap.
+---
+
 # Migrating from oasdiff
 
 Migration cost is the real competitor. A team already gating on

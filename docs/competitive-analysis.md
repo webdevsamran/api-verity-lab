@@ -1,3 +1,8 @@
+---
+description: >-
+  How api-verity-lab compares with oasdiff, Schemathesis, Spectral, Pact, Prism, WireMock, Karate, k6 and Buf, rendered from dated GitHub API evidence.
+---
+
 # Competitive Analysis — API Verity Lab
 
 <!-- generated:provenance -->

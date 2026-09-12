@@ -1,3 +1,8 @@
+---
+description: >-
+  Breaking-change detection for WSDL 1.1 and SOAP: portTypes, bindings, SOAPAction, binding style and SOAP version -- what breaks every generated stub.
+---
+
 # SOAP and WSDL breaking changes
 
 <!-- generated:landing -->

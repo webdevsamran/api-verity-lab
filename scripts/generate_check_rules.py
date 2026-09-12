@@ -13,7 +13,13 @@ from __future__ import annotations
 import pathlib
 import sys
 
+# `scripts/` so `page_meta` resolves, the repository root so `apiverity`
+# does. Running this as a script puts the first one on the path; loading
+# it by file location -- which is how the tests load it -- puts neither.
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+from page_meta import front_matter
 
 from apiverity.rules.check_catalog import catalog
 
@@ -140,7 +146,7 @@ def _cell(value: str) -> str:
 
 def render() -> str:
     remaining = dict(sorted(SECURITY_CATALOG.items()))
-    out = [_HEADER]
+    out = [front_matter("check-rules.md") + _HEADER]
     for title, prefixes, note in _GROUPS:
         rows = [
             spec

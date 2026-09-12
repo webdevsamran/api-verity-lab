@@ -1,3 +1,8 @@
+---
+description: >-
+  Three ways to wire API contract checks into CI -- the GitHub Action, a container step, or the raw CLI -- with suppressions that carry an owner and an expiry.
+---
+
 # CI Integration
 
 There are three ways to wire this up, in increasing order of how much you want

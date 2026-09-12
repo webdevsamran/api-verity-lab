@@ -1,3 +1,8 @@
+---
+description: >-
+  Paste two versions of an OpenAPI contract and get the breaking changes with rule ids, in your browser. Nothing is uploaded; the real engine runs on Pyodide.
+---
+
 # Playground
 
 Paste two versions of a contract. Get the breaking changes, with rule ids.

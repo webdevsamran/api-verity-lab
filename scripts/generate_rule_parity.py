@@ -18,7 +18,13 @@ from __future__ import annotations
 import pathlib
 import sys
 
+# `scripts/` so `page_meta` resolves, the repository root so `apiverity`
+# does. Running this as a script puts the first one on the path; loading
+# it by file location -- which is how the tests load it -- puts neither.
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+from page_meta import front_matter
 
 from apiverity.rules.breaking import CATALOG
 from apiverity.rules.parity import MUTATIONS, ParityResult, measure_parity
@@ -87,7 +93,7 @@ def _load() -> tuple[dict[str, object], dict[str, str]]:
 
 def render(result: ParityResult) -> str:
     protocols = sorted(result.by_protocol)
-    out = [_HEADER]
+    out = [front_matter("rule-parity.md") + _HEADER]
 
     out.append("## What was changed" + NL)
     out.append("| Mutation | Stands for |")

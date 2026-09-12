@@ -1,3 +1,8 @@
+---
+description: >-
+  What a release carries and how to verify it without trusting the builder: an SPDX SBOM, signed provenance, and the commands that check both.
+---
+
 # Supply chain: what a release carries, and how to check it
 
 Procurement asks for three things about a build now: a bill of materials, a

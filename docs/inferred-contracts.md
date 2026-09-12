@@ -1,3 +1,8 @@
+---
+description: >-
+  Draft an OpenAPI contract from recorded traffic with `apiverity infer`, for the very common case of a service that has no contract written down anywhere.
+---
+
 # Drafting a contract from traffic
 
 ```bash

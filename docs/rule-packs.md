@@ -1,3 +1,8 @@
+---
+description: >-
+  Publishing and discovering rule packs: house style as a versioned Python distribution your other repositories install, rather than a fork of this one.
+---
+
 # Rule packs: writing one, shipping one, finding one
 
 ```bash
