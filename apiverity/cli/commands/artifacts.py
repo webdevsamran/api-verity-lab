@@ -51,9 +51,17 @@ def cmd_export(args: argparse.Namespace) -> int:
     )
 
     if args.spec:
+        # The snapshot is evidence and stays byte-for-byte what was read. The
+        # hash is an identity and goes through the shared helper, so a bundle
+        # exported on Windows carries the same `contract_hash` as one exported
+        # on Linux from the same contract. They are deliberately not the same
+        # computation; `SHA256SUMS` below is what proves the snapshot arrived
+        # intact.
+        from apiverity.core.artifact import contract_hash
+
         spec_bytes = Path(args.spec).read_bytes()
         (out / "contract-snapshot").write_bytes(spec_bytes)
-        payload["contract_hash"] = hashlib.sha256(spec_bytes).hexdigest()
+        payload["contract_hash"] = contract_hash(args.spec)
         payload["contract_snapshot"] = "contract-snapshot"
     if args.config:
         (out / "config.yaml").write_text(

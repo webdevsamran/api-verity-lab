@@ -1,7 +1,8 @@
 """Versioned result-artifact envelope (§21 of the product spec).
 
 Every command payload is enriched with: tool version, result schema
-version, protocol version, contract hash (sha256 of the spec file),
+version, protocol version, contract hash (sha256 of the spec file, with
+line endings normalized so it names the contract and not the checkout),
 target metadata, seed, timing and redaction state.
 """
 
@@ -56,12 +57,37 @@ NO_REDACTION: dict[str, Any] = {
 }
 
 
+def normalized_contract_bytes(raw: bytes) -> bytes:
+    """`raw` with CRLF and lone CR turned into LF, unless it is binary.
+
+    Text that holds a NUL byte is not text -- a compiled protobuf descriptor
+    set is a contract this tool reads, and rewriting bytes inside one would
+    produce a digest that is not the digest of any file. Those are hashed
+    exactly as they are.
+    """
+    if b"\x00" in raw:
+        return raw
+    return raw.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+
+
 def contract_hash(spec_path: str | None) -> str:
-    """Stable sha256 of the contract file ('0'*64 when unavailable)."""
+    """Stable sha256 of the contract file ('0'*64 when unavailable).
+
+    Line endings are normalized first, because this hash names the *contract*
+    and not the checkout it arrived in. Git hands a Windows working tree CRLF
+    and a Linux one LF for the same commit, so without this the same document
+    produced two digests and an evidence pack built on a developer's machine
+    did not match the one CI built from the identical commit -- which is
+    exactly the question a `contract_hash` exists to answer.
+
+    This repository shipped the defect before it found it: `docs/demo.svg` was
+    recorded on Windows and carried a digest no POSIX machine could reproduce,
+    and the platform matrix is what noticed.
+    """
     if not spec_path:
         return "0" * 64
     try:
-        return hashlib.sha256(Path(spec_path).read_bytes()).hexdigest()
+        return hashlib.sha256(normalized_contract_bytes(Path(spec_path).read_bytes())).hexdigest()
     except OSError:
         return "0" * 64
 
