@@ -19,6 +19,7 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import httpx
 import pytest
@@ -30,7 +31,7 @@ from apiverity.traffic.capture import (
     CaptureRefused,
     check_bind,
     serve,
-    upstream_path,
+    upstream_url,
 )
 
 pytestmark = pytest.mark.integration
@@ -371,20 +372,40 @@ def test_the_off_target_count_rides_in_the_file_like_every_other_skip() -> None:
 @pytest.mark.parametrize(
     ("raw", "expected"),
     [
-        ("/orders?page=2", "/orders?page=2"),
-        ("http://api.test:9/orders?page=2", "/orders?page=2"),
-        ("HTTP://API.TEST:9/orders", "/orders"),
-        ("http://api.test:9", "/"),
+        ("/orders?page=2", "http://api.test:9/orders?page=2"),
+        ("http://api.test:9/orders?page=2", "http://api.test:9/orders?page=2"),
+        ("HTTP://API.TEST:9/orders", "http://api.test:9/orders"),
+        ("http://api.test:9", "http://api.test:9/"),
         ("http://evil.test/steal", None),
         ("https://api.test:9/orders", None),
         ("http://api.test:80/orders", None),
         ("//evil.test/steal", None),
+        (r"/\\evil.test/steal", "http://api.test:9/" + chr(92) + chr(92) + "evil.test/steal"),
     ],
 )
-def test_which_paths_reach_the_upstream(raw: str, expected: str | None) -> None:
-    """Scheme and authority both have to match, and a matching one is reduced
-    to path and query so `base_url` is what resolves it."""
-    assert upstream_path(raw, "http://api.test:9") == expected
+def test_which_requests_reach_the_upstream(raw: str, expected: str | None) -> None:
+    """Scheme and authority have to match the target, and whatever survives is
+    reassembled onto the target's own scheme and host -- so the host is never
+    a value that came off the request line."""
+    assert upstream_url(raw, "http://api.test:9") == expected
+
+
+def test_the_host_always_comes_from_the_target() -> None:
+    """The property, rather than a list of examples: for every request line
+    this accepts, the host is the target's."""
+    target = "http://api.test:9"
+    accepted = [
+        "/orders",
+        "/orders?page=2",
+        "http://api.test:9/orders",
+        "/..%2f..%2fadmin",
+        "/a?b=http://evil.test",
+    ]
+    for raw in accepted:
+        built = upstream_url(raw, target)
+        assert built is not None, raw
+        assert urlsplit(built).netloc == "api.test:9", raw
+        assert urlsplit(built).scheme == "http", raw
 
 
 def test_binding_beyond_localhost_needs_saying_so() -> None:
