@@ -59,6 +59,7 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 #: Body modes this reads. The others are named in `Import.skipped` rather than
 #: dropped -- see the module docstring.
@@ -227,6 +228,22 @@ def _walk(items: Any, path: tuple[str, ...] = ()) -> list[tuple[tuple[str, ...],
     return found
 
 
+#: The hosts Postman publishes its collection schemas on.
+SCHEMA_HOSTS = frozenset({"schema.getpostman.com", "schema.postman.com"})
+
+
+def _served_by_postman(url: str) -> bool:
+    """True when `url`'s host is one Postman publishes its schemas on.
+
+    The host is parsed rather than searched for. `"schema.postman.com" in url`
+    also matches `https://example.invalid/?q=schema.postman.com`, and while
+    nothing bad follows from misreading a file here -- it simply fails to parse
+    a moment later -- the substring shape is the one that does real damage the
+    first time somebody copies it into a check that decides something.
+    """
+    return (urlsplit(url).hostname or "").lower() in SCHEMA_HOSTS
+
+
 def is_collection(document: Any) -> bool:
     """Does this look like a Postman collection?
 
@@ -239,8 +256,7 @@ def is_collection(document: Any) -> bool:
     info = document.get("info")
     if not isinstance(info, dict):
         return False
-    schema = _text(info.get("schema"))
-    if "schema.getpostman.com" in schema or "schema.postman.com" in schema:
+    if _served_by_postman(_text(info.get("schema"))):
         return True
     return isinstance(document.get("item"), list)
 

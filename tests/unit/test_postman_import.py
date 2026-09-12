@@ -29,6 +29,7 @@ import io
 import json
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import pytest
 
@@ -90,7 +91,10 @@ def test_nested_folders_are_walked_to_any_depth(imported: postman.Import) -> Non
 
 
 def test_the_collection_variable_is_substituted(imported: postman.Import) -> None:
-    assert all(url.startswith("https://orders.example.com") for url in _urls(imported))
+    # The host, parsed. `startswith` on a URL is the shape that reads
+    # `https://orders.example.com.evil.invalid/` as a match, and a test that
+    # models a URL check loosely is where the loose version gets copied from.
+    assert all(urlsplit(url).netloc == "orders.example.com" for url in _urls(imported))
 
 
 def test_an_unresolved_variable_is_left_alone_and_reported(imported: postman.Import) -> None:
