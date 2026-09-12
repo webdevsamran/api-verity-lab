@@ -52,9 +52,15 @@ jobs:
           # handed to `apiverity validate` and fail the gate. SPEC_DIRS is the one
           # place to extend when contracts move or a new location is added.
           SPEC_DIRS='^(fixtures/apis|openapi|specs|contracts)/'
-          SPECS=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" \
+          CHANGED=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" \
             | grep -E '[.](yaml|yml|json)$' \
             | grep -E "$SPEC_DIRS" || true)
+          # Those directories hold standalone contracts *and* the `$ref`
+          # fragments they point at. A fragment has no `openapi:` key, so
+          # `validate` exits 2 with "not an API contract", and the gate
+          # blocked a merge over a file that is already checked through the
+          # document referencing it. The filter names every file it drops.
+          SPECS=$(python .github/scripts/changed_contracts.py $CHANGED)
           echo "specs<<EOF" >> "$GITHUB_OUTPUT"
           echo "$SPECS" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
