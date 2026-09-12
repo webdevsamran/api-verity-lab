@@ -267,6 +267,47 @@ def test_a_binary_body_is_absent_with_a_reason(tmp_path: Path) -> None:
     assert capture.skips.binary_response == 1
 
 
+def after_limit_in(comment: str) -> int:
+    """How many exchanges the comment says arrived after the limit.
+
+    The comment is the only place these counts survive the file, so reading one
+    back is also a check that they are written in a form somebody can read.
+    """
+    for part in comment.split(";"):
+        name, _, count = part.strip().partition(":")
+        if name.strip() == "after limit":
+            return int(count.strip())
+    return 0
+
+
+def test_an_exchange_arriving_after_the_limit_is_counted_rather_than_dropped() -> None:
+    """The property the integration test above cannot schedule.
+
+    A corpus of exactly the size that was asked for otherwise hides that
+    traffic kept flowing, which is the difference between "this is what
+    happened" and "this is the first N of what happened".
+    """
+    capture = Capture(target="http://x.test", max_entries=2)
+    for index in range(3):
+        capture.record(
+            method="GET",
+            url=f"http://x.test/orders/{index}",
+            request_headers={},
+            request_body=b"",
+            status=200,
+            response_headers={"content-type": "application/json"},
+            response_body=b"{}",
+            started="2026-01-01T00:00:00Z",
+            duration_ms=1,
+        )
+
+    assert len(capture.entries) == 2
+    assert capture.skips.after_limit == 1
+    comment = capture.har()["log"]["comment"]
+    assert "after limit: 1" in comment
+    assert after_limit_in(comment) == 1
+
+
 def test_the_skips_ride_in_the_file_not_only_on_the_console() -> None:
     capture = Capture(target="http://x.test")
     assert "nothing was skipped" in capture.har()["log"]["comment"]
@@ -513,7 +554,15 @@ def test_max_entries_stops_it(tmp_path: Path) -> None:
     # so a threshold gave three when two were asked for; the cap is enforced
     # where the entry is appended.
     assert len(har["entries"]) == 2, f"recorded {len(har['entries'])} after asking for 2"
-    if sent > 2:
-        # And traffic that kept flowing is counted, not silently absent: a
-        # corpus of exactly N otherwise hides that it is the first N of more.
-        assert "after limit" in har["comment"]
+    # Traffic that kept flowing is counted, not silently absent -- but whether
+    # a third request reaches the handler before the corpus is written is a
+    # property of how fast the runner shuts a socket, not of this code. The
+    # `sent > 2` guard this replaced was not enough: the response can come back
+    # after the poll loop has already noticed the limit and written the file,
+    # so the counter increments too late to appear in it. One leg of the matrix
+    # failed on that and four passed, in the same run.
+    #
+    # So what is checked here is that the file never claims something the
+    # counter does not say, and the counting itself is checked where it can be
+    # made to happen every time -- see the test below.
+    assert ("after limit" in har["comment"]) == (after_limit_in(har["comment"]) > 0)
