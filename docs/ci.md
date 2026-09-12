@@ -47,7 +47,7 @@ Everything is an input:
 
 and it sets four outputs — `result` (`pass`/`findings`/`error`),
 `specs-checked`, `findings-count`, and `artifacts-dir`, a directory of
-per-contract [`result-v1`](../schemas/result-v1.schema.json) JSON:
+per-contract [`result-v1`](https://github.com/webdevsamran/api-verity-lab/blob/main/schemas/result-v1.schema.json) JSON:
 
 ```yaml
       - uses: webdevsamran/api-verity-lab@v1

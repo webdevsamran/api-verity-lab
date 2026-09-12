@@ -9,7 +9,7 @@ description: >-
 scripts branch on them, so an existing code never changes meaning -- new ones
 are appended.
 
-Defined in [`apiverity/cli/commands/common.py`](../apiverity/cli/commands/common.py).
+Defined in [`apiverity/cli/commands/common.py`](https://github.com/webdevsamran/api-verity-lab/blob/main/apiverity/cli/commands/common.py).
 
 ## INFO findings do not fail a run
 

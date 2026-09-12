@@ -1,0 +1,14 @@
+# api-verity-lab documentation
+#
+# MkDocs writes sitemap.xml on every build; naming it here is what makes a
+# crawler read it rather than discover the site one link at a time.
+#
+# Nothing under docs/ is private, so nothing is disallowed. A robots.txt that
+# blocks a path is a published list of the paths worth looking at, and this
+# site has none of those -- the whole build is Apache-2.0 and the source is
+# next to it.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://webdevsamran.github.io/api-verity-lab/sitemap.xml

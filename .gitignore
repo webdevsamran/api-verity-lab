@@ -25,6 +25,10 @@ web/coverage/
 *.apiverity/
 .apiverity-bundles/
 demo-data/generated/
+# `mkdocs build` and the docs workflow both write here. Ninety-seven
+# untracked files after a local docs build is how a real change gets lost
+# in `git status`.
+site/
 
 # Editors / OS
 .vscode/

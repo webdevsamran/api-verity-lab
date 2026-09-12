@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+<!--
+  Social and structured-data tags.
+
+  Material emits `<meta name="description">` and a canonical link on its own.
+  It does not emit Open Graph or Twitter card tags unless the `social` plugin
+  is enabled, and that plugin renders card images through Cairo -- a system
+  library, a build-time dependency and a second thing for CI to install, for
+  an image. So the cards here are text: title, description, URL, site name.
+
+  `twitter:card` is deliberately `summary` rather than `summary_large_image`.
+  The large variant expects an image, and a card that promises one it does not
+  have renders as an empty box -- worse than the small card that renders
+  correctly.
+
+  Descriptions come from each page's own front matter, which
+  `scripts/page_meta.py` owns and `scripts/check_page_descriptions.py`
+  enforces, so a shared link carries the page's sentence rather than the
+  site's.
+-->
+
+{% block extrahead %}
+  {%- set page_title = config.site_name -%}
+  {%- if page and page.title and not page.is_homepage -%}
+    {%- set page_title = page.title | striptags ~ " · " ~ config.site_name -%}
+  {%- endif -%}
+  {%- if page and page.meta and page.meta.description -%}
+    {%- set page_description = page.meta.description -%}
+  {%- else -%}
+    {%- set page_description = config.site_description -%}
+  {%- endif -%}
+  {%- set page_description = page_description | trim -%}
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{ config.site_name }}">
+  <meta property="og:title" content="{{ page_title }}">
+  <meta property="og:description" content="{{ page_description }}">
+  {%- if page and page.canonical_url %}
+  <meta property="og:url" content="{{ page.canonical_url }}">
+  {%- endif %}
+  <meta property="og:locale" content="en">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="{{ page_title }}">
+  <meta name="twitter:description" content="{{ page_description }}">
+
+  {%- if page and page.is_homepage %}
+  <!--
+    One JSON-LD block, on the home page only. Repeating it on ninety-seven
+    pages would describe the same application ninety-seven times, which is the
+    structured-data version of the duplicate-description problem this site
+    just fixed.
+
+    Every field here is checkable from the repository: the licence is the one
+    in LICENSE, the price is nought because the whole build is Apache-2.0, and
+    the operating systems are the ones the platform matrix actually tests.
+  -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "api-verity-lab",
+      "alternateName": "apiverity",
+      "applicationCategory": "DeveloperApplication",
+      "applicationSubCategory": "API contract governance",
+      "operatingSystem": "Linux, macOS, Windows",
+      "url": "{{ config.site_url }}",
+      "codeRepository": "{{ config.repo_url }}",
+      "description": "{{ config.site_description | trim }}",
+      "license": "https://www.apache.org/licenses/LICENSE-2.0",
+      "isAccessibleForFree": true,
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "Samran Asif",
+        "url": "https://github.com/webdevsamran"
+      }
+    }
+  </script>
+  {%- endif %}
+{% endblock %}

@@ -9,6 +9,11 @@ repo_name: webdevsamran/api-verity-lab
 
 theme:
   name: material
+  # Open Graph, Twitter card and one JSON-LD block. Material emits the
+  # description and canonical link itself; these are the tags it leaves to
+  # the `social` plugin, which is not installed because it renders card
+  # images through Cairo. See overrides/main.html.
+  custom_dir: overrides
   palette:
     - media: "(prefers-color-scheme: dark)"
       scheme: slate

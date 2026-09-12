@@ -936,7 +936,7 @@ removal — and `price` is gone from the supergraph, so every client loses it.
 
 `apiverity validate openapi.yaml --policy-file house-style.yaml`.
 
-[Rule packs](docs/rule-packs.md) are the right answer for a rule with real
+[Rule packs](https://webdevsamran.github.io/api-verity-lab/rule-packs/) are the right answer for a rule with real
 logic in it and the wrong one for *"every path must be kebab-case"* — which is
 most of what an organisation wants to enforce, and does not justify a Python
 package, a release process and somewhere to publish it.
@@ -1005,7 +1005,7 @@ package, a release process and somewhere to publish it.
 ### Decided — eBPF capture is evaluated and declined
 
 The roadmap asked for Keploy's approach to be studied as prior art *before*
-committing to anything. [`docs/ebpf-evaluation.md`](docs/ebpf-evaluation.md) is
+committing to anything. [`docs/ebpf-evaluation.md`](https://webdevsamran.github.io/api-verity-lab/ebpf-evaluation/) is
 that study, and the answer is no.
 
 Keploy checked 2026-09-11: 18,452 stars, Apache-2.0, `v3.6.57` released that

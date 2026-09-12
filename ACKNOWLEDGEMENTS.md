@@ -121,12 +121,12 @@ Also by the same maintainer, and sharing one rule rather than any code:
 
 ## Sponsors
 
-None yet. [`SPONSORS.md`](SPONSORS.md) says what sponsorship would fund and,
+None yet. [`SPONSORS.md`](https://webdevsamran.github.io/api-verity-lab/sponsors/) says what sponsorship would fund and,
 more importantly, what it does not buy.
 
 ## Licence
 
-Apache-2.0. See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
+Apache-2.0. See [`LICENSE`](https://github.com/webdevsamran/api-verity-lab/blob/main/LICENSE) and [`NOTICE`](https://github.com/webdevsamran/api-verity-lab/blob/main/NOTICE).
 
 Every dependency above is used under its own licence; `pip-audit` and
 `npm audit` run in CI, and an SPDX SBOM is attached to every release.

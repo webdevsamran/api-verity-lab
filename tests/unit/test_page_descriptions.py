@@ -32,6 +32,8 @@ _SCRIPTS = _ROOT / "scripts"
 _CHECKER = _SCRIPTS / "check_page_descriptions.py"
 _DOCS = _ROOT / "docs"
 _MKDOCS = _ROOT / "mkdocs.yml"
+_OVERRIDE = _ROOT / "overrides" / "main.html"
+_ROBOTS = _DOCS / "robots.txt"
 
 
 def _module(name: str) -> Any:
@@ -228,3 +230,41 @@ def test_the_front_matter_reader_handles_the_shapes_it_will_meet(
     text: str, expected: str | None, checker: Any
 ) -> None:
     assert checker.declared(text) == expected
+
+
+# -- the tags the description is for --------------------------------------
+
+
+def test_the_theme_override_is_wired_in() -> None:
+    """The Open Graph and Twitter tags live in a template override. A template
+    MkDocs is not told about is a file."""
+    config = yaml.safe_load(_MKDOCS.read_text(encoding="utf-8"))
+    assert config["theme"]["custom_dir"] == "overrides"
+    assert _OVERRIDE.is_file()
+
+
+def test_the_social_card_is_the_kind_that_renders_without_an_image() -> None:
+    """`summary_large_image` expects an image. Promising one this site does not
+    have renders an empty box, which is worse than the small card."""
+    template = _OVERRIDE.read_text(encoding="utf-8")
+    assert 'content="summary"' in template
+    # The attribute, not the word: the template's own comment explains why the
+    # large variant is not used, and naming it there is the point.
+    assert 'content="summary_large_image"' not in template
+
+
+def test_robots_names_the_sitemap_mkdocs_actually_writes() -> None:
+    """A sitemap nothing points at is a file. The URL has to be the site's own,
+    or it points a crawler at somebody else's."""
+    site_url = yaml.safe_load(_MKDOCS.read_text(encoding="utf-8"))["site_url"].rstrip("/")
+    robots = _ROBOTS.read_text(encoding="utf-8")
+    assert f"Sitemap: {site_url}/sitemap.xml" in robots
+
+
+def test_the_structured_data_names_the_licence_the_repository_ships() -> None:
+    """Structured data is read by machines that will not check it against
+    LICENSE, which is the reason to check it here."""
+    template = _OVERRIDE.read_text(encoding="utf-8")
+    assert "SoftwareApplication" in template
+    assert "apache.org/licenses/LICENSE-2.0" in template
+    assert (_ROOT / "LICENSE").read_text(encoding="utf-8").lstrip().startswith("Apache License")

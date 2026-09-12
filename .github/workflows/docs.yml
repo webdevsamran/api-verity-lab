@@ -7,6 +7,10 @@ on:
       - 'docs/**'
       - '*.md'
       - 'mkdocs.yml'
+      # The theme override writes the Open Graph, Twitter card and
+      # structured-data tags. Left out of this list, a change to it would
+      # never redeploy, and the site would go on serving the old head.
+      - 'overrides/**'
       - 'requirements-docs.txt'
       - '.github/workflows/docs.yml'
       # The playground runs a wheel built from this tree. Without these, a
@@ -20,6 +24,10 @@ on:
       - 'docs/**'
       - '*.md'
       - 'mkdocs.yml'
+      # The theme override writes the Open Graph, Twitter card and
+      # structured-data tags. Left out of this list, a change to it would
+      # never redeploy, and the site would go on serving the old head.
+      - 'overrides/**'
       - 'requirements-docs.txt'
       - '.github/workflows/docs.yml'
       # The playground runs a wheel built from this tree. Without these, a
