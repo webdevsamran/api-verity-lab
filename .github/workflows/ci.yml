@@ -233,7 +233,14 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
-      - run: pip install jsonschema pyyaml && pip install -e .
+      # `.[graphql]`, not a bare `-e .`: `validate_result_artifacts.py`
+      # exercises `apiverity federation`, which needs graphql-core. Without
+      # it the command exits 2 with "could not parse a subgraph" and this
+      # job fails on a missing dependency rather than on a schema problem.
+      # The artifact is validated rather than skipped, because a validator
+      # that quietly drops the command it cannot run is the green-while-
+      # proving-nothing failure this job was rewritten to stop.
+      - run: pip install jsonschema pyyaml && pip install -e ".[graphql]"
       - name: Validate bundled result artifacts against schemas/result-v1
         # This step used to load the schema, call `check_schema` on it, and
         # print "result-v1 schema is valid". That validates the schema
