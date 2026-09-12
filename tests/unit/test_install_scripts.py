@@ -20,6 +20,7 @@ from __future__ import annotations
 import hashlib
 import http.server
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -449,11 +450,35 @@ def test_the_readme_install_line_is_one_the_scripts_support() -> None:
     assert "install.ps1 | iex" in readme
 
 
+#: The external commands `install.sh` actually invokes. `rm` is reached
+#: through a trap and `mktemp` through a fallback pair, so both have to be
+#: present or the script fails after it has already printed progress.
+_SH_NEEDS = ("mktemp", "rm", "cp")
+
+
 def _path_for(executable: str) -> str:
-    return str(Path(executable).parent)
+    """A PATH narrow enough to be a test and wide enough to be POSIX.
+
+    This used to be the single directory holding `sh`. On Ubuntu that passes
+    by accident -- `/bin` is a symlink to `/usr/bin`, so everything else the
+    script needs is in it too. On macOS they are different directories, and
+    `install.sh` died on `mktemp: command not found` after the suite had been
+    green for as long as it only ran on Linux and Windows.
+
+    Each command the script needs is located and its directory added, so the
+    PATH is still not the caller's inherited one and the test still proves the
+    script does not depend on anything beyond what is listed above.
+    """
+    directories = [str(Path(executable).parent)]
+    for command in _SH_NEEDS:
+        found = shutil.which(command)
+        if found is None:
+            continue
+        parent = str(Path(found).parent)
+        if parent not in directories:
+            directories.append(parent)
+    return os.pathsep.join(directories)
 
 
 def _systemroot() -> str:
-    import os
-
     return os.environ.get("SYSTEMROOT", "")
