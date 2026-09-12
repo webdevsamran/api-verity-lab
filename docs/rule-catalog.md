@@ -133,6 +133,11 @@ Only changes the shared engine cannot already see are listed here. A removed too
 | `BRK-SOAP-ACTION-CHANGED` | ERROR | The SOAPAction header changed. Gateways and ESBs route on it and generated stubs send the old one, with an unchanged body that now reaches nothing. | Keep the old soapAction on the existing operation and put the new one on a new operation in the same portType. The header is what a gateway routes on, so changing it retires the endpoint without saying so. |
 | `BRK-SOAP-STYLE-CHANGED` | ERROR | A binding moved between document and rpc style, which changes how the body is wrapped; every existing client serializes it the old way. | Add a second binding and a second port in the new style, and leave the old binding in place. A WSDL may declare as many ports as you like, so a style migration does not have to be a cutover. |
 | `BRK-SOAP-VERSION-CHANGED` | ERROR | A port moved between SOAP 1.1 and 1.2. The envelope namespace and the Content-Type both change, so a 1.1 client gets a 415 rather than a fault. | Add a SOAP 1.2 port alongside the 1.1 one rather than replacing it. Both can point at the same portType and the same address, and clients move when they are rebuilt instead of when you deploy. |
+| `BRK-STREAM-ENCODING-CHANGED` | ERROR | The encoding of a streamed item changed; the part still arrives and the parser reading it fails. | Add a new part rather than changing an existing one's content type, or version the operation. A consumer decoding the old type gets bytes it cannot read from a part it correctly identified. |
+| `BRK-STREAM-ITEM-SCHEMA-ADDED` | INFO | A sequential media type now declares `itemSchema`. | Nothing -- this is the direction to go. The payload was already a sequence; it is now described as one, so every field rule, mock and drift check can see it. |
+| `BRK-STREAM-ITEM-SCHEMA-REMOVED` | ERROR | A sequential media type stopped declaring `itemSchema`, so nothing describes one item any more. | Keep `itemSchema`. Removing it does not change the wire format, it removes the only description of it -- so every rule, mock and drift check goes quiet about this payload while the payload is still there. |
+| `BRK-STREAM-PREFIX-COUNT-CHANGED` | ERROR | The number of leading parts in a multipart stream changed; `prefixEncoding` is positional, so a reader counting parts reads the wrong one from there on. | Append to `prefixEncoding` rather than inserting or removing. It is positional, so anything but an append renumbers every part after the change. |
+| `BRK-STREAM-SEQUENTIAL-CHANGED` | ERROR | A payload moved between a single document and a sequence of items; every client has to be rewritten even when the item shape is identical. | Serve both: keep the old media type working and add the new one alongside it, so content negotiation decides rather than a deploy. A client that asked for `application/json` and now receives a stream has no way to notice except by failing to parse. |
 
 ## Severity profiles
 
@@ -146,4 +151,4 @@ Profiles cover this catalogue only. Security-lint, drift, MCP-conformance and lo
 | `balanced` | `error` | 0 | The catalogue as shipped. Definite breakage blocks; everything else reports. |
 | `advisory` | `never` | 0 | Nothing blocks. Every finding is still reported, at its catalogue severity. |
 
-_74 rules, each with a non-breaking alternative._
+_79 rules, each with a non-breaking alternative._

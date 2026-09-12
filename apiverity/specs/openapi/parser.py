@@ -15,6 +15,7 @@ from typing import Any, ClassVar
 import yaml
 
 from apiverity.core.model import (
+    Encoding,
     Example,
     Finding,
     Link,
@@ -32,6 +33,8 @@ from apiverity.core.model import (
     Service,
     Severity,
     SourceLocation,
+    StreamingMedia,
+    is_sequential_media,
 )
 from apiverity.specs import parse_document, read_source
 
@@ -451,15 +454,167 @@ class OpenApiParser:
             source_location=self._loc(pointer, node),
         )
 
+    def _to_encoding(self, node: Any) -> Encoding | None:
+        """One Encoding Object. `None` when the node says nothing."""
+        if not isinstance(node, dict):
+            return None
+        headers = node.get("headers")
+        return Encoding(
+            content_type=node.get("contentType"),
+            style=node.get("style"),
+            explode=node.get("explode") if isinstance(node.get("explode"), bool) else None,
+            headers=sorted(str(h) for h in headers) if isinstance(headers, dict) else [],
+        )
+
+    def _to_streaming(
+        self, root: dict[str, Any], media: str, media_obj: dict[str, Any], pointer: str
+    ) -> StreamingMedia | None:
+        """OpenAPI 3.2's sequential-media fields for one media type.
+
+        Before 3.2 a streaming endpoint had nowhere to say what one event looks
+        like: `schema` describes the whole body, and a stream has no whole
+        body. So these were documented in prose and no tool could check them.
+
+        Returns `None` when the document says nothing streaming-specific, so a
+        3.0 contract does not grow an empty declaration that a later diff would
+        report as having been lost.
+        """
+        item_schema = None
+        raw_item = media_obj.get("itemSchema")
+        if isinstance(raw_item, dict):
+            item_schema = self.to_schema(
+                root, raw_item, f"{pointer}/content/{self._escape_pointer(media)}/itemSchema"
+            )
+
+        item_encoding: dict[str, Encoding] = {}
+        raw_encoding = media_obj.get("itemEncoding")
+        if isinstance(raw_encoding, dict):
+            # Two shapes are written in the field. A map of property name to
+            # Encoding Object is the documented one; a bare Encoding Object
+            # meaning "the whole item" also appears, and is kept under the
+            # empty key rather than dropped -- a contract this tool silently
+            # ignored half of is worse than one it read generously.
+            looks_like_one = any(
+                key in raw_encoding for key in ("contentType", "style", "explode", "allowReserved")
+            )
+            if looks_like_one:
+                single = self._to_encoding(raw_encoding)
+                if single is not None:
+                    item_encoding[""] = single
+            else:
+                for name, node in raw_encoding.items():
+                    encoding = self._to_encoding(node)
+                    if encoding is not None:
+                        item_encoding[str(name)] = encoding
+
+        prefix_encoding: list[Encoding] = []
+        raw_prefix = media_obj.get("prefixEncoding")
+        if isinstance(raw_prefix, list):
+            for node in raw_prefix:
+                encoding = self._to_encoding(node)
+                # Positional: a part that says nothing still occupies its
+                # position, so an unreadable entry becomes an empty Encoding
+                # rather than shifting everything after it.
+                prefix_encoding.append(encoding if encoding is not None else Encoding())
+
+        streaming = StreamingMedia(
+            item_schema=item_schema,
+            item_encoding=item_encoding,
+            prefix_encoding=prefix_encoding,
+            source_location=self._loc(
+                f"{pointer}/content/{self._escape_pointer(media)}", media_obj
+            ),
+        )
+        return streaming if streaming.declares_anything() else None
+
+    def _streaming_findings_for(
+        self, node: Any, pointer: str, key: str, *, status: str | None = None
+    ) -> list[Finding]:
+        """Every streaming finding for one request body or response.
+
+        Run from the operation loop rather than from `_to_request_body` and
+        `_to_response`, because a finding has to name the operation and those
+        two are handed a pointer and nothing else.
+        """
+        if not isinstance(node, dict):
+            return []
+        content = node.get("content")
+        if not isinstance(content, dict):
+            return []
+        where = key if status is None else f"{key} response {status}"
+        findings: list[Finding] = []
+        for media, media_obj in content.items():
+            if isinstance(media_obj, dict):
+                findings.extend(self._streaming_findings(str(media), media_obj, pointer, where))
+        return findings
+
+    def _streaming_findings(
+        self, media: str, media_obj: dict[str, Any], pointer: str, key: str
+    ) -> list[Finding]:
+        """What a sequential media type declared, and what it should have.
+
+        Two directions, because each is a different mistake:
+
+        * a sequential media type with `schema` and no `itemSchema` is
+          describing the whole stream as though it were one document, which is
+          what every pre-3.2 contract had to do and what 3.2 exists to replace;
+        * `itemSchema` on a media type that is not sequential is a declaration
+          nothing will read.
+        """
+        findings: list[Finding] = []
+        where = f"{pointer}/content/{self._escape_pointer(media)}"
+        sequential = is_sequential_media(media)
+        has_item = isinstance(media_obj.get("itemSchema"), dict)
+
+        if sequential and not has_item:
+            findings.append(
+                Finding(
+                    rule_id="SPEC-STREAM-ITEM-SCHEMA-MISSING",
+                    severity=Severity.WARN,
+                    message=(
+                        f"'{media}' on {key} carries a sequence of items and declares no "
+                        "`itemSchema`, so nothing describes one item"
+                    ),
+                    operation_key=key,
+                    location=self._loc(where, media_obj),
+                    hint=(
+                        "Add `itemSchema` (OpenAPI 3.2). `schema` describes the whole body, "
+                        "and a stream has no whole body -- so every rule, mock and drift "
+                        "check sees nothing here."
+                    ),
+                )
+            )
+        if has_item and not sequential:
+            findings.append(
+                Finding(
+                    rule_id="SPEC-STREAM-ITEM-SCHEMA-UNUSED",
+                    severity=Severity.WARN,
+                    message=(
+                        f"'{media}' on {key} declares `itemSchema` and is not a sequential "
+                        "media type, so nothing reads it"
+                    ),
+                    operation_key=key,
+                    location=self._loc(where, media_obj),
+                    hint=(
+                        "Use `schema` for a single document, or change the media type to a "
+                        "sequential one such as `application/jsonl` or `text/event-stream`."
+                    ),
+                )
+            )
+        return findings
+
     def _to_request_body(self, root: dict[str, Any], node: Any, pointer: str) -> RequestBody | None:
         node = self.deref(root, node, pointer)
         if not isinstance(node, dict):
             return None
         content: dict[str, SchemaNode] = {}
+        streaming: dict[str, StreamingMedia] = {}
         raw_content = node.get("content") or {}
         if isinstance(raw_content, dict):
             for media, media_obj in raw_content.items():
-                if isinstance(media_obj, dict) and isinstance(media_obj.get("schema"), dict):
+                if not isinstance(media_obj, dict):
+                    continue
+                if isinstance(media_obj.get("schema"), dict):
                     converted = self.to_schema(
                         root,
                         media_obj["schema"],
@@ -467,10 +622,17 @@ class OpenApiParser:
                     )
                     if converted is not None:
                         content[str(media)] = converted
+                # 3.2's sequential media. Read whether or not `schema` is
+                # present: a JSON Lines body legitimately has an item shape and
+                # no body shape, and before this it was dropped entirely.
+                sequence = self._to_streaming(root, str(media), media_obj, pointer)
+                if sequence is not None:
+                    streaming[str(media)] = sequence
         return RequestBody(
             required=bool(node.get("required", False)),
             description=node.get("description"),
             content=content,
+            streaming=streaming,
             source_location=self._loc(pointer, node),
         )
 
@@ -493,10 +655,13 @@ class OpenApiParser:
                         if converted is not None:
                             headers[str(hname)] = converted
         content: dict[str, SchemaNode] = {}
+        streaming: dict[str, StreamingMedia] = {}
         raw_content = node.get("content") or {}
         if isinstance(raw_content, dict):
             for media, media_obj in raw_content.items():
-                if isinstance(media_obj, dict) and isinstance(media_obj.get("schema"), dict):
+                if not isinstance(media_obj, dict):
+                    continue
+                if isinstance(media_obj.get("schema"), dict):
                     converted = self.to_schema(
                         root,
                         media_obj["schema"],
@@ -504,11 +669,15 @@ class OpenApiParser:
                     )
                     if converted is not None:
                         content[str(media)] = converted
+                sequence = self._to_streaming(root, str(media), media_obj, pointer)
+                if sequence is not None:
+                    streaming[str(media)] = sequence
         return Response(
             status=status,
             description=node.get("description"),
             headers=headers,
             content=content,
+            streaming=streaming,
             links=self._to_links(node),
             source_location=self._loc(pointer, node),
         )
@@ -823,8 +992,10 @@ class OpenApiParser:
 
                 request_body = None
                 if isinstance(op_node.get("requestBody"), dict):
-                    request_body = self._to_request_body(
-                        doc, op_node["requestBody"], f"{op_pointer}/requestBody"
+                    body_pointer = f"{op_pointer}/requestBody"
+                    request_body = self._to_request_body(doc, op_node["requestBody"], body_pointer)
+                    self.findings.extend(
+                        self._streaming_findings_for(op_node["requestBody"], body_pointer, key)
                     )
 
                 responses: list[Response] = []
@@ -840,11 +1011,18 @@ class OpenApiParser:
                     )
                 if isinstance(raw_responses, dict):
                     for status, resp in raw_responses.items():
-                        resp_conv = self._to_response(
-                            doc, str(status), resp, f"{op_pointer}/responses/{status}"
-                        )
+                        response_pointer = f"{op_pointer}/responses/{status}"
+                        resp_conv = self._to_response(doc, str(status), resp, response_pointer)
                         if resp_conv is not None:
                             responses.append(resp_conv)
+                        self.findings.extend(
+                            self._streaming_findings_for(
+                                self.deref(doc, resp, response_pointer),
+                                response_pointer,
+                                key,
+                                status=str(status),
+                            )
+                        )
 
                 op_id = op_node.get("operationId")
                 if op_id is not None:

@@ -551,7 +551,7 @@
     }
   ],
   "rules": {
-    "count": 74,
+    "count": 79,
     "ids": [
       "BRK-CONDITIONAL-SCHEMA-CHANGED",
       "BRK-CONSTRAINT-LOOSENED",
@@ -626,6 +626,11 @@
       "BRK-SOAP-ACTION-CHANGED",
       "BRK-SOAP-STYLE-CHANGED",
       "BRK-SOAP-VERSION-CHANGED",
+      "BRK-STREAM-ENCODING-CHANGED",
+      "BRK-STREAM-ITEM-SCHEMA-ADDED",
+      "BRK-STREAM-ITEM-SCHEMA-REMOVED",
+      "BRK-STREAM-PREFIX-COUNT-CHANGED",
+      "BRK-STREAM-SEQUENTIAL-CHANGED",
       "BRK-TUPLE-SHAPE-CHANGED"
     ],
     "every_rule_has_an_alternative": true

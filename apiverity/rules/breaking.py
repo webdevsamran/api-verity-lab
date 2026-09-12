@@ -53,6 +53,35 @@ CATALOG: dict[str, RuleSpec] = {
             "An operation was removed; existing callers will fail.",
         ),
         RuleSpec(
+            "BRK-STREAM-SEQUENTIAL-CHANGED",
+            Severity.ERROR,
+            "A payload moved between a single document and a sequence of items; "
+            "every client has to be rewritten even when the item shape is identical.",
+        ),
+        RuleSpec(
+            "BRK-STREAM-ITEM-SCHEMA-REMOVED",
+            Severity.ERROR,
+            "A sequential media type stopped declaring `itemSchema`, so nothing describes "
+            "one item any more.",
+        ),
+        RuleSpec(
+            "BRK-STREAM-ITEM-SCHEMA-ADDED",
+            Severity.INFO,
+            "A sequential media type now declares `itemSchema`.",
+        ),
+        RuleSpec(
+            "BRK-STREAM-ENCODING-CHANGED",
+            Severity.ERROR,
+            "The encoding of a streamed item changed; the part still arrives and the "
+            "parser reading it fails.",
+        ),
+        RuleSpec(
+            "BRK-STREAM-PREFIX-COUNT-CHANGED",
+            Severity.ERROR,
+            "The number of leading parts in a multipart stream changed; `prefixEncoding` "
+            "is positional, so a reader counting parts reads the wrong one from there on.",
+        ),
+        RuleSpec(
             "BRK-RPC-STREAMING-CHANGED",
             Severity.ERROR,
             "An RPC changed streaming cardinality; generated clients call it wrongly.",
@@ -555,6 +584,13 @@ class BreakingEngine:
         if kind == ChangeKind.SOAP_VERSION_CHANGED:
             return [self._finding("BRK-SOAP-VERSION-CHANGED", change, change.description)]
 
+        # --- OpenAPI 3.2 streaming -----------------------------------------
+        if kind == ChangeKind.STREAM_SHAPE_CHANGED:
+            stream_rule = _stream_rule(change)
+            if stream_rule is None:
+                return []
+            return [self._finding(stream_rule, change, change.description)]
+
         # --- protobuf ------------------------------------------------------
         if kind == ChangeKind.RPC_STREAMING_CHANGED:
             return [self._finding("BRK-RPC-STREAMING-CHANGED", change, change.description)]
@@ -788,6 +824,32 @@ _MCP_ANNOTATION_RULES: dict[tuple[str, str], str] = {
     ("openWorldHint", "set"): "BRK-MCP-OPENWORLD-HINT-CHANGED",
     ("openWorldHint", "cleared"): "BRK-MCP-OPENWORLD-HINT-CHANGED",
 }
+
+
+def _stream_rule(change: Change) -> str | None:
+    """Which `BRK-STREAM-*` rule one streaming change is.
+
+    One `ChangeKind` covers four distinct findings because they share a cause
+    -- the shape of a sequence changed -- and differ in what a consumer has to
+    do about it. Splitting them at the rule id rather than at the change kind
+    keeps the diff engine describing *what happened* and leaves *how bad it is*
+    to the catalogue, which is the line every other family here draws.
+    """
+    description = change.description
+    if "changed from" in description:
+        return "BRK-STREAM-SEQUENTIAL-CHANGED"
+    if "no longer declares `itemSchema`" in description:
+        return "BRK-STREAM-ITEM-SCHEMA-REMOVED"
+    if "now declares `itemSchema`" in description:
+        return "BRK-STREAM-ITEM-SCHEMA-ADDED"
+    if "number of leading parts" in description:
+        return "BRK-STREAM-PREFIX-COUNT-CHANGED"
+    if "encoding for" in description:
+        return "BRK-STREAM-ENCODING-CHANGED"
+    # A streaming change this function does not recognise is a change the
+    # engine grew and nobody classified. Returning None drops it silently,
+    # which is the failure mode this project reports rather than accepts.
+    return "BRK-STREAM-ENCODING-CHANGED"
 
 
 def _mcp_annotation_rule(change: Change) -> str | None:

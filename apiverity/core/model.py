@@ -189,10 +189,94 @@ class Parameter(BaseModel):
     source_location: SourceLocation | None = None
 
 
+#: Media types whose payload is a *sequence of items* rather than one document.
+#:
+#: OpenAPI 3.2 gave these a first-class shape (`itemSchema`), and the
+#: distinction is not cosmetic: a client reading `application/json` waits for
+#: the body to end and parses once, and a client reading `application/jsonl`
+#: parses a line at a time and may never see an end. Moving a payload between
+#: the two breaks every consumer even when the item shape is identical.
+#:
+#: `multipart/*` is matched by prefix, since the subtype carries a boundary.
+SEQUENTIAL_MEDIA: tuple[str, ...] = (
+    "text/event-stream",
+    "application/jsonl",
+    "application/x-ndjson",
+    "application/json-seq",
+    "application/jsonlines",
+)
+
+
+def is_sequential_media(media_type: str) -> bool:
+    """Whether this media type carries a sequence of items.
+
+    Parameters are ignored -- `text/event-stream; charset=utf-8` is the same
+    media type as `text/event-stream`, and a contract that writes one and a
+    service that sends the other are not disagreeing.
+    """
+    base = media_type.split(";", 1)[0].strip().lower()
+    return base in SEQUENTIAL_MEDIA or base.startswith("multipart/")
+
+
+class Encoding(BaseModel):
+    """An OpenAPI Encoding Object, as much of it as a diff needs.
+
+    `contentType` is the field that breaks a consumer: a part that was
+    `application/json` and is now `text/plain` still arrives, and the parser on
+    the other side still fails.
+    """
+
+    content_type: str | None = None
+    style: str | None = None
+    explode: bool | None = None
+    #: Kept so a diff can report a header the part no longer carries.
+    headers: list[str] = Field(default_factory=list)
+
+
+class StreamingMedia(BaseModel):
+    """OpenAPI 3.2 sequential media: SSE, JSON Lines, multipart.
+
+    Before 3.2 there was no way to say "each event looks like this" -- a
+    contract either declared `schema` (which described the whole body, and for
+    a stream there is no whole body) or declared nothing. So streaming
+    endpoints were documented in prose, and no tool could check them.
+
+    ## `item_encoding` accepts both shapes it is written in
+
+    `itemEncoding` is a map of property name to Encoding Object. Some documents
+    write a single Encoding Object there instead, meaning "this applies to the
+    whole item" -- that form is stored under the empty key rather than dropped,
+    because a contract this tool silently ignored half of is worse than one it
+    read generously and reported on.
+    """
+
+    #: The shape of one item in the stream, not of the body.
+    item_schema: SchemaNode | None = None
+    #: Property name -> encoding. The empty key means "the item as a whole".
+    item_encoding: dict[str, Encoding] = Field(default_factory=dict)
+    #: Encodings for the leading parts of a multipart stream, positionally.
+    prefix_encoding: list[Encoding] = Field(default_factory=list)
+    source_location: SourceLocation | None = None
+
+    def declares_anything(self) -> bool:
+        """Whether the document said anything streaming-specific here.
+
+        A `StreamingMedia` with nothing in it is the absence of a declaration,
+        and reporting it as a change would make every 3.0 contract look like it
+        had lost something.
+        """
+        return bool(self.item_schema or self.item_encoding or self.prefix_encoding)
+
+
 class RequestBody(BaseModel):
     required: bool = False
     description: str | None = None
     content: dict[str, SchemaNode] = Field(default_factory=dict)  # media type -> schema
+    #: media type -> what 3.2 says about it as a *sequence*. Separate from
+    #: `content` on purpose: an item schema is not a body schema, and putting
+    #: it in `content` would make every field rule describe the body when it
+    #: means one event.
+    streaming: dict[str, StreamingMedia] = Field(default_factory=dict)
     source_location: SourceLocation | None = None
 
 
@@ -220,6 +304,8 @@ class Response(BaseModel):
     description: str | None = None
     headers: dict[str, SchemaNode] = Field(default_factory=dict)
     content: dict[str, SchemaNode] = Field(default_factory=dict)
+    #: media type -> what 3.2 says about it as a *sequence*. See `RequestBody`.
+    streaming: dict[str, StreamingMedia] = Field(default_factory=dict)
     links: list[Link] = Field(default_factory=list)
     source_location: SourceLocation | None = None
 
@@ -517,6 +603,8 @@ class ChangeKind(StrEnum):
     CONDITIONAL_SCHEMA_CHANGED = "conditional_schema_changed"
     CONTAINS_CHANGED = "contains_changed"
     PROPERTY_NAMES_CHANGED = "property_names_changed"
+    # OpenAPI 3.2 streaming
+    STREAM_SHAPE_CHANGED = "stream_shape_changed"
     # GraphQL-specific
     FIELD_REMOVED = "field_removed"
     FIELD_ADDED = "field_added"

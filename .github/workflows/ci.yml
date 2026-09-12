@@ -141,6 +141,13 @@ jobs:
         # shape the plugin guide tells people to copy.
         run: pytest examples/plugins/apiverity-house-rules/tests -q
 
+      - name: The roadmap matches the code
+        # Every one of the 134 items carries evidence -- a command, a module, a
+        # rule prefix, a file, a CI step -- that is true only while the thing
+        # exists. A roadmap is the easiest document in a repository to be
+        # wrong, and it is read by people who have no other source.
+        run: python scripts/check_roadmap.py --check
+
       - name: The repository's own description names what it supports
         # GitHub keeps the description and topics in a settings page, so
         # nothing reviews them. This one said three protocols while the loader

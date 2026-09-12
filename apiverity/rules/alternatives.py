@@ -51,6 +51,30 @@ ALTERNATIVES: dict[str, str] = {
     ),
     "BRK-OP-ADDED": "Nothing to do: adding an operation cannot break an existing caller.",
     "BRK-RPC-ADDED": "Nothing to do: adding an RPC cannot break an existing caller.",
+    "BRK-STREAM-ITEM-SCHEMA-ADDED": (
+        "Nothing -- this is the direction to go. The payload was already a sequence; it is "
+        "now described as one, so every field rule, mock and drift check can see it."
+    ),
+    "BRK-STREAM-SEQUENTIAL-CHANGED": (
+        "Serve both: keep the old media type working and add the new one alongside it, so "
+        "content negotiation decides rather than a deploy. A client that asked for "
+        "`application/json` and now receives a stream has no way to notice except by "
+        "failing to parse."
+    ),
+    "BRK-STREAM-ITEM-SCHEMA-REMOVED": (
+        "Keep `itemSchema`. Removing it does not change the wire format, it removes the "
+        "only description of it -- so every rule, mock and drift check goes quiet about "
+        "this payload while the payload is still there."
+    ),
+    "BRK-STREAM-ENCODING-CHANGED": (
+        "Add a new part rather than changing an existing one's content type, or version the "
+        "operation. A consumer decoding the old type gets bytes it cannot read from a part "
+        "it correctly identified."
+    ),
+    "BRK-STREAM-PREFIX-COUNT-CHANGED": (
+        "Append to `prefixEncoding` rather than inserting or removing. It is positional, so "
+        "anything but an append renumbers every part after the change."
+    ),
     "BRK-RPC-STREAMING-CHANGED": (
         "Add a new RPC with the new cardinality and deprecate the old one. Generated clients "
         "bind the streaming shape at compile time, so there is no in-place version of this."

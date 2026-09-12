@@ -31,6 +31,7 @@ from apiverity.core.model import (
     Protocol,
     SchemaNode,
     Service,
+    is_sequential_media,
 )
 
 # JSON-Schema-like constraint attributes compared for constraint changes.
@@ -796,6 +797,15 @@ class DiffEngine:
                 f"request media type '{media}' added",
                 new_value=media,
             )
+        self._diff_streaming(
+            old_body.streaming,
+            new_body.streaming,
+            old_body.content,
+            new_body.content,
+            key,
+            "request body" if payload_direction != "response" else "message payload",
+            payload_direction,
+        )
         if old_body.required != new_body.required:
             self._add(
                 ChangeKind.REQUEST_SCHEMA_CHANGED,
@@ -859,6 +869,135 @@ class DiffEngine:
                     f"response {status} media type '{media}' "
                     + ("removed" if media in o.content else "added"),
                 )
+            self._diff_streaming(
+                o.streaming,
+                n.streaming,
+                o.content,
+                n.content,
+                key,
+                f"response {status}",
+                "response",
+            )
+
+    def _diff_streaming(
+        self,
+        old_streaming: dict[str, Any],
+        new_streaming: dict[str, Any],
+        old_content: dict[str, Any],
+        new_content: dict[str, Any],
+        key: str,
+        where: str,
+        direction: str,
+    ) -> None:
+        """OpenAPI 3.2's sequential media, compared.
+
+        Three distinct things happen here, and only the first is obvious:
+
+        1. **The item schema changed.** Walked with `_diff_schema`, so every
+           field, type and constraint rule applies to an event exactly as it
+           applies to a body. A second family of item-shaped rules would be
+           forty duplicates that drift.
+        2. **A payload stopped being a single document, or started being one.**
+           `application/json` becoming `application/jsonl` breaks every client
+           even when the item shape is byte-identical: one waits for the body
+           to end and parses once, the other parses a line at a time and may
+           never see an end. No schema rule can see that, because no schema
+           changed.
+        3. **The item's encoding changed.** A part that was `application/json`
+           and is now `text/plain` still arrives, and the parser on the other
+           side still fails.
+        """
+        for media in sorted(set(old_streaming) & set(new_streaming)):
+            old_media, new_media = old_streaming[media], new_streaming[media]
+            if old_media.item_schema is not None and new_media.item_schema is not None:
+                self._diff_schema(
+                    old_media.item_schema,
+                    new_media.item_schema,
+                    key,
+                    f"{where} stream item ({media})",
+                    direction,
+                )
+            elif old_media.item_schema is not None:
+                self._add(
+                    ChangeKind.STREAM_SHAPE_CHANGED,
+                    key,
+                    direction,
+                    f"{where} '{media}' no longer declares `itemSchema`",
+                    old_value="itemSchema",
+                    breaking_hint=(
+                        "nothing describes one item any more, so no rule, mock or drift "
+                        "check can see the payload"
+                    ),
+                )
+            elif new_media.item_schema is not None:
+                self._add(
+                    ChangeKind.STREAM_SHAPE_CHANGED,
+                    key,
+                    direction,
+                    f"{where} '{media}' now declares `itemSchema`",
+                    new_value="itemSchema",
+                )
+
+            old_types = {name: e.content_type for name, e in old_media.item_encoding.items()}
+            new_types = {name: e.content_type for name, e in new_media.item_encoding.items()}
+            for name in sorted(set(old_types) & set(new_types)):
+                if old_types[name] != new_types[name]:
+                    label = f"'{name}'" if name else "the item"
+                    self._add(
+                        ChangeKind.STREAM_SHAPE_CHANGED,
+                        key,
+                        direction,
+                        f"{where} '{media}': encoding for {label} changed "
+                        f"{old_types[name]} -> {new_types[name]}",
+                        old_value=old_types[name],
+                        new_value=new_types[name],
+                        breaking_hint=(
+                            "the part still arrives and the parser on the other side fails"
+                        ),
+                    )
+            if len(old_media.prefix_encoding) != len(new_media.prefix_encoding):
+                self._add(
+                    ChangeKind.STREAM_SHAPE_CHANGED,
+                    key,
+                    direction,
+                    f"{where} '{media}': the number of leading parts changed "
+                    f"{len(old_media.prefix_encoding)} -> {len(new_media.prefix_encoding)}",
+                    old_value=len(old_media.prefix_encoding),
+                    new_value=len(new_media.prefix_encoding),
+                    breaking_hint=(
+                        "`prefixEncoding` is positional, so a reader counting parts reads "
+                        "the wrong one from here on"
+                    ),
+                )
+
+        # A payload that moved between "one document" and "a sequence of
+        # items". Compared over content *and* streaming, because the media type
+        # may appear in either -- a JSON Lines body legitimately declares an
+        # item schema and no body schema.
+        old_media_types = set(old_content) | set(old_streaming)
+        new_media_types = set(new_content) | set(new_streaming)
+        old_sequential = {m for m in old_media_types if is_sequential_media(m)}
+        new_sequential = {m for m in new_media_types if is_sequential_media(m)}
+        if old_media_types and new_media_types and bool(old_sequential) != bool(new_sequential):
+            became = bool(new_sequential)
+            self._add(
+                ChangeKind.STREAM_SHAPE_CHANGED,
+                key,
+                direction,
+                f"{where} changed from "
+                + (
+                    "a single document to a sequence of items"
+                    if became
+                    else "a sequence of items to a single document"
+                )
+                + f" ({sorted(old_media_types)} -> {sorted(new_media_types)})",
+                old_value=sorted(old_media_types),
+                new_value=sorted(new_media_types),
+                breaking_hint=(
+                    "every client has to be rewritten: one waits for the body to end and "
+                    "parses once, the other parses an item at a time"
+                ),
+            )
 
     def _diff_security(self, old: Operation, new: Operation, key: str) -> None:
         def sec_str(op: Operation) -> list[str]:

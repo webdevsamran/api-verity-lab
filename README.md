@@ -230,7 +230,7 @@ GET /users/{id}:
       email: removed   # ← ERROR: clients reading .email will break
 ```
 
-The catalog ships 74 rules across ERROR/WARN/INFO with per-rule severity
+The catalog ships 79 rules across ERROR/WARN/INFO with per-rule severity
 overrides — see [`docs/rule-catalog.md`](docs/rule-catalog.md), run `apiverity rules`,
 or ask about one directly: `apiverity explain BRK-RESP-FIELD-REMOVED` prints what it
 means, which group it belongs to, and the exact `--severity-override` to change it.

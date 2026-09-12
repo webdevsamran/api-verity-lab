@@ -2,7 +2,7 @@
 
 | Capability | OpenAPI 3.0/3.1/3.2 | GraphQL | gRPC | MCP | WSDL 1.1 / SOAP |
 |---|---|---|---|---|---|
-| Load + normalize | ✅ files/URLs, JSON/YAML; 3.2 `query`, `additionalOperations`, `querystring`, tag hierarchy, device flow | ✅ SDL | ✅ .proto text | ✅ saved `tools/list` | ✅ portTypes, bindings, ports, and the XSD subset below |
+| Load + normalize | ✅ files/URLs, JSON/YAML; 3.2 `query`, `additionalOperations`, `querystring`, tag hierarchy, device flow, `itemSchema`/`itemEncoding`/`prefixEncoding` ([streaming](streaming.md)) | ✅ SDL | ✅ .proto text | ✅ saved `tools/list` | ✅ portTypes, bindings, ports, and the XSD subset below |
 | Validation findings | ✅ refs, opIDs, params, dupes | ✅ parse errors | ✅ syntax | ✅ missing/duplicate tools, non-object schemas | ✅ `SPEC-WSDL-*`: unresolved names, unmodelled constructs, unbound portTypes, encoded bodies |
 | Semantic diff | ✅ full | ✅ fields/types/nullability/enums | ✅ RPC/field-number/wire-type | ✅ via the shared model | ✅ via the shared model |
 | Breaking rules | ✅ shared catalog | ✅ structural subset | ✅ structural subset | ✅ shared catalog + `BRK-MCP-*` | ✅ shared catalog + `BRK-SOAP-*` |

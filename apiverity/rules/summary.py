@@ -123,6 +123,11 @@ _PHRASES: tuple[tuple[str, str], ...] = (
     ("BRK-SOAP-VERSION-CHANGED", "a port moved between SOAP 1.1 and 1.2"),
     ("BRK-SECURITY-", "authentication requirements changed"),
     ("BRK-DEPRECATION-ADDED", "operations were deprecated"),
+    ("BRK-STREAM-SEQUENTIAL-CHANGED", "a payload moved between one document and a stream"),
+    ("BRK-STREAM-ITEM-SCHEMA-REMOVED", "a stream stopped describing its items"),
+    ("BRK-STREAM-ITEM-SCHEMA-ADDED", "a stream started describing its items"),
+    ("BRK-STREAM-ENCODING-CHANGED", "a streamed item's encoding changed"),
+    ("BRK-STREAM-PREFIX-COUNT-CHANGED", "a multipart stream's leading parts were renumbered"),
     ("BRK-MEDIA-TYPE", "media types changed"),
     ("SEMVER-", "the version bump does not match the changes"),
 )

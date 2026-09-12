@@ -186,6 +186,24 @@ SPEC_CATALOG: dict[str, CheckRuleSpec] = dict(
             family=_OPENAPI,
         ),
         spec(
+            "SPEC-STREAM-ITEM-SCHEMA-MISSING",
+            Severity.WARN,
+            "A sequential media type -- SSE, JSON Lines, multipart -- declares no "
+            "`itemSchema`, so nothing describes one item.",
+            "Add `itemSchema` (OpenAPI 3.2). `schema` describes the whole body and a stream "
+            "has no whole body, so without it every rule, mock and drift check sees nothing "
+            "here at all.",
+            family=_OPENAPI,
+        ),
+        spec(
+            "SPEC-STREAM-ITEM-SCHEMA-UNUSED",
+            Severity.WARN,
+            "`itemSchema` is declared on a media type that is not sequential, so nothing reads it.",
+            "Use `schema` for a single document, or change the media type to a sequential "
+            "one such as `application/jsonl` or `text/event-stream`.",
+            family=_OPENAPI,
+        ),
+        spec(
             "SPEC-SDL-INVALID",
             Severity.ERROR,
             "A GraphQL SDL document could not be parsed.",

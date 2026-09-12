@@ -123,6 +123,11 @@ oasdiff reads OpenAPI. A protobuf field number, an MCP annotation and a SOAPActi
 - `BRK-SOAP-ACTION-CHANGED` — The SOAPAction header changed. Gateways and ESBs route on it and generated stubs send the old one, with an unchanged body that now reaches nothing.
 - `BRK-SOAP-STYLE-CHANGED` — A binding moved between document and rpc style, which changes how the body is wrapped; every existing client serializes it the old way.
 - `BRK-SOAP-VERSION-CHANGED` — A port moved between SOAP 1.1 and 1.2. The envelope namespace and the Content-Type both change, so a 1.1 client gets a 415 rather than a fault.
+- `BRK-STREAM-ENCODING-CHANGED` — The encoding of a streamed item changed; the part still arrives and the parser reading it fails.
+- `BRK-STREAM-ITEM-SCHEMA-ADDED` — A sequential media type now declares `itemSchema`.
+- `BRK-STREAM-ITEM-SCHEMA-REMOVED` — A sequential media type stopped declaring `itemSchema`, so nothing describes one item any more.
+- `BRK-STREAM-PREFIX-COUNT-CHANGED` — The number of leading parts in a multipart stream changed; `prefixEncoding` is positional, so a reader counting parts reads the wrong one from there on.
+- `BRK-STREAM-SEQUENTIAL-CHANGED` — A payload moved between a single document and a sequence of items; every client has to be rewritten even when the item shape is identical.
 - `BRK-TUPLE-SHAPE-CHANGED` — Positional array items changed length or type. Tuple members are read by index, so a change at one position shifts or misparses every reader.
 
 ## Fields this export does not write
@@ -136,4 +141,4 @@ oasdiff reads OpenAPI. A protobuf field number, an MCP annotation and a SOAPActi
 
 Every finding from a gRPC, GraphQL, AsyncAPI, MCP or WSDL contract is namespaced, whatever its rule. A removed gRPC RPC really is an endpoint removal, but emitting `api-removed-without-deprecation` for one would make a consumer's tooling report an OpenAPI endpoint removal that never happened.
 
-_24 of 74 rules map onto an oasdiff check id; the other 50 are namespaced._
+_24 of 79 rules map onto an oasdiff check id; the other 55 are namespaced._

@@ -1,0 +1,46 @@
+openapi: 3.2.0
+info:
+  title: Telemetry stream
+  version: 1.0.0
+paths:
+  /events:
+    get:
+      summary: Subscribe to the event stream
+      responses:
+        '200':
+          description: a server-sent event stream
+          content:
+            text/event-stream:
+              itemSchema:
+                type: object
+                required: [id, kind]
+                properties:
+                  id: { type: string }
+                  kind: { type: string, enum: [created, updated, deleted] }
+                  at: { type: string, format: date-time }
+                  detail: { type: string }
+  /ingest:
+    post:
+      summary: Upload records as JSON Lines
+      requestBody:
+        required: true
+        content:
+          application/jsonl:
+            itemSchema:
+              type: object
+              required: [key]
+              properties:
+                key: { type: string, minLength: 1 }
+                value: { type: integer }
+            itemEncoding:
+              value:
+                contentType: application/json
+      responses:
+        '202':
+          description: accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accepted: { type: integer }

@@ -40,6 +40,7 @@ nav:
       - Rule packs: rule-packs.md
       - Policy DSL: policy-dsl.md
       - Spec support: spec-support.md
+      - Streaming payloads: streaming.md
       - Protocol support: protocol-support.md
       - GraphQL federation: federation.md
       - Exit codes: exit-codes.md
@@ -114,6 +115,7 @@ nav:
       - Spectral: vs/spectral.md
       - WireMock: vs/wiremock.md
   - Status:
+      - Roadmap status: roadmap-status.md
       - Capability status: capability-status.md
       - Product gaps: product-gaps.md
       - eBPF capture, evaluated: ebpf-evaluation.md

@@ -160,6 +160,11 @@ would be a parser that is not populating something.
 | `BRK-SOAP-ACTION-CHANGED` | ERROR |  |  |  |  |  |  | ✓ |
 | `BRK-SOAP-STYLE-CHANGED` | ERROR |  |  |  |  |  |  | ✓ |
 | `BRK-SOAP-VERSION-CHANGED` | ERROR |  |  |  |  |  |  | ✓ |
+| `BRK-STREAM-ENCODING-CHANGED` | ERROR |  |  |  |  |  |  |  |
+| `BRK-STREAM-ITEM-SCHEMA-ADDED` | INFO |  |  |  |  |  |  |  |
+| `BRK-STREAM-ITEM-SCHEMA-REMOVED` | ERROR |  |  |  |  |  |  |  |
+| `BRK-STREAM-PREFIX-COUNT-CHANGED` | ERROR |  |  |  |  |  |  |  |
+| `BRK-STREAM-SEQUENTIAL-CHANGED` | ERROR |  |  |  |  |  |  |  |
 | `BRK-TUPLE-SHAPE-CHANGED` | ERROR |  |  |  |  | ✓ |  |  |
 
 ## Rules no mutation produced
@@ -191,5 +196,10 @@ The interesting column. Each of these is either a mutation this harness does not
 - `BRK-RESP-CONSTRAINT-LOOSENED` — A bound on a response field was relaxed or removed; the service may now return values a consumer written against the old bound rejects.
 - `BRK-RESP-NULLABLE-ADDED` — A response value that was never null may now be null; every reader that did not check breaks on the first one, and in a generated client the field changes type at every use site.
 - `BRK-RESP-NULLABLE-REMOVED` — A response value can no longer be null (narrowing a response is safe for readers).
+- `BRK-STREAM-ENCODING-CHANGED` — The encoding of a streamed item changed; the part still arrives and the parser reading it fails.
+- `BRK-STREAM-ITEM-SCHEMA-ADDED` — A sequential media type now declares `itemSchema`.
+- `BRK-STREAM-ITEM-SCHEMA-REMOVED` — A sequential media type stopped declaring `itemSchema`, so nothing describes one item any more.
+- `BRK-STREAM-PREFIX-COUNT-CHANGED` — The number of leading parts in a multipart stream changed; `prefixEncoding` is positional, so a reader counting parts reads the wrong one from there on.
+- `BRK-STREAM-SEQUENTIAL-CHANGED` — A payload moved between a single document and a sequence of items; every client has to be rewritten even when the item shape is identical.
 
-_49 of 74 rules observed firing across 7 protocol(s) and 55 mutations._
+_49 of 79 rules observed firing across 7 protocol(s) and 55 mutations._

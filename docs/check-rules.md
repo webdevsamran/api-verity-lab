@@ -171,6 +171,8 @@ Deprecation with a date attached, or without one. `deprecated: true` is the whol
 | `SPEC-SCHEMA-INVALID` | ERROR | `validate` | A schema position holds something that is not an object. | A schema has to be a mapping. A stray string or list here usually means an indentation slip in YAML. |
 | `SPEC-SDL-BUILD` | WARN | `validate` | GraphQL SDL parsed, and building a schema from it failed. | Usually a type referenced and never defined. The operations that do resolve are still modelled, so this is a partial read rather than a failed one. |
 | `SPEC-SDL-INVALID` | ERROR | `validate` | A GraphQL SDL document could not be parsed. | The parser's own message names the position. Nothing downstream runs on an unparsed schema. |
+| `SPEC-STREAM-ITEM-SCHEMA-MISSING` | WARN | `validate` | A sequential media type -- SSE, JSON Lines, multipart -- declares no `itemSchema`, so nothing describes one item. | Add `itemSchema` (OpenAPI 3.2). `schema` describes the whole body and a stream has no whole body, so without it every rule, mock and drift check sees nothing here at all. |
+| `SPEC-STREAM-ITEM-SCHEMA-UNUSED` | WARN | `validate` | `itemSchema` is declared on a media type that is not sequential, so nothing reads it. | Use `schema` for a single document, or change the media type to a sequential one such as `application/jsonl` or `text/event-stream`. |
 | `SPEC-TAG-PARENT-UNKNOWN` | WARN | `validate` | A hierarchical tag names a parent tag the document does not declare. | Declare the parent, or drop the `parent` field. A dangling parent leaves the tag orphaned in any navigation built from the hierarchy. |
 | `SPEC-VERSION-UNSUPPORTED` | ERROR | `validate` | The document declares an OpenAPI version this parser does not read. | Check the `openapi` field. 3.0, 3.1 and 3.2 are supported, and Swagger 2.0 is read through its own parser. |
 
@@ -465,4 +467,4 @@ The suppressions file, talking about itself. An entry that is not justified and 
 | `WF-INCOMPLETE-CLEANUP` | WARN | `workflow` | A resource a workflow creates is never deleted in cleanup. | Delete it, or say why not. A workflow run against a real environment that leaves resources behind gets run once. |
 | `WF-MISSING-VAR` | ERROR | `workflow` | A step uses a variable no earlier step defines. | Define it, or fix the name. The step will run with an unsubstituted placeholder, which usually reaches the service as a literal. |
 
-_245 check rules._
+_247 check rules._
