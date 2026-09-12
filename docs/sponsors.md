@@ -1,0 +1,1 @@
+--8<-- "SPONSORS.md"

@@ -132,6 +132,8 @@ nav:
       - Privacy: privacy.md
       - Changelog: changelog.md
       - Code of conduct: code-of-conduct.md
+      - Sponsors: sponsors.md
+      - Credits: credits.md
 
 markdown_extensions:
   - admonition
