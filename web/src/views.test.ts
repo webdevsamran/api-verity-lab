@@ -6,7 +6,16 @@
  * what this module wrote must not either.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { MAX_VIEWS, add, currentHash, load, remove, save, suggestName } from './views'
+import {
+  MAX_VIEWS,
+  add,
+  currentHash,
+  load,
+  remove,
+  routeHash,
+  save,
+  suggestName,
+} from './views'
 
 const KEY = 'apiverity.views.v1'
 
@@ -125,5 +134,53 @@ describe('currentHash', () => {
   it('calls an empty location home', () => {
     window.location.hash = ''
     expect(currentHash()).toBe('/home')
+  })
+})
+
+describe('routeHash', () => {
+  it('keeps the routes this app actually produces', () => {
+    for (const route of [
+      '/home',
+      '/contract?sev=ERROR',
+      '/agents/fleet',
+      '/drift?op=GET%20%2Forders&sev=WARN',
+    ]) {
+      expect(routeHash(route)).toBe(route)
+    }
+  })
+
+  it('replaces anything that is not an in-app route', () => {
+    // Saved views round-trip through localStorage, which anything on this
+    // origin can write, and each one is rendered straight into an href. The
+    // `#` prefix already stops a `javascript:` URL from being a URL; this is
+    // what makes the value obviously a route instead.
+    for (const hostile of [
+      'javascript:alert(1)',
+      'http://evil.example.com',
+      '//evil.example.com',
+      '/x"onmouseover="alert(1)',
+      '/a b',
+      '/a\nb',
+      String.raw`\\evil\share`,
+      '',
+    ]) {
+      expect(routeHash(hostile)).toBe('/home')
+    }
+  })
+
+  it('strips any number of leading hashes', () => {
+    expect(routeHash('##/home')).toBe('/home')
+  })
+
+  it('is applied to what comes back out of storage', () => {
+    window.localStorage.setItem(
+      'apiverity.views.v1',
+      JSON.stringify([{ name: 'bad', hash: 'javascript:alert(1)' }]),
+    )
+    expect(load()[0]?.hash).toBe('/home')
+  })
+
+  it('is applied to what goes in', () => {
+    expect(add([], { name: 'bad', hash: 'javascript:alert(1)' })[0]?.hash).toBe('/home')
   })
 })
