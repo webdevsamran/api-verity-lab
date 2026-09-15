@@ -31,6 +31,10 @@ demo-data/generated/
 site/
 
 # Editors / OS
+# `.claude/` is editor and agent scaffolding -- a local launch config and
+# whatever a coding agent writes for itself. None of it is the product, and
+# a committed one is somebody else's tooling in your checkout.
+.claude/
 .vscode/
 .idea/
 .DS_Store
