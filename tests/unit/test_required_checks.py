@@ -29,6 +29,20 @@ _WORKFLOWS = _ROOT / ".github/workflows"
 #: deliberate act with a migration, not a rename.
 REQUIRED_JOBS = {"python", "platform-matrix", "schema-validation", "frontend", "sbom"}
 
+#: Jobs that run on every build and deliberately do not gate a merge.
+#:
+#: Listing one here is a decision, not a default: the test below refuses a job
+#: that is in neither set, so adding a job to `ci.yml` forces somebody to say
+#: which it is.
+#:
+#: `action` runs the composite action this repository publishes to the GitHub
+#: Marketplace -- something nothing here had ever done. It is advisory only
+#: because branch protection lives in a settings page that this repository
+#: cannot edit from a commit, and a list here claiming otherwise would be the
+#: kind of assertion nothing checks. It is a reasonable candidate for the
+#: maintainer to promote.
+ADVISORY_JOBS = {"action"}
+
 #: Workflows that gate a merge, and therefore have to run where merges happen.
 GATING = ("ci.yml", "api-verity.yml")
 
@@ -60,11 +74,25 @@ def test_a_new_job_is_noticed_rather_than_assumed_required() -> None:
     """The other direction. A job added to ci.yml is not automatically a
     required check, and whoever adds one should decide which it is."""
     jobs = set(_workflow("ci.yml")["jobs"])
-    unlisted = jobs - REQUIRED_JOBS
+    unlisted = jobs - REQUIRED_JOBS - ADVISORY_JOBS
     assert not unlisted, (
-        f"{sorted(unlisted)} exist in ci.yml and are not in REQUIRED_JOBS. Add them to "
-        "branch protection and to this list, or record here that they are advisory."
+        f"{sorted(unlisted)} exist in ci.yml and are in neither REQUIRED_JOBS nor "
+        "ADVISORY_JOBS. Add them to branch protection and to the first list, or record "
+        "in the second that they are advisory."
     )
+
+
+def test_no_job_is_recorded_as_both_required_and_advisory() -> None:
+    """Two lists disagreeing is worse than one list being wrong: whichever a
+    reader checks, they get an answer, and only one of them is true."""
+    assert not REQUIRED_JOBS & ADVISORY_JOBS
+
+
+def test_every_advisory_job_still_exists() -> None:
+    """A name left behind after a job is deleted quietly widens the exemption
+    for whatever is added under that name next."""
+    jobs = set(_workflow("ci.yml")["jobs"])
+    assert not ADVISORY_JOBS - jobs
 
 
 @pytest.mark.parametrize("name", GATING)

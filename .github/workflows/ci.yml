@@ -303,6 +303,83 @@ jobs:
         working-directory: editors/vscode
         run: npm audit --audit-level=high
 
+  action:
+    name: The action this repository publishes
+    runs-on: ubuntu-latest
+    steps:
+      # `action.yml` is offered to the GitHub Marketplace, and nothing in this
+      # repository had ever run it. The `contract-gate` workflow duplicates the
+      # same shell instead of calling it, so the composite action -- eleven
+      # inputs, five outputs, a PR-comment path -- was published code that no
+      # test and no job exercised.
+      #
+      # A mechanism that exists and is never called is a defect here. This runs
+      # it exactly the way `docs/ci.md` tells a reader to: `uses:` a checkout of
+      # this action, with inputs, and then reads the outputs it promises.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # A contract with no breaking change against itself: the gate must pass
+      # and must say it examined something. `fail-on: error` is the default a
+      # consumer gets.
+      - name: A clean contract passes
+        id: clean
+        uses: ./
+        with:
+          spec-paths: fixtures/apis/versioned/v1.yaml
+          fail-on: error
+
+      - name: The clean run reported what it did
+        env:
+          RESULT: ${{ steps.clean.outputs.result }}
+          CHECKED: ${{ steps.clean.outputs.specs-checked }}
+        run: |
+          set -euo pipefail
+          # `result: pass` with `specs-checked: 0` is the failure this asserts
+          # against: a gate that examined nothing and called it success is how
+          # a misconfigured `spec-dirs` goes unnoticed for months.
+          [ "$RESULT" = "pass" ] || { echo "::error::expected pass, got '$RESULT'"; exit 1; }
+          [ "$CHECKED" = "1" ] || { echo "::error::expected 1 contract, got '$CHECKED'"; exit 1; }
+
+      # A contract with no base revision to diff against. The action has an
+      # explicit branch for this -- "new on this branch: validated, not
+      # diffed" -- and the failure it guards against is reporting `error`,
+      # which would mean the tool broke rather than the contract being judged.
+      - name: A contract with no base revision is validated, not errored
+        id: nobase
+        uses: ./
+        with:
+          spec-paths: fixtures/apis/versioned/v2.yaml
+          base-ref: ""
+          fail-on: warn
+
+      - name: It judged the contract rather than falling over
+        env:
+          RESULT: ${{ steps.nobase.outputs.result }}
+          CHECKED: ${{ steps.nobase.outputs.specs-checked }}
+        run: |
+          set -euo pipefail
+          [ "$RESULT" != "error" ] || { echo "::error::the action itself failed"; exit 1; }
+          [ "$CHECKED" = "1" ] || { echo "::error::expected 1 contract, got '$CHECKED'"; exit 1; }
+
+      - name: An unknown fail-on is refused rather than ignored
+        id: badinput
+        continue-on-error: true
+        uses: ./
+        with:
+          spec-paths: fixtures/apis/versioned/v1.yaml
+          fail-on: sometimes
+      - name: It failed, rather than silently defaulting
+        env:
+          OUTCOME: ${{ steps.badinput.outcome }}
+        run: |
+          set -euo pipefail
+          [ "$OUTCOME" = "failure" ] || {
+            echo "::error::an invalid fail-on was accepted; it must not be guessed at"
+            exit 1
+          }
+
   sbom:
     name: SBOM
     runs-on: ubuntu-latest
