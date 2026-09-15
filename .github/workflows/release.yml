@@ -136,6 +136,55 @@ jobs:
             --title "api-verity-lab $TAG" \
             --generate-notes
 
+  major-tag:
+    name: Move the major tag
+    needs: github-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # Consumers of a GitHub Action pin a major tag -- `uses: owner/repo@v0`
+      # -- and every published example in this repository tells them to. That
+      # tag has to exist and has to keep moving, and nothing moved it: the only
+      # tag this repository ever had was `v0.2.0`, so every documented way to
+      # use the action failed with "Unable to resolve action". A Marketplace
+      # listing whose quickstart does not resolve is worse than no listing.
+      #
+      # `scripts/check_action_metadata.py --check` holds the documentation to
+      # the major derived from `pyproject.toml`, so the tag this creates and
+      # the tag the docs name cannot disagree.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Point the major tag at this release
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          # `v0.2.0` -> `v0`. A pre-release such as `v1.0.0-rc.1` must not move
+          # a major tag that stable consumers are pinned to.
+          case "$TAG" in
+            *-*)
+              echo "::notice::$TAG is a pre-release; leaving the major tag where it is."
+              exit 0
+              ;;
+          esac
+          MAJOR="${TAG%%.*}"
+          if [ "$MAJOR" = "$TAG" ]; then
+            echo "::error::could not read a major version out of '$TAG'"
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Annotated, and forced: this is the one tag in the repository that is
+          # meant to move, and it moves to a commit that is already released.
+          git tag -fa "$MAJOR" -m "$MAJOR -> $TAG" "$TAG^{commit}"
+          git push --force origin "refs/tags/$MAJOR"
+          echo "::notice::$MAJOR now points at $TAG"
+
   docker-image:
     name: Build & push server image to GHCR
     needs: build
