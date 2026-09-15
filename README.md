@@ -92,7 +92,7 @@ api-verity-lab answers fifty-four questions from one place:
 | How do I check an API that needs a token? | `--auth-profiles profiles.yaml --auth-profile staging` |
 | Did latency/error rate regress? | `apiverity regression` |
 | Which endpoints lack coverage? | `apiverity coverage` |
-| Can CI block breaking changes before release? | [GitHub Action](action.yml) (included) |
+| Can CI block breaking changes before release? | [`uses: webdevsamran/api-verity-lab@v0`](docs/github-action.md) |
 | Was this result bundle tampered with? | `apiverity verify bundle/` |
 | Is a provider version safe to deploy? | `apiverity` server `/v1/can-i-deploy` |
 | Who executes jobs inside our private network? | Workers pull via `POST /v1/jobs/claim` |
@@ -475,6 +475,7 @@ Browsable at **<https://webdevsamran.github.io/api-verity-lab/>**, or as files h
 | [docs/workflow-authoring.md](docs/workflow-authoring.md) · [docs/arazzo.md](docs/arazzo.md) | Writing stateful workflow manifests, and reading and writing them as Arazzo 1.1.0 |
 | [docs/sdk.md](docs/sdk.md) · [docs/self-hosting.md](docs/self-hosting.md) | Using the library directly; running the server |
 | [docs/ci.md](docs/ci.md) | Wiring the contract gate into a pipeline |
+| [docs/github-action.md](docs/github-action.md) | The action's inputs and outputs, and what publishing it to the Marketplace needs |
 | [docs/load-shapes.md](docs/load-shapes.md) · [docs/objectives.md](docs/objectives.md) | Driving one operation at a declared arrival rate; objectives a contract states |
 | [docs/virtualization.md](docs/virtualization.md) | Serving several contracts together, under one seed |
 | [docs/auth-profiles.md](docs/auth-profiles.md) | Authenticating a run without writing a credential down |

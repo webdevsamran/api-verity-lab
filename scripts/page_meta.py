@@ -230,6 +230,9 @@ DESCRIPTIONS: dict[str, str] = {
     "sdk-surface.md": (
         "Changes that are safe on the wire and breaking in every generated client -- detected by modelling what a code generator does with the contract."
     ),
+    "github-action.md": (
+        "Pin, configure and publish the api-verity-lab GitHub Action: every input and output, and what the Marketplace listing needs."
+    ),
     "lsp.md": (
         "One language server, so breaking-change diagnostics appear as you type in VS Code, Neovim, JetBrains, Helix, Zed and Emacs without five separate plugins."
     ),

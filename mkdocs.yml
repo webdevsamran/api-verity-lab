@@ -92,6 +92,7 @@ nav:
       - Installing: install.md
       - Editor diagnostics: lsp.md
       - CI contract gate: ci.md
+      - GitHub Action: github-action.md
       - Merge queues: merge-queue.md
       - SDK: sdk.md
       - Self-hosting: self-hosting.md

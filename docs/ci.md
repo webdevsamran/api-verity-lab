@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with: { fetch-depth: 0 }          # the diff needs the base branch
-      - uses: webdevsamran/api-verity-lab@v1
+      - uses: webdevsamran/api-verity-lab@v0
 ```
 
 That auto-detects contracts changed in the pull request, validates each one,
@@ -50,7 +50,7 @@ and it sets four outputs — `result` (`pass`/`findings`/`error`),
 per-contract [`result-v1`](https://github.com/webdevsamran/api-verity-lab/blob/main/schemas/result-v1.schema.json) JSON:
 
 ```yaml
-      - uses: webdevsamran/api-verity-lab@v1
+      - uses: webdevsamran/api-verity-lab@v0
         id: gate
         with: { fail-on: warn }
       - if: always()
@@ -97,7 +97,7 @@ on push rather than re-posted:
 ```yaml
 jobs:
   contract:
-    uses: webdevsamran/api-verity-lab/.github/workflows/api-verity.yml@v1
+    uses: webdevsamran/api-verity-lab/.github/workflows/api-verity.yml@v0
     permissions:
       contents: read
       pull-requests: write
@@ -267,7 +267,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: webdevsamran/api-verity-lab@v1
+      - uses: webdevsamran/api-verity-lab@v0
         with:
           comment: "true"
 ```

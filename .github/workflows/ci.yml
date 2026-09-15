@@ -148,6 +148,15 @@ jobs:
         # wrong, and it is read by people who have no other source.
         run: python scripts/check_roadmap.py --check
 
+      - name: The published action is still publishable
+        # `action.yml` is offered to the GitHub Marketplace, which validates it
+        # only when a listing is created -- after the tag exists, which is the
+        # worst moment to find a colour GitHub does not accept. This also holds
+        # every documented `uses:` line to the major tag `release.yml` moves:
+        # the docs said `@v1` four times and `@v0` once, and neither tag
+        # existed, so every published example failed to resolve.
+        run: python scripts/check_action_metadata.py --check
+
       - name: Every docs page has its own meta description
         # A page with no `description:` front matter inherits the site's, and
         # ninety-five of ninety-seven pages did -- invisible in the rendered
