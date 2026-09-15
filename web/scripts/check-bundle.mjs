@@ -17,14 +17,24 @@ const GROUPS = ['overview', 'contract', 'testing', 'runtime', 'agents', 'team']
 /* Headroom over the measured entry chunk: enough that ordinary feature work
  * does not trip it, tight enough that an un-split build does.
  *
- * Raised once, from 210,000, when the agent-governance page group took the
+ * Raised from 210,000 to 220,000 when the agent-governance page group took the
  * entry to 205.7 kB and left 4 kB of room -- less than one feature. The plan
- * that called for this raise proposed 260,000, and that number would have
- * been a mistake: an un-split build of this app is around 240 kB, so a
- * 260,000 budget would pass the exact failure the check exists to catch. The
- * assertion below now derives that ceiling from the build itself rather than
- * trusting either number. */
-const ENTRY_BUDGET_BYTES = 220_000
+ * behind that raise proposed 260,000, and at the time that would have been a
+ * mistake: an un-split build then weighed about 240 kB, so a 260,000 budget
+ * would have passed the exact failure this check exists to catch.
+ *
+ * Raised again to 260,000 for React 19.3.0, which added 29,273 B to the entry
+ * on its own (214,558 -> 243,831 B) with no source change. The number that was
+ * wrong before is right now, and only because the app grew: the assertion
+ * below derives the un-split weight from the build rather than from memory,
+ * and it is 301,858 B. So 260,000 still sits 42 kB under the point where this
+ * check would stop being able to tell a split build from an un-split one, and
+ * leaves ~16 kB for ordinary work.
+ *
+ * That derived assertion is the one that matters. If a future raise pushes
+ * this constant up to meet it, the answer is not a bigger number -- it is that
+ * the shell has started carrying page code. */
+const ENTRY_BUDGET_BYTES = 260_000
 
 let files
 try {
