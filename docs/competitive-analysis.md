@@ -6,13 +6,13 @@ description: >-
 # Competitive Analysis — API Verity Lab
 
 <!-- generated:provenance -->
-Generated: 2026-09-09 · Evidence: live GitHub API metadata (see `data/competitor-meta.json`) + documented product models. Full machine-readable matrix: `data/competitive-capabilities.json`.
+Generated: 2026-10-01 · Evidence: live GitHub API metadata (see `data/competitor-meta.json`) + documented product models. Full machine-readable matrix: `data/competitive-capabilities.json`.
 <!-- /generated:provenance -->
 
 ## Method
 
 <!-- generated:method -->
-- Repo license, stars, last push, archived status and latest release fetched **live on 2026-09-09** via the authenticated GitHub API for every competitor.
+- Repo license, stars, last push, archived status and latest release fetched **live on 2026-10-01** via the authenticated GitHub API for every competitor.
 <!-- /generated:method -->
 - Qualitative capability claims are labeled VERIFIED (fetched metadata / official docs quotes) or KNOWLEDGE-BASED (documented product understanding).
 - No competitor is claimed to *lack* a feature without verification; unverified areas are `unknown`.
@@ -27,24 +27,24 @@ Generated: 2026-09-09 · Evidence: live GitHub API metadata (see `data/competito
   quarter rolled over punishes the wrong person and gets the check deleted.
 
 <!-- generated:landscape -->
-## Landscape snapshot (verified 2026-09-09)
+## Landscape snapshot (verified 2026-10-01)
 
 | Tool | License | Stars | Last push | Latest release | Status |
 |---|---|---|---|---|---|
-| oasdiff | Apache-2.0 | 1,356 | 2026-09-08 | v1.31.0 (2026-09-05) | active |
-| Schemathesis | MIT | 3,590 | 2026-09-09 | v4.26.1 (2026-09-08) | active |
-| Spectral | Apache-2.0 | 3,205 | 2026-09-06 | v6.16.3 (2026-08-03) | active |
-| Pact (pact-js) | NOASSERTION | 1,813 | 2026-09-07 | v17.1.4 (2026-09-07) | active |
-| Optic | MIT | 1,534 | 2026-01-08 | v1.0.9 (2025-08-10) | **archived** |
-| Dredd | MIT | 4,222 | 2024-05-11 | dredd@14.1.0 (2021-11-16) | **archived** |
-| Prism | Apache-2.0 | 5,028 | 2026-09-03 | v5.16.0 (2026-07-17) | active |
-| WireMock | Apache-2.0 | 7,363 | 2026-09-08 | 3.13.2 (2025-11-14) | active |
-| Hoverfly | Apache-2.0 | 2,512 | 2026-09-07 | v1.12.13 (2026-08-28) | active |
-| Karate | MIT | 8,950 | 2026-09-05 | v2.1.2 (2026-08-14) | active |
-| k6 | AGPL-3.0 | 31,424 | 2026-09-09 | v2.2.0 (2026-08-10) | active |
-| Newman | Apache-2.0 | 7,251 | 2026-08-05 | — | active |
-| GraphQL Inspector | MIT | 1,767 | 2026-08-20 | release-1787234790800 (2026-08-20) | active |
-| Buf | Apache-2.0 | 11,424 | 2026-09-09 | v1.72.0 (2026-07-17) | active |
+| oasdiff | Apache-2.0 | 1,398 | 2026-10-01 | v1.32.1 (2026-09-15) | active |
+| Schemathesis | MIT | 3,643 | 2026-10-01 | v4.28.0 (2026-09-22) | active |
+| Spectral | Apache-2.0 | 3,220 | 2026-10-01 | v6.17.0 (2026-10-01) | active |
+| Pact (pact-js) | NOASSERTION | 1,817 | 2026-10-01 | v17.1.4 (2026-09-07) | active |
+| Optic | MIT | 1,533 | 2026-01-08 | v1.0.9 (2025-08-10) | **archived** |
+| Dredd | MIT | 4,223 | 2024-05-11 | dredd@14.1.0 (2021-11-16) | **archived** |
+| Prism | Apache-2.0 | 5,047 | 2026-10-01 | v5.16.0 (2026-07-17) | active |
+| WireMock | Apache-2.0 | 7,386 | 2026-09-29 | 3.13.2 (2025-11-14) | active |
+| Hoverfly | Apache-2.0 | 2,523 | 2026-09-28 | v1.12.15 (2026-09-21) | active |
+| Karate | MIT | 8,972 | 2026-10-01 | v2.1.3 (2026-09-27) | active |
+| k6 | AGPL-3.0 | 31,739 | 2026-10-01 | v2.3.0 (2026-09-21) | active |
+| Newman | Apache-2.0 | 7,256 | 2026-09-30 | — | active |
+| GraphQL Inspector | MIT | 1,768 | 2026-10-01 | release-1790861621711 (2026-10-01) | active |
+| Buf | Apache-2.0 | 11,468 | 2026-09-30 | v1.73.0 (2026-09-11) | active |
 <!-- /generated:landscape -->
 
 ## What each one owns
